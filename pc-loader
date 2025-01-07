@@ -1,0 +1,27 @@
+-- Defina os PlaceIds e os respectivos links dos scripts
+local scripts = {
+    [10450270085] = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/jji", -- Substitua com o PlaceId e URL do seu script
+    [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- Exemplo de outro PlaceId
+    [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- E mais links de scripts
+}
+
+-- Função para carregar e executar o script
+local function loadScript(scriptUrl)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(scriptUrl))()
+    end)
+
+    if not success then
+        warn("Erro ao carregar o script: " .. err)
+    end
+end
+
+-- Verificar se o PlaceId do jogo está no mapa
+local gamePlaceId = game.PlaceId
+
+if scripts[gamePlaceId] then
+    print("PlaceId correto. Iniciando o script...")
+    loadScript(scripts[gamePlaceId])  -- Carrega o script específico para o PlaceId
+else
+    print("Erro: Este PlaceId não possui um script atribuído.")
+end
