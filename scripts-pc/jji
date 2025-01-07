@@ -2,48 +2,6 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Funções originais armazenadas
-local originalFireServer = Instance.new("RemoteEvent").FireServer
-local originalInvokeServer = Instance.new("RemoteFunction").InvokeServer
-
--- Exibe uma mensagem única para indicar que o bypass está ativo
-do
-    print("[Bypass Log] Sistema de bypass ativado com sucesso.")
-end
-
--- Bypass para RemoteEvent
-hookfunction(originalFireServer, function(self, ...)
-    local args = {...}
-    -- Processa os argumentos normalmente, sem logs adicionais
-    return originalFireServer(self, unpack(args))
-end)
-
--- Bypass para RemoteFunction
-hookfunction(originalInvokeServer, function(self, ...)
-    local args = {...}
-    -- Processa os argumentos normalmente, sem logs adicionais
-    return originalInvokeServer(self, unpack(args))
-end)
-
--- Proteção adicional contra logs do servidor
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-
-local oldNamecall = mt.__namecall
-mt.__namecall = function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-
-    if method == "FireServer" or method == "InvokeServer" then
-        -- Processa o método normalmente, sem emitir logs
-        return oldNamecall(self, unpack(args))
-    end
-
-    return oldNamecall(self, ...)
-end
-
-setreadonly(mt, true)
-
 local Window = Fluent:CreateWindow({
     Title = "Jujutsu Infinite | DzHub",
     TabWidth = 160,
