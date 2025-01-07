@@ -1,6 +1,6 @@
 -- Defina os PlaceIds e os respectivos links dos scripts
 local scripts = {
-    [10450270085] = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/jji", -- Substitua com o PlaceId e URL do seu script
+    [10450270085] = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/jji", -- Substitua com o PlaceId e URL do seu script
     [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- Exemplo de outro PlaceId
     [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- E mais links de scripts
 }
