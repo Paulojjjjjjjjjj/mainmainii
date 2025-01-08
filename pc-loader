@@ -1,8 +1,20 @@
 -- Defina os PlaceIds e os respectivos links dos scripts
 local scripts = {
-    [10450270085] = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/jji", -- Substitua com o PlaceId e URL do seu script
-    [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- Exemplo de outro PlaceId
-    [11111000000] = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua", -- E mais links de scripts
+    -- Lista de PlaceIds para o primeiro script
+    {
+        placeIds = {
+            16379688837, 16379684339, 16379657109, 16377799387, 
+            14659177645, 10450270085, 118693886221846, 99012371516746, 
+            78904562518018, 75962882346490, 17677081746, 17677080566, 
+            119359147980471, 125941597825997
+        },
+        scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/jji"
+    },
+    -- Lista de PlaceIds para outro script (exemplo)
+    {
+        placeIds = {11111000000, 11111000001}, -- Substitua pelos PlaceIds do outro mapa
+        scriptUrl = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"
+    }
 }
 
 -- Função para carregar e executar o script
@@ -16,12 +28,22 @@ local function loadScript(scriptUrl)
     end
 end
 
--- Verificar se o PlaceId do jogo está no mapa
+-- Verificar se o PlaceId do jogo está na lista de PlaceIds
 local gamePlaceId = game.PlaceId
+local scriptFound = false
 
-if scripts[gamePlaceId] then
-    print("PlaceId correto. Iniciando o script...")
-    loadScript(scripts[gamePlaceId])  -- Carrega o script específico para o PlaceId
-else
+for _, scriptInfo in ipairs(scripts) do
+    for _, placeId in ipairs(scriptInfo.placeIds) do
+        if placeId == gamePlaceId then
+            print("PlaceId correto. Iniciando o script...")
+            loadScript(scriptInfo.scriptUrl) -- Carrega o script correspondente
+            scriptFound = true
+            break
+        end
+    end
+    if scriptFound then break end
+end
+
+if not scriptFound then
     print("Erro: Este PlaceId não possui um script atribuído.")
 end
