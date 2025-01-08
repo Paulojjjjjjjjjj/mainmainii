@@ -726,6 +726,13 @@ Misc2Section:AddToggle("BlackFlashToggle", {
 })
 
 local CoreGui = game:GetService("CoreGui")
+
+-- Remover qualquer GUI persistente anterior com o mesmo nome
+local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
+if ExistingGui then
+    ExistingGui:Destroy()
+end
+
 local ScreenGuiToMinimize
 
 -- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
@@ -749,25 +756,19 @@ end
 print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
 
 -- Criar botão persistente
-local MinimizeGui = CoreGui:FindFirstChild("MinimizeButtonGui")
-if not MinimizeGui then
-    MinimizeGui = Instance.new("ScreenGui", CoreGui)
-    MinimizeGui.Name = "MinimizeButtonGui"
-end
+local MinimizeGui = Instance.new("ScreenGui", CoreGui)
+MinimizeGui.Name = "MinimizeButtonGui"
 
-local MinimizeButton = MinimizeGui:FindFirstChild("MinimizeButton")
-if not MinimizeButton then
-    MinimizeButton = Instance.new("ImageButton", MinimizeGui)
-    MinimizeButton.Name = "MinimizeButton"
-    MinimizeButton.Size = UDim2.new(0, 44, 0, 45)
-    MinimizeButton.Position = UDim2.new(0.1, 0, 0.1, 0)
-    MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    MinimizeButton.BorderSizePixel = 0
-    MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
+local MinimizeButton = Instance.new("ImageButton", MinimizeGui)
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 44, 0, 45)
+MinimizeButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
 
-    -- Adicionar UICorner ao botão para arredondar bordas
-    local UICorner = Instance.new("UICorner", MinimizeButton)
-end
+-- Adicionar UICorner ao botão para arredondar bordas
+local UICorner = Instance.new("UICorner", MinimizeButton)
 
 -- Função para minimizar corretamente
 MinimizeButton.MouseButton1Click:Connect(function()
