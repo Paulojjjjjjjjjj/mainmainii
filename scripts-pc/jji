@@ -8,7 +8,7 @@ local Window = Fluent:CreateWindow({
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false, -- Remove o blur para performance
     Theme = "Darker",
-    MinimizeKey = Enum.KeyCode.LeftControl
+    MinimizeKey = Enum.KeyCode.RightShift
 })
 
 -- Criação das abas
@@ -16,7 +16,8 @@ local Tabs = {
     Main = Window:AddTab({ Title = "Main"}),
     Raid = Window:AddTab({ Title = "Raid"}),
     Gamepass = Window:AddTab({ Title = "Gamepasses"}),
-    Skills = Window:AddTab({ Title = "Skills"})
+    Skills = Window:AddTab({ Title = "Skills"}),
+    Misc = Window:AddTab({ Title = "Misc"})
 }
 
 -- Variável para armazenar conexões de loops
@@ -40,6 +41,7 @@ local MiscSection = Tabs.Main:AddSection("Misc")
 local Misc2Section = Tabs.Skills:AddSection("Misc")
 local InnatesSection = Tabs.Skills:AddSection("Innates (Skills)")
 local Innates2Section = Tabs.Skills:AddSection("Innates (No Skills)")
+local MiscMiscSection = Tabs.Misc:AddSection("Optimization")
 
 -- Função para simular a posse de uma Gamepass
 local function simulateGamepass(id, name, state)
@@ -678,5 +680,120 @@ Misc2Section:AddToggle("BlackFlashToggle", {
     Default = false, -- Toggle inicialmente desativada
     Callback = function(state)
         toggleBlackFlashSpam(state) -- Liga ou desliga o spam
+    end
+})
+
+MiscMiscSection:AddButton({
+    Title = "Anti-Lag e FPS Booster",
+    Description = "Ativa o modo Anti-Lag para melhorar o desempenho.",
+    Callback = function()
+        -- Função de Anti-Lag e FPS Booster
+        local function antiLagAndFPSBooster()
+            -- Reduzir gráficos do jogo
+            local settings = game:GetService("Lighting")
+            settings.GlobalShadows = false
+            settings.FogEnd = 9e9
+            settings.Brightness = 1
+
+            -- Remover partes desnecessárias
+            for _, object in ipairs(workspace:GetDescendants()) do
+                if object:IsA("BasePart") then
+                    object.Material = Enum.Material.Plastic
+                    object.Reflectance = 0
+                elseif object:IsA("ParticleEmitter") or object:IsA("Trail") then
+                    object:Destroy()
+                elseif object:IsA("MeshPart") then
+                    object.TextureID = ""
+                elseif object:IsA("Decal") or object:IsA("Texture") then
+                    object:Destroy()
+                end
+            end
+
+            -- Ajustar configurações para objetos no Player
+            local player = game:GetService("Players").LocalPlayer
+            if player then
+                local character = player.Character or player.CharacterAdded:Wait()
+                for _, part in ipairs(character:GetDescendants()) do
+                    if part:IsA("ParticleEmitter") or part:IsA("Trail") then
+                        part:Destroy()
+                    elseif part:IsA("BasePart") then
+                        part.Material = Enum.Material.Plastic
+                        part.Reflectance = 0
+                    end
+                end
+            end
+
+            -- Notificação
+            print("Anti-Lag e FPS Booster ativado!")
+        end
+
+        -- Ativar Anti-Lag
+        antiLagAndFPSBooster()
+    end
+})
+
+MiscMiscSection:AddButton({
+    Title = "Super Anti-Lag e FPS Booster",
+    Description = "Reduz a carga gráfica e melhora o desempenho do jogo.",
+    Callback = function()
+        -- Função de Super Anti-Lag e FPS Booster
+        local function superAntiLagAndFPSBooster()
+            -- Reduzir configurações de iluminação
+            local lighting = game:GetService("Lighting")
+            lighting.GlobalShadows = false
+            lighting.FogEnd = 1e6
+            lighting.Brightness = 1
+            lighting.ClockTime = 12 -- Define o horário para meio-dia, evitando sombras.
+            lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+
+            -- Desabilitar sons de fundo
+            for _, sound in ipairs(game:GetService("SoundService"):GetDescendants()) do
+                if sound:IsA("Sound") then
+                    sound:Stop()
+                end
+            end
+
+            -- Remover partes e objetos desnecessários
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.Material = Enum.Material.Plastic
+                    obj.Reflectance = 0
+                    obj.CastShadow = false
+                elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") then
+                    obj:Destroy()
+                elseif obj:IsA("MeshPart") then
+                    obj.TextureID = ""
+                    obj.CastShadow = false
+                elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                    obj:Destroy()
+                elseif obj:IsA("Beam") or obj:IsA("Light") then
+                    obj:Destroy()
+                end
+            end
+
+            -- Otimizar para o personagem do jogador
+            local player = game:GetService("Players").LocalPlayer
+            if player then
+                local character = player.Character or player.CharacterAdded:Wait()
+                for _, part in ipairs(character:GetDescendants()) do
+                    if part:IsA("ParticleEmitter") or part:IsA("Trail") or part:IsA("Smoke") or part:IsA("Fire") then
+                        part:Destroy()
+                    elseif part:IsA("BasePart") then
+                        part.Material = Enum.Material.Plastic
+                        part.Reflectance = 0
+                    end
+                end
+            end
+
+            -- Configurações gerais de desempenho
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 -- Nível mais baixo de qualidade gráfica
+            settings().Network.IncomingReplicationLag = 0 -- Reduz atrasos na replicação de rede
+
+            -- Notificação de ativação
+            print("Super Anti-Lag e FPS Booster ativado com sucesso!")
+        end
+
+        -- Ativar o modo Super Anti-Lag
+        superAntiLagAndFPSBooster()
     end
 })
