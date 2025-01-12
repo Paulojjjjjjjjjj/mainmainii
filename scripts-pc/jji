@@ -427,40 +427,6 @@ MiscSection:AddToggle("AutoPromote", { Title = "Auto Promote", Default = false }
         end
     end)
 
--- Sistema de Missões
-local missions = {
-{
-    ["type"] = "Kill",
-    ["set"] = "Yuki Fortress Set",
-    ["rewards"] = {
-        ["essence"] = 10,
-        ["cash"] = 40000,
-        ["exp"] = 8500000,
-        ["chestMeter"] = 75
-    },
-    ["rewardsText"] = "$50K | 8.5 MILLION EXP | DZHUB",
-    ["difficulty"] = 4,
-    ["title"] = "DZHUB",
-    ["level"] = 425,
-    ["subtitle"] = "By dexz0",
-    ["grade"] = "Non Sorcerer"
-}
-}
-
-MiscSection:AddButton({
-    Title = "Start Quest Op",
-    Description = "this quest gives 8.5 million xp and 50k cash",
-    Callback = function()
-        local randomMission = missions[math.random(1, #missions)]
-
-        -- Envia a missão ao servidor
-        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("Data"):WaitForChild("TakeQuest"):InvokeServer(randomMission)
-
-        -- Exibe informações sobre a missão
-        print("Missão iniciada:", randomMission.title, "-", randomMission.subtitle)
-    end
-})
-
 -- Configuração da aba "Raid" na Fluent GUI
 Tabs.Raid:AddToggle("BypassLevelToggle", { Title = "Bypass Level 1000", Default = false })
     :OnChanged(function(state)
