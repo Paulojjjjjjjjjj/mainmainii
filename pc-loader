@@ -3,29 +3,24 @@ local scripts = {
     -- Lista de PlaceIds para o primeiro script
     {
         placeIds = {
-        16379688837, 16379684339, 16379657109, 16377799387, 
-        14659177645, 10450270085, 118693886221846, 99012371516746, 
-        78904562518018, 75962882346490, 17677081746, 17677080566, 
-        119359147980471, 125941597825997
+            16379688837, 16379684339, 16379657109, 16377799387,
+            14659177645, 10450270085, 118693886221846, 99012371516746,
+            78904562518018, 75962882346490, 17677081746, 17677080566,
+            119359147980471, 125941597825997
         },
         scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/jji"
     },
     -- Lista de PlaceIds para outro script (exemplo)
     {
-        placeIds = {11111000000, 11111000001}, -- Substitua pelos PlaceIds do outro mapa
-        scriptUrl = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"
-    },
-    -- Lista de PlaceIds para outro script (exemplo)
-    {
-        local placeIds = {13772394625, 14368557094, 14732610803, 14915220621,
-         15131065025, 15144787112, 15185247558, 15234596844, 
-         15264892126, 15509350986, 15517169103, 15552588346,  
-         15582821022, 15582823307, 16044264830, 16281300371,   
-         16331595046, 16331596518, 16331598816  16331600459, 
-         16456370330, 16581637217, 16581648071, 17757592456,
-         92458008626219, 111661204337143 
-        }
-         -- Substitua pelos PlaceIds do outro mapa
+        placeIds = {
+            13772394625, 14368557094, 14732610803, 14915220621,
+            15131065025, 15144787112, 15185247558, 15234596844,
+            15264892126, 15509350986, 15517169103, 15552588346,
+            15582821022, 15582823307, 16044264830, 16281300371,
+            16331595046, 16331596518, 16331598816, 16331600459,
+            16456370330, 16581637217, 16581648071, 17757592456,
+            92458008626219, 111661204337143
+        }, -- <- Missing closing brace was added here
         scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/bbl"
     }
 }
