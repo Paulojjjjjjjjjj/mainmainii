@@ -153,8 +153,8 @@ RunService.Heartbeat:Connect(function()
 end)
 
 Tabs.Main:AddToggle("AutoParryToggle", {
-    Title = "Enable Advanced Auto Parry",
-    Description = "Automatically parry the ball with dynamic logic",
+    Title = "Auto Parry",
+    Description = ":)",
     Default = false,
     Callback = function(state)
         AutoParryEnabled = state
@@ -165,4 +165,3 @@ Tabs.Main:AddToggle("AutoParryToggle", {
         end
     end,
 })
- 
