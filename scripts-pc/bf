@@ -527,7 +527,7 @@ local function BringMob()
     end
 end
 
--- Inicialização das variáveis globais, se não existirem
+-- Verifica e inicializa as variáveis globais se não existirem
 _G.AutoFarm = _G.AutoFarm or false
 _G.BringMob = _G.BringMob or false
 
@@ -535,11 +535,11 @@ _G.BringMob = _G.BringMob or false
 Farm:AddToggle("AutoFarmToggle", {
     Title = "Auto Farm",
     Description = "Automatically farms based on your level.",
-    Default = _G.AutoFarm, -- Configuração inicial com base no valor de _G.AutoFarm
+    Default = _G.AutoFarm, -- Configuração inicial com base em _G.AutoFarm
     Callback = function(state)
-        _G.AutoFarm = state -- Atualiza a variável global
+        _G.AutoFarm = state -- Atualiza o valor global
         for _, part in ipairs(AUTO_FARM_PARTS) do
-            part.Enabled = _G.AutoFarm
+            part.Enabled = state
             part.initialized = false -- Reinicia o estado de inicialização
         end
 
@@ -547,11 +547,11 @@ Farm:AddToggle("AutoFarmToggle", {
         currentPartIndex = 1
         currentIndex = 1
 
-        if _G.AutoFarm then
+        if state then
             print("Auto Farm activated.")
             spawn(function()
                 while _G.AutoFarm do
-                    AutoFarm() -- Chama a função AutoFarm enquanto ativo
+                    AutoFarm()
                     task.wait(1)
                 end
             end)
@@ -565,14 +565,14 @@ Farm:AddToggle("AutoFarmToggle", {
 Farm:AddToggle("BringMobToggle", {
     Title = "Bring Mob",
     Description = "Bring mobs closer to the current enemy.",
-    Default = _G.BringMob, -- Configuração inicial com base no valor de _G.BringMob
+    Default = _G.BringMob, -- Configuração inicial com base em _G.BringMob
     Callback = function(state)
-        _G.BringMob = state -- Atualiza a variável global
-        if _G.BringMob then
+        _G.BringMob = state -- Atualiza o valor global
+        if state then
             print("Bring Mob enabled.")
             spawn(function()
                 while _G.BringMob do
-                    BringMob() -- Chama a função BringMob enquanto ativo
+                    BringMob()
                     task.wait(0.5)
                 end
             end)
@@ -582,7 +582,7 @@ Farm:AddToggle("BringMobToggle", {
     end
 })
 
--- Verificação inicial para ativar automaticamente com base em _G
+-- Inicialização automática com base nos valores de _G
 if _G.AutoFarm then
     spawn(function()
         for _, part in ipairs(AUTO_FARM_PARTS) do
