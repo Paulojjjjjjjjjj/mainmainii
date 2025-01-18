@@ -527,14 +527,19 @@ local function BringMob()
     end
 end
 
+-- Inicialização das variáveis globais
+_G.AutoFarm = false
+_G.BringMob = false
+
 -- Toggle para o Auto Farm
 Farm:AddToggle("AutoFarmToggle", {
     Title = "Auto Farm",
     Description = "Automatically farms based on your level.",
     Default = false,
     Callback = function(state)
+        _G.AutoFarm = state -- Atualiza a variável global
         for _, part in ipairs(AUTO_FARM_PARTS) do
-            part.Enabled = state
+            part.Enabled = _G.AutoFarm
             part.initialized = false -- Reinicia o estado de inicialização
         end
 
@@ -542,9 +547,14 @@ Farm:AddToggle("AutoFarmToggle", {
         currentPartIndex = 1
         currentIndex = 1
 
-        if state then
+        if _G.AutoFarm then
             print("Auto Farm activated.")
-            spawn(AutoFarm)
+            spawn(function()
+                while _G.AutoFarm do
+                    AutoFarm() -- Chama a função AutoFarm enquanto ativo
+                    task.wait(1)
+                end
+            end)
         else
             print("Auto Farm deactivated.")
         end
@@ -557,15 +567,20 @@ Farm:AddToggle("BringMobToggle", {
     Description = "Bring mobs closer to the current enemy.",
     Default = false,
     Callback = function(state)
-        BRING_MOB_CONFIG.Enabled = state
-        if state then
-            spawn(BringMob)
+        _G.BringMob = state -- Atualiza a variável global
+        if _G.BringMob then
+            print("Bring Mob enabled.")
+            spawn(function()
+                while _G.BringMob do
+                    BringMob() -- Chama a função BringMob enquanto ativo
+                    task.wait(0.5)
+                end
+            end)
         else
             print("Bring Mob disabled.")
         end
     end
 })
-
 -- ####################
 -- CONFIGURAÇÕES DO KILL AURA
 -- ####################
