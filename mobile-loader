@@ -12,8 +12,10 @@ local scripts = {
     },
     -- Lista de PlaceIds para outro script (exemplo)
     {
-        placeIds = {11111000000, 11111000001}, -- Substitua pelos PlaceIds do outro mapa
-        scriptUrl = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"
+        placeIds = {
+            17274762379
+        },
+        scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/mushyo"
     }
 }
 
