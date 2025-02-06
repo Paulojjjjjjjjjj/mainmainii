@@ -10,7 +10,7 @@ local scripts = {
         },
         scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/jji"
     },
-    -- Lista de PlaceIds para outro script (exemplo)
+    -- Lista de PlaceIds para outro script 
     {
         placeIds = {
             13772394625, 14368557094, 14732610803, 14915220621,
@@ -22,7 +22,14 @@ local scripts = {
             92458008626219, 111661204337143
         }, -- <- Missing closing brace was added here
         scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/bbl"
-    }
+    },
+    -- Lista de PlaceIds para outro script 
+    {
+        placeIds = {
+            17274762379
+        },
+        scriptUrl = "https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/mushyo"
+    },
 }
 
 -- Função para carregar e executar o script
