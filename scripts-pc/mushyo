@@ -1,0 +1,54 @@
+print("by tecleinobr || o melhor do momento")
+
+wait(10)
+
+print("tudo certo por aqui")
+local player = game.Players.LocalPlayer
+local fishingRod = player.Backpack:FindFirstChild("Fishing Rod")
+-- Função para pegar a vara
+local function equipFishingRod()
+    if fishingRod then
+        -- Equipando a vara de pescar
+        fishingRod.Parent = player.Character
+        fishingRod.Handle.Anchored = false  -- Certifique-se de que a vara não esteja ancorada
+        print("Vara de pescar equipada!")
+    else
+        warn("Vara de pescar não encontrada no Backpack!")
+    end
+end
+
+-- Chama a função para equipar a vara
+equipFishingRod()
+
+
+local args = {
+    [1] = {
+        ["destiny"] = Vector3.new(-291.2904052734375, 26, -81.78752899169922),
+        ["whatToDo"] = "CreateBuoy"
+    }
+}
+
+game:GetService("Players").LocalPlayer.Character:FindFirstChild("Fishing Rod").RemoteEvent:FireServer(unpack(args))
+
+
+local args = {
+    [1] = {
+        ["whatToDo"] = "Fish"
+    }
+}
+
+game:GetService("Players").LocalPlayer.Character:FindFirstChild("Fishing Rod").RemoteEvent:FireServer(unpack(args)) 
+
+local player = game.Players.LocalPlayer
+
+-- Função para reiniciar o jogo
+local function rejoinGame()
+    -- Aguarda 2 segundos antes de fazer o rejoin
+    wait(3)
+    
+    -- Recarrega o jogo
+    game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+end
+
+-- Aciona o rejoin
+rejoinGame()
