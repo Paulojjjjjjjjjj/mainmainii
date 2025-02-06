@@ -1,17 +1,32 @@
-print("by tecleinobr || o melhor do momento")
-
 wait(2)
 
-print("seu inventario:")
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+Fluent:Notify({
+    Title = "",
+    Content = "by tecleino || o melhor do momento",
+    Duration = 5
+})
 
 local diamantes = game:GetService("Players").LocalPlayer.FishingItems.Diamond.Value
-print("dima: " .. diamantes)
+Fluent:Notify({
+    Title = "Inventário",
+    Content = "Diamantes: " .. diamantes,
+    Duration = 5
+})
 
 local peixe = game:GetService("Players").LocalPlayer.FishingItems.Fish.Value
-print("peixe: " .. peixe)
+Fluent:Notify({
+    Title = "Inventário",
+    Content = "Peixes: " .. peixe,
+    Duration = 5
+})
 
 local lixo = game:GetService("Players").LocalPlayer.FishingItems.Trash.Value
-print("lixo: " .. lixo)
+Fluent:Notify({
+    Title = "Inventário",
+    Content = "Lixo: " .. lixo,
+    Duration = 5
+})
 
 wait(1)
 
