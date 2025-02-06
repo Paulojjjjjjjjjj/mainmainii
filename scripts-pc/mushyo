@@ -1,3 +1,21 @@
+
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Criar uma parte (plataforma) e definir propriedades
+local part = Instance.new("Part")
+part.Name = "HiddenPlatform"
+part.Size = Vector3.new(10, 1, 10) -- Ajuste o tamanho se quiser
+part.Anchored = true
+part.CanCollide = true
+part.Position = Vector3.new(hrp.Position.X, -500, hrp.Position.Z) -- Ajuste a altura aqui
+part.Parent = workspace
+
+-- Teleportar o jogador para cima da plataforma
+hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, part.Size.Y/2 + 5, 0))
+print("teleportado")
+
 wait(2)
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
