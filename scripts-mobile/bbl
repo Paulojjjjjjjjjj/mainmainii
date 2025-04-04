@@ -1,1 +1,167 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
+local Window = Fluent:CreateWindow({
+    Title = "Blade Ball | DZHUB ",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+}
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local Player = Players.LocalPlayer
+
+-- Variáveis globais
+local IsParried = false
+local AutoParryEnabled = false
+local ProximityThreshold = 2 -- Distância para detectar proximidade de outro jogador
+local FastClickWait = 0.005 -- Intervalo de clique rápido (ajustado por ping)
+local NormalClickWait = 0.01 -- Intervalo de clique normal (ajustado por ping)
+
+-- Ajuste dinâmico baseado no ping
+local function AdjustForPing()
+    local Ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+
+    if Ping < 30 then -- Ping baixo
+        ReactionTime = 0.08
+        PrecisionBuffer = 0.05
+        FastClickWait = 0.003
+        NormalClickWait = 0.006
+    elseif Ping < 100 then -- Ping médio
+        ReactionTime = 0.12
+        PrecisionBuffer = 0.1
+        FastClickWait = 0.005
+        NormalClickWait = 0.01
+    else -- Ping alto
+        ReactionTime = 0.15
+        PrecisionBuffer = 0.15
+        FastClickWait = 0.008
+        NormalClickWait = 0.012
+    end
+end
+
+-- Função otimizada para encontrar a bola mais próxima
+local function GetClosestBall()
+    local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return nil end
+
+    local PlayerPosition = HRP.Position
+    local ClosestBall = nil
+    local MinDistance = math.huge
+
+    for _, Ball in ipairs(workspace.Balls:GetChildren()) do
+        if Ball:GetAttribute("realBall") and Ball:GetAttribute("target") == Player.Name then
+            local Distance = (PlayerPosition - Ball.Position).Magnitude
+            if Distance < MinDistance then
+                MinDistance = Distance
+                ClosestBall = Ball
+                if MinDistance <= 1 then break end
+            end
+        end
+    end
+
+    return ClosestBall
+end
+
+-- Função para verificar se um jogador está próximo
+local function IsPlayerNearby()
+    local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return false end
+
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= Player and otherPlayer.Character then
+            local otherHRP = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if otherHRP then
+                local Distance = (HRP.Position - otherHRP.Position).Magnitude
+                if Distance <= ProximityThreshold then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Função para calcular o tempo estimado de impacto
+local function TimeToImpact(HRP, Ball)
+    if not HRP or not Ball then return math.huge end
+    local Speed = Ball.zoomies and Ball.zoomies.VectorVelocity.Magnitude or 0
+    if Speed == 0 then return math.huge end
+    local Distance = (HRP.Position - Ball.Position).Magnitude
+    return Distance / Speed
+end
+
+-- Função para verificar se a bola está no alcance de 360 graus
+local function IsBallIn360Range(HRP, Ball)
+    if not HRP or not Ball then return false end
+    local DirectionToBall = (Ball.Position - HRP.Position).Unit
+    local ForwardDirection = HRP.CFrame.LookVector.Unit
+    local DotProduct = ForwardDirection:Dot(DirectionToBall)
+    local Angle = math.deg(math.acos(DotProduct))
+    return Angle <= 360
+end
+
+-- Lógica principal do sistema
+RunService.Heartbeat:Connect(function()
+    if not AutoParryEnabled then return end
+
+    -- Ajustar parâmetros dinamicamente com base no ping
+    AdjustForPing()
+
+    local Ball = GetClosestBall()
+    local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not Ball or not HRP then return end
+
+    if Ball:GetAttribute("target") ~= Player.Name then return end
+
+    local ImpactTime = TimeToImpact(HRP, Ball)
+
+    -- Verificar se a bola está dentro do alcance de parry
+    if not IsBallIn360Range(HRP, Ball) then
+        return
+    end
+
+    -- Determinar a velocidade de clique com base na proximidade de outros jogadores
+    local ClickWait = IsPlayerNearby() and FastClickWait or NormalClickWait
+
+    -- Lógica de Parry
+    if not IsParried and ImpactTime <= ReactionTime + PrecisionBuffer and ImpactTime > 0 then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+        task.wait(ClickWait)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
+        IsParried = true
+
+        Ball:GetAttributeChangedSignal("target"):Connect(function()
+            IsParried = false
+        end)
+
+        task.delay(2, function()
+            IsParried = false
+        end)
+    end
+end)
+
+Tabs.Main:AddToggle("AutoParryToggle", {
+    Title = "Auto Parry",
+    Description = ":)",
+    Default = false,
+    Callback = function(state)
+        AutoParryEnabled = state
+        if state then
+            print("Advanced Auto Parry Enabled")
+        else
+            print("Advanced Auto Parry Disabled")
+        end
+    end,
+})
