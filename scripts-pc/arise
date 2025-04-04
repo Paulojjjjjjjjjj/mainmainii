@@ -337,20 +337,26 @@ local Toggle = Tabs.Main:AddToggle("AutoEquipBestShadows", {
     end
 })
 
-
 local player = game:GetService("Players").LocalPlayer
 local userId = tostring(player.UserId)
 local petsFolder = workspace.__Main.__Pets:FindFirstChild(userId)
 local enemiesFolder = workspace.__Main.__Enemies:FindFirstChild("Client")
 local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
 
-local autoAttackEnabled = false -- Variável de controle
+local autoAttackEnabled = false
+local lastTarget = nil -- Armazena o último inimigo atacado
+
+local function hasExtraEquip()
+    local passes = player.leaderstats.Passes
+    return passes and passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value
+end
 
 local function getEquippedPets()
     local equippedPets = {}
     local petsData = player.leaderstats.Equips.Pets
+    local maxPets = hasExtraEquip() and 7 or 4
 
-    for i = 1, 4 do -- Pegando os 4 pets equipados
+    for i = 1, maxPets do
         local petName = petsData:GetAttribute(tostring(i))
         if petName then
             table.insert(equippedPets, petName)
@@ -360,19 +366,17 @@ local function getEquippedPets()
     return equippedPets
 end
 
-local function getPetPositions(equippedPets)
+local function getPetPositions()
+    local equippedPets = getEquippedPets()
     local petPositions = {}
 
     if petsFolder then
         for _, petName in ipairs(equippedPets) do
             local petModelFolder = petsFolder:FindFirstChild(petName)
             if petModelFolder then
-                local petModel = petModelFolder:FindFirstChild(petName)
-                if petModel and petModel:IsA("Model") then
-                    local part = petModel.PrimaryPart or petModel:FindFirstChildWhichIsA("BasePart")
-                    if part then
-                        petPositions[petName] = part.Position
-                    end
+                local petModel = petModelFolder:FindFirstChildWhichIsA("Model")
+                if petModel and petModel.PrimaryPart then
+                    petPositions[petName] = petModel.PrimaryPart.Position
                 end
             end
         end
@@ -385,7 +389,7 @@ local function getClosestEnemy()
     if not enemiesFolder then return nil end
 
     local closestEnemy = nil
-    local minDistance = math.huge -- Define a menor distância inicial como infinita
+    local minDistance = math.huge
     local playerPosition = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
 
     if not playerPosition then return nil end
@@ -397,7 +401,7 @@ local function getClosestEnemy()
                 local distance = (enemyPart.Position - playerPosition).Magnitude
                 if distance < minDistance then
                     minDistance = distance
-                    closestEnemy = enemy.Name
+                    closestEnemy = enemy
                 end
             end
         end
@@ -408,30 +412,51 @@ end
 
 local function attackShadow()
     while autoAttackEnabled do
-        local equippedPets = getEquippedPets()
-        local petPositions = getPetPositions(equippedPets)
-        local enemyTarget = getClosestEnemy() -- Busca o inimigo mais próximo
+        local enemy = getClosestEnemy()
+        if enemy then
+            local enemyName = enemy.Name
+            local enemyHealthText = enemy:FindFirstChild("HealthBar") 
+                and enemy.HealthBar:FindFirstChild("Main") 
+                and enemy.HealthBar.Main:FindFirstChild("Bar") 
+                and enemy.HealthBar.Main.Bar:FindFirstChild("Amount") 
+                and enemy.HealthBar.Main.Bar.Amount.Text
 
-        if enemyTarget and next(petPositions) then
-            local args = {
-                [1] = {
-                    [1] = {
-                        ["PetPos"] = petPositions,
-                        ["AttackType"] = "All",
-                        ["Event"] = "Attack",
-                        ["Enemy"] = enemyTarget
-                    },
-                    [2] = "\t"
-                }
-            }
+            local enemyHealth = enemyHealthText and tonumber(enemyHealthText:match("%d+")) or 0
 
-            remoteEvent:FireServer(unpack(args))
-            print("Attacking the nearest enemy:", enemyTarget)
+            if enemyHealth > 0 then
+                if lastTarget ~= enemyName then -- Evita atacar o mesmo inimigo repetidamente
+                    lastTarget = enemyName
+
+                    local petPositions = getPetPositions()
+                    if next(petPositions) then
+                        local args = {
+                            [1] = {
+                                [1] = {
+                                    ["PetPos"] = petPositions,
+                                    ["AttackType"] = "All",
+                                    ["Event"] = "Attack",
+                                    ["Enemy"] = enemyName
+                                },
+                                [2] = "\t"
+                            }
+                        }
+
+                        remoteEvent:FireServer(unpack(args))
+                        print("Atacando:", enemyName)
+                    else
+                        print("Nenhum pet posicionado para atacar.")
+                    end
+                end
+            else
+                print("Inimigo morto, procurando outro...")
+                lastTarget = nil -- Reseta o alvo para buscar um novo
+            end
         else
-            print("No enemies found nearby or pets not loaded!")
+            print("Nenhum inimigo encontrado.")
+            lastTarget = nil
         end
 
-        task.wait(0.5) -- Ajuste o tempo de ataque conforme necessário
+        task.wait(1)
     end
 end
 
@@ -443,7 +468,8 @@ local Toggle = Tabs.Main:AddToggle("AutoAttackShadow", {
         autoAttackEnabled = state
         if state then
             print("Auto Attack Shadow ON!")
-            task.spawn(attackShadow) -- Inicia o loop de ataque
+            lastTarget = nil -- Reseta o último inimigo quando ativado
+            task.spawn(attackShadow)
         else
             print("Auto Attack Shadow OFF!")
         end
@@ -459,18 +485,25 @@ local lastNames = {}
 local selectedEnemyName = nil
 local autoTpEnabled = false
 
--- Função para teleportar suavemente até o NPC
+-- Função para teleportar suavemente até o lado do NPC
 local function smoothTeleportTo(model)
     if not model or not model:IsA("Model") then return end
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local targetPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not hrp or not targetPart then return end
 
+    -- Offset ao lado e acima do NPC
+    local offset = Vector3.new(5, 2, 0)
+    local targetPosition = (targetPart.CFrame.Position + offset)
+
+    -- Cria um CFrame apenas com posição (sem rotação)
+    local finalCFrame = CFrame.new(targetPosition)
+
     local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
-    local goal = {CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)}
-    local tween = TweenService:Create(hrp, tweenInfo, goal)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = finalCFrame})
     tween:Play()
 end
+
 
 -- Função para encontrar o próximo NPC com o mesmo nome
 local function findNextEnemy()
@@ -548,20 +581,17 @@ function updateDropdown()
 
     table.sort(names)
 
-    -- Atualiza o dropdown apenas se houver mudanças
     if #names ~= #lastNames or table.concat(names) ~= table.concat(lastNames) then
         lastNames = names
         enemyDropdown:SetValues(names)
         print("Dropdown updated:", names)
 
-        -- Se o inimigo atual não estiver mais na lista, selecionar um novo
         if selectedEnemyName == nil or not table.find(names, selectedEnemyName) then
             selectedEnemyName = names[1] or nil
         end
     end
 end
 
--- Loop para atualizar o dropdown automaticamente
 task.spawn(function()
     while task.wait(2) do
         updateDropdown()
@@ -576,76 +606,59 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- Configuração do teleporte suave
-local teleporting = false
-local teleportStartCFrame = nil
-local teleportEndCFrame = nil
-local teleportStartTime = 0
-local teleportDuration = 1 -- Duração em segundos
+-- Duração da animação de teleporte
+local teleportDuration = 1
 
--- Função principal de teleporte suave
+-- Função para teleporte suave usando TweenService
 local function smoothTeleport(targetPosition)
-    if teleporting then return end
-    
-    teleporting = true
-    teleportStartCFrame = hrp.CFrame
-    teleportEndCFrame = CFrame.new(targetPosition + Vector3.new(0, 5, 0))
-    teleportStartTime = tick()
-    
-    local connection
-    connection = RunService.RenderStepped:Connect(function()
-        if not teleporting or not hrp then
-            connection:Disconnect()
-            return
-        end
-        
-        local elapsed = tick() - teleportStartTime
-        local progress = math.min(elapsed / teleportDuration, 1)
-        local smoothProgress = progress < 0.5 and 2 * progress * progress or 1 - math.pow(-2 * progress + 2, 2) / 2 -- Easing quadrático
-        
-        hrp.CFrame = teleportStartCFrame:Lerp(teleportEndCFrame, smoothProgress)
-        
-        if progress >= 1 then
-            teleporting = false
-            connection:Disconnect()
-        end
-    end)
+    if not hrp then return end
+
+    -- Offset para não grudar no chão
+    local finalPosition = targetPosition + Vector3.new(0, 5, 0)
+
+    -- Cria CFrame só com a posição (sem rotação)
+    local finalCFrame = CFrame.new(finalPosition)
+
+    -- Cria e executa o tween
+    local tweenInfo = TweenInfo.new(teleportDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = finalCFrame})
+    tween:Play()
 end
 
--- Organização das localizações
+-- Tabela de posições
 local teleportLocations = {
     ["World Teleport"] = {
-        ["World 1"] = Vector3.new(430.43133544921875, 28.083515167236328, -6.193761348724365),
-        ["World 2"] = Vector3.new(-3376.060791015625, 30.260459899902344, 2252.27587890625),
-        ["World 3"] = Vector3.new(-2864.343994140625, 57.738319396972656, -2044.593994140625),
-        ["World 4"] = Vector3.new(2791.1044921875, 46.42753219604492, -2743.594482421875),
-        ["World 5"] = Vector3.new(198.628173828125, 38.70767593383789, 4276.8408203125),
-        ["World 6"] = Vector3.new(192.60565185546875, 32.89609146118164, -4293.87109375),
-        ["World 7"] = Vector3.new(4817.642578125, 29.942338943481445, -158.6181640625)
+        ["World 1"] = Vector3.new(430.431, 28.083, -6.193),
+        ["World 2"] = Vector3.new(-3376.060, 30.260, 2252.275),
+        ["World 3"] = Vector3.new(-2864.344, 57.738, -2044.594),
+        ["World 4"] = Vector3.new(2791.104, 46.427, -2743.594),
+        ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
+        ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
+        ["World 7"] = Vector3.new(4817.643, 29.942, -158.618)
     },
     ["World BlackSmith"] = {
-        ["World 1"] = Vector3.new(543.5099487304688, 28.08351707458496, 256.3665466308594),
-        ["World 2"] = Vector3.new(-3418.732177734375, 30.77031707763672, 2276.208984375),
-        ["World 3"] = Vector3.new(-2833.557373046875, 50.67671203613281, -2029.1429443359375),
-        ["World 4"] = Vector3.new(2602.3798828125, 46.42753219604492, -2711.7822265625),
-        ["World 5"] = Vector3.new(188.7220458984375, 37.85314178466797, 4388.13671875),
-        ["World 6"] = Vector3.new(286.6446533203125, 32.89609146118164, -4409.24755859375),
-        ["World 7"] = Vector3.new(4890.34912109375, 41.833194732666016, -78.66375732421875)
+        ["World 1"] = Vector3.new(543.510, 28.083, 256.367),
+        ["World 2"] = Vector3.new(-3418.732, 30.770, 2276.209),
+        ["World 3"] = Vector3.new(-2833.557, 50.677, -2029.143),
+        ["World 4"] = Vector3.new(2602.380, 46.427, -2711.782),
+        ["World 5"] = Vector3.new(188.722, 37.853, 4388.137),
+        ["World 6"] = Vector3.new(286.645, 32.896, -4409.248),
+        ["World 7"] = Vector3.new(4890.349, 41.833, -78.664)
     },
     ["World BoatSeller"] = {
-        ["World 1"] = Vector3.new(425.56536865234375, 29.104568481445312, 383.85504150390625),
-        ["World 2"] = Vector3.new(-3656.605712890625, 24.215221405029297, 2368.827880859375),
-        ["World 3"] = Vector3.new(-2790.788818359375, 30.202165603637695, -2020.528076171875),
-        ["World 4"] = Vector3.new(2477.00244140625, 46.42753219604492, -2836.92919921875),
-        ["World 5"] = Vector3.new(204.87991333007812, 38.70767593383789, 4257.33251953125),
-        ["World 6"] = Vector3.new(100.19259643554688, 20.963153839111328, -4240.23095703125),
-        ["World 7"] = Vector3.new(4821.68896484375, 29.942338943481445, -97.91691589355469)
+        ["World 1"] = Vector3.new(425.565, 29.105, 383.855),
+        ["World 2"] = Vector3.new(-3656.606, 24.215, 2368.828),
+        ["World 3"] = Vector3.new(-2790.789, 30.202, -2020.528),
+        ["World 4"] = Vector3.new(2477.002, 46.427, -2836.929),
+        ["World 5"] = Vector3.new(204.880, 38.708, 4257.333),
+        ["World 6"] = Vector3.new(100.193, 20.963, -4240.231),
+        ["World 7"] = Vector3.new(4821.689, 29.942, -97.917)
     },
     ["Special Locations"] = {
-        ["Enchanter"] = Vector3.new(607.4429931640625, 28.08351707458496, 222.48643493652344),
-        ["Upgrader"] = Vector3.new(593.784912109375, 28.08351707458496, 189.89276123046875),
-        ["Guild"] = Vector3.new(289.015015, 31.8532162, 157.246201, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-        ["JejuIsland"] = Vector3.new(3345.33447265625, 60.123069763183594, 2607.57373046875)
+        ["Enchanter"] = Vector3.new(607.443, 28.084, 222.486),
+        ["Upgrader"] = Vector3.new(593.785, 28.084, 189.893),
+        ["Guild"] = Vector3.new(289.015, 31.853, 157.246),
+        ["JejuIsland"] = Vector3.new(3345.334, 60.123, 2607.574)
     }
 }
 
@@ -668,7 +681,7 @@ for category, locations in pairs(teleportLocations) do
         for name in pairs(locations) do
             table.insert(values, name)
         end
-        
+
         Tabs.Teleport:AddDropdown(category, {
             Title = category,
             Description = "Select a destination to teleport to",
@@ -686,7 +699,7 @@ for category, locations in pairs(teleportLocations) do
     end
 end
 
--- Atualização contínua da referência do HRP (caso o personagem morra)
+-- Atualização da referência do HRP quando o personagem renasce
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     hrp = newChar:WaitForChild("HumanoidRootPart")
