@@ -6,7 +6,7 @@ local Window = Fluent:CreateWindow({
     Title = "Arise Crossover | DZHUB",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = true, -- The blur may be detectable, setting this to false disables blur entirely
+    Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
     Theme = "Darker",
     MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
 })
@@ -706,7 +706,7 @@ local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Jujutsu Infinite | Arise Crossover" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Arise Crossover | DZHUB" then
                 ScreenGuiToMinimize = gui
                 break
             end
