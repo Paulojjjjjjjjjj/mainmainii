@@ -44,5 +44,12 @@ if hudGui and hudGui:FindFirstChild("Hud") and hudGui.Hud:FindFirstChild("Dano")
     return
 end
 
--- Se nenhum dos dois for compatível
+-- Verificação 3:
+local pcHud = playerGui:FindFirstChild("HUD")
+if pcHud and pcHud:FindFirstChild("LeftFrame") and pcHud.LeftFrame:FindFirstChild("Top") then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/bbl"))()
+    return
+end
+
+
 showUnsupportedMapMessage()
