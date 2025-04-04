@@ -1,1 +1,787 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
+local Window = Fluent:CreateWindow({
+    Title = "Arise Crossover | DZHUB",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true, -- The blur may be detectable, setting this to false disables blur entirely
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
+})
+
+--Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "" })
+}
+
+Tabs.Misc:AddButton({
+    Title = "All Gamepass",
+    Description = "Enables or disables all gamepasses",
+    Callback = function()
+        local passes = game:GetService("Players").LocalPlayer.leaderstats.Passes
+        if passes then
+            local newState = not passes:GetAttribute(next(passes:GetAttributes())) -- Alterna o estado com base no primeiro atributo encontrado
+            for attribute, _ in pairs(passes:GetAttributes()) do
+                passes:SetAttribute(attribute, newState)
+            end
+            print("Todos os passes foram " .. (newState and "ativados!" or "desativados!"))
+        else
+            print("leaderstats.Passes não encontrado!")
+        end
+    end
+})
+
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local BridgeNet2 = ReplicatedStorage:WaitForChild("BridgeNet2")
+local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
+
+local LocalPlayer = Players.LocalPlayer
+local ToggleValue = false
+
+-- Create the toggle (assuming you're using a library like Rayfield)
+local Toggle = Tabs.Main:AddToggle("AutoCapture", {Title = "Auto Capture", Default = false })
+
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    if Value then
+        warn("Auto Capture Enabled")
+    else
+        warn("Auto Capture Disabled")
+    end
+end)
+
+-- Function to find the nearest enemy
+local function findNearestEnemy()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local rootPart = character.HumanoidRootPart
+    local enemies = workspace.__Main.__Enemies.Client:GetChildren()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, enemy in ipairs(enemies) do
+        if enemy:FindFirstChild("HumanoidRootPart") then
+            local distance = (rootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestEnemy = enemy
+            end
+        end
+    end
+    
+    return closestEnemy
+end
+
+-- Main loop
+local connection
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    if Value then
+        connection = RunService.Heartbeat:Connect(function()
+            local nearestEnemy = findNearestEnemy()
+            if nearestEnemy then
+                local args = {
+                    [1] = {
+                        [1] = {
+                            ["Event"] = "EnemyCapture",
+                            ["Enemy"] = nearestEnemy.Name
+                        },
+                        [2] = "\4"
+                    }
+                }
+                dataRemoteEvent:FireServer(unpack(args))
+            end
+        end)
+    end
+end)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local BridgeNet2 = ReplicatedStorage:WaitForChild("BridgeNet2")
+local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
+
+local LocalPlayer = Players.LocalPlayer
+local ToggleValue = false
+
+-- Create the toggle (assuming you're using a library like Rayfield)
+local Toggle = Tabs.Main:AddToggle("AutoDestroy", {Title = "Auto Destroy", Default = false })
+
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    if Value then
+        warn("Auto Destroy Enabled")
+    else
+        warn("Auto Destroy Disabled")
+    end
+end)
+
+-- Function to find the nearest enemy
+local function findNearestEnemy()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local rootPart = character.HumanoidRootPart
+    local enemies = workspace.__Main.__Enemies.Client:GetChildren()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, enemy in ipairs(enemies) do
+        if enemy:FindFirstChild("HumanoidRootPart") then
+            local distance = (rootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestEnemy = enemy
+            end
+        end
+    end
+    
+    return closestEnemy
+end
+
+-- Main loop
+local connection
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    if Value then
+        connection = RunService.Heartbeat:Connect(function()
+            local nearestEnemy = findNearestEnemy()
+            if nearestEnemy then
+                local args = {
+                    [1] = {
+                        [1] = {
+                            ["Event"] = "EnemyDestroy",
+                            ["Enemy"] = nearestEnemy.Name
+                        },
+                        [2] = "\4"
+                    }
+                }
+                dataRemoteEvent:FireServer(unpack(args))
+            end
+        end)
+    end
+end)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local BridgeNet2 = ReplicatedStorage:WaitForChild("BridgeNet2")
+local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
+
+local LocalPlayer = Players.LocalPlayer
+local ToggleValue = false
+
+-- Create the toggle (assuming you're using a library like Rayfield)
+local Toggle = Tabs.Main:AddToggle("AutoPunch", {Title = "Auto Punch", Default = false })
+
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    if Value then
+        warn("Auto Punch Enabled")
+    else
+        warn("Auto Punch Disabled")
+    end
+end)
+
+-- Function to find the nearest enemy
+local function findNearestEnemy()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local rootPart = character.HumanoidRootPart
+    local enemies = workspace.__Main.__Enemies.Client:GetChildren()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, enemy in ipairs(enemies) do
+        if enemy:FindFirstChild("HumanoidRootPart") then
+            local distance = (rootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestEnemy = enemy
+            end
+        end
+    end
+    
+    return closestEnemy
+end
+
+-- Main loop
+local connection
+Toggle:OnChanged(function(Value)
+    ToggleValue = Value
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    if Value then
+        connection = RunService.Heartbeat:Connect(function()
+            local nearestEnemy = findNearestEnemy()
+            if nearestEnemy then
+                local args = {
+                    [1] = {
+                        [1] = {
+                            ["Event"] = "PunchAttack",
+                            ["Enemy"] = nearestEnemy.Name
+                        },
+                        [2] = "\4"
+                    }
+                }
+                dataRemoteEvent:FireServer(unpack(args))
+            end
+        end)
+    end
+end)
+
+local running = false
+
+local Toggle = Tabs.Main:AddToggle("AutoEquipBestShadows", {
+    Title = "Auto Equip Best Shadows",
+    Default = false,
+    Callback = function(state)
+        running = state -- Define o estado da variável
+        
+        if state then
+            print("Auto Equip ON")
+
+            task.spawn(function()
+                while running do -- Verifica se o toggle ainda está ativado
+                    local player = game:GetService("Players").LocalPlayer
+                    local inventory = player.leaderstats.Inventory.Pets
+                    local equippedPets = player.leaderstats.Equips.Pets
+                    local passes = player.leaderstats.Passes
+
+                    -- Definir quantidade máxima de pets com base na Game Pass
+                    local maxPets = passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value and 7 or 4
+
+                    if inventory then
+                        -- Criar uma tabela para armazenar os pets com seus ranks
+                        local petsTable = {}
+
+                        for _, pet in pairs(inventory:GetChildren()) do
+                            local rank = pet:GetAttribute("Rank") or 0 -- Pega o rank do pet
+                            table.insert(petsTable, {Name = pet.Name, Rank = rank})
+                        end
+
+                        -- Ordenar os pets do maior para o menor rank
+                        table.sort(petsTable, function(a, b)
+                            return a.Rank > b.Rank
+                        end)
+
+                        -- Criar uma lista de pets que já estão equipados
+                        local currentlyEquipped = {}
+                        for _, petSlot in pairs(equippedPets:GetChildren()) do
+                            table.insert(currentlyEquipped, petSlot.Value)
+                        end
+
+                        -- Definir os melhores pets para equipar
+                        local petsToEquip = {}
+                        for i = 1, math.min(maxPets, #petsTable) do
+                            local petName = petsTable[i].Name
+                            if not table.find(currentlyEquipped, petName) then
+                                table.insert(petsToEquip, petName)
+                            end
+                        end
+
+                        -- Verifica se há pets novos para equipar
+                        if #petsToEquip > 0 then
+                            local args = {
+                                [1] = {
+                                    [1] = {
+                                        ["Event"] = "EquipBest",
+                                        ["Pets"] = petsToEquip
+                                    },
+                                    [2] = "\t"
+                                }
+                            }
+
+                            -- Enviar a solicitação para equipar os novos pets
+                            game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                            print("New pets equipped:", table.concat(petsToEquip, ", "))
+                        else
+                            print("You already have the best pets equipped.")
+                        end
+                    end
+
+                    task.wait(5) -- Ajuste o tempo de espera conforme necessário
+                end
+            end)
+        else
+            print("Auto Equip OFF")
+        end
+    end
+})
+
+
+local player = game:GetService("Players").LocalPlayer
+local userId = tostring(player.UserId)
+local petsFolder = workspace.__Main.__Pets:FindFirstChild(userId)
+local enemiesFolder = workspace.__Main.__Enemies:FindFirstChild("Client")
+local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+local autoAttackEnabled = false -- Variável de controle
+
+local function getEquippedPets()
+    local equippedPets = {}
+    local petsData = player.leaderstats.Equips.Pets
+
+    for i = 1, 4 do -- Pegando os 4 pets equipados
+        local petName = petsData:GetAttribute(tostring(i))
+        if petName then
+            table.insert(equippedPets, petName)
+        end
+    end
+
+    return equippedPets
+end
+
+local function getPetPositions(equippedPets)
+    local petPositions = {}
+
+    if petsFolder then
+        for _, petName in ipairs(equippedPets) do
+            local petModelFolder = petsFolder:FindFirstChild(petName)
+            if petModelFolder then
+                local petModel = petModelFolder:FindFirstChild(petName)
+                if petModel and petModel:IsA("Model") then
+                    local part = petModel.PrimaryPart or petModel:FindFirstChildWhichIsA("BasePart")
+                    if part then
+                        petPositions[petName] = part.Position
+                    end
+                end
+            end
+        end
+    end
+
+    return petPositions
+end
+
+local function getClosestEnemy()
+    if not enemiesFolder then return nil end
+
+    local closestEnemy = nil
+    local minDistance = math.huge -- Define a menor distância inicial como infinita
+    local playerPosition = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+
+    if not playerPosition then return nil end
+
+    for _, enemy in ipairs(enemiesFolder:GetChildren()) do
+        if enemy:IsA("Model") then
+            local enemyPart = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+            if enemyPart then
+                local distance = (enemyPart.Position - playerPosition).Magnitude
+                if distance < minDistance then
+                    minDistance = distance
+                    closestEnemy = enemy.Name
+                end
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+local function attackShadow()
+    while autoAttackEnabled do
+        local equippedPets = getEquippedPets()
+        local petPositions = getPetPositions(equippedPets)
+        local enemyTarget = getClosestEnemy() -- Busca o inimigo mais próximo
+
+        if enemyTarget and next(petPositions) then
+            local args = {
+                [1] = {
+                    [1] = {
+                        ["PetPos"] = petPositions,
+                        ["AttackType"] = "All",
+                        ["Event"] = "Attack",
+                        ["Enemy"] = enemyTarget
+                    },
+                    [2] = "\t"
+                }
+            }
+
+            remoteEvent:FireServer(unpack(args))
+            print("Attacking the nearest enemy:", enemyTarget)
+        else
+            print("No enemies found nearby or pets not loaded!")
+        end
+
+        task.wait(0.5) -- Ajuste o tempo de ataque conforme necessário
+    end
+end
+
+-- Toggle para ativar/desativar o Auto Attack Shadow
+local Toggle = Tabs.Main:AddToggle("AutoAttackShadow", {
+    Title = "Auto Attack Shadow",
+    Default = false,
+    Callback = function(state)
+        autoAttackEnabled = state
+        if state then
+            print("Auto Attack Shadow ON!")
+            task.spawn(attackShadow) -- Inicia o loop de ataque
+        else
+            print("Auto Attack Shadow OFF!")
+        end
+    end
+})
+
+local AutoFarm = Tabs.Main:AddSection("AutoFarm")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local enemiesFolder = workspace.__Main.__Enemies.Client
+local lastNames = {}
+local selectedEnemyName = nil
+local autoTpEnabled = false
+
+-- Função para teleportar suavemente até o NPC
+local function smoothTeleportTo(model)
+    if not model or not model:IsA("Model") then return end
+    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not hrp or not targetPart then return end
+
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
+    local goal = {CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)}
+    local tween = TweenService:Create(hrp, tweenInfo, goal)
+    tween:Play()
+end
+
+-- Função para encontrar o próximo NPC com o mesmo nome
+local function findNextEnemy()
+    for _, npc in pairs(enemiesFolder:GetChildren()) do
+        local title = npc:FindFirstChild("HealthBar")
+            and npc.HealthBar:FindFirstChild("Main")
+            and npc.HealthBar.Main:FindFirstChild("Title")
+
+        local healthText = npc:FindFirstChild("HealthBar")
+            and npc.HealthBar.Main:FindFirstChild("Bar")
+            and npc.HealthBar.Main.Bar:FindFirstChild("Amount")
+
+        if title and healthText and title.Text == selectedEnemyName then
+            local hp = tonumber(healthText.Text:match("%d+")) or 1
+            if hp > 0 then
+                return npc
+            end
+        end
+    end
+    return nil
+end
+
+-- Dropdown de inimigos
+local enemyDropdown = AutoFarm:AddDropdown("EnemyDropdown", {
+    Title = "Choose your enemy",
+    Values = {},
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        selectedEnemyName = value
+        print("NPC selecionado:", value)
+    end
+})
+
+-- Toggle de auto teleporte
+AutoFarm:AddToggle("AutoTP", {
+    Title = "AutoFarm",
+    Default = false,
+    Callback = function(state)
+        autoTpEnabled = state
+        print("Auto TP:", state and "On" or "Off")
+
+        if state then
+            task.spawn(function()
+                while autoTpEnabled and task.wait(0.5) do
+                    local enemy = findNextEnemy()
+                    if enemy then
+                        smoothTeleportTo(enemy:FindFirstChild("Model"))
+                    else
+                        print("No enemies found. Waiting for respawn...")
+                        task.wait(2)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- Atualização automática do dropdown
+function updateDropdown()
+    local names = {}
+
+    for _, npc in pairs(enemiesFolder:GetChildren()) do
+        local success, result = pcall(function()
+            local title = npc:FindFirstChild("HealthBar")
+                and npc.HealthBar:FindFirstChild("Main")
+                and npc.HealthBar.Main:FindFirstChild("Title")
+            return title and title.Text
+        end)
+
+        if success and result and not table.find(names, result) then
+            table.insert(names, result)
+        end
+    end
+
+    table.sort(names)
+
+    -- Atualiza o dropdown apenas se houver mudanças
+    if #names ~= #lastNames or table.concat(names) ~= table.concat(lastNames) then
+        lastNames = names
+        enemyDropdown:SetValues(names)
+        print("Dropdown updated:", names)
+
+        -- Se o inimigo atual não estiver mais na lista, selecionar um novo
+        if selectedEnemyName == nil or not table.find(names, selectedEnemyName) then
+            selectedEnemyName = names[1] or nil
+        end
+    end
+end
+
+-- Loop para atualizar o dropdown automaticamente
+task.spawn(function()
+    while task.wait(2) do
+        updateDropdown()
+    end
+end)
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+-- Configuração do teleporte suave
+local teleporting = false
+local teleportStartCFrame = nil
+local teleportEndCFrame = nil
+local teleportStartTime = 0
+local teleportDuration = 1 -- Duração em segundos
+
+-- Função principal de teleporte suave
+local function smoothTeleport(targetPosition)
+    if teleporting then return end
+    
+    teleporting = true
+    teleportStartCFrame = hrp.CFrame
+    teleportEndCFrame = CFrame.new(targetPosition + Vector3.new(0, 5, 0))
+    teleportStartTime = tick()
+    
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not teleporting or not hrp then
+            connection:Disconnect()
+            return
+        end
+        
+        local elapsed = tick() - teleportStartTime
+        local progress = math.min(elapsed / teleportDuration, 1)
+        local smoothProgress = progress < 0.5 and 2 * progress * progress or 1 - math.pow(-2 * progress + 2, 2) / 2 -- Easing quadrático
+        
+        hrp.CFrame = teleportStartCFrame:Lerp(teleportEndCFrame, smoothProgress)
+        
+        if progress >= 1 then
+            teleporting = false
+            connection:Disconnect()
+        end
+    end)
+end
+
+-- Organização das localizações
+local teleportLocations = {
+    ["World Teleport"] = {
+        ["World 1"] = Vector3.new(430.43133544921875, 28.083515167236328, -6.193761348724365),
+        ["World 2"] = Vector3.new(-3376.060791015625, 30.260459899902344, 2252.27587890625),
+        ["World 3"] = Vector3.new(-2864.343994140625, 57.738319396972656, -2044.593994140625),
+        ["World 4"] = Vector3.new(2791.1044921875, 46.42753219604492, -2743.594482421875),
+        ["World 5"] = Vector3.new(198.628173828125, 38.70767593383789, 4276.8408203125),
+        ["World 6"] = Vector3.new(192.60565185546875, 32.89609146118164, -4293.87109375),
+        ["World 7"] = Vector3.new(4817.642578125, 29.942338943481445, -158.6181640625)
+    },
+    ["World BlackSmith"] = {
+        ["World 1"] = Vector3.new(543.5099487304688, 28.08351707458496, 256.3665466308594),
+        ["World 2"] = Vector3.new(-3418.732177734375, 30.77031707763672, 2276.208984375),
+        ["World 3"] = Vector3.new(-2833.557373046875, 50.67671203613281, -2029.1429443359375),
+        ["World 4"] = Vector3.new(2602.3798828125, 46.42753219604492, -2711.7822265625),
+        ["World 5"] = Vector3.new(188.7220458984375, 37.85314178466797, 4388.13671875),
+        ["World 6"] = Vector3.new(286.6446533203125, 32.89609146118164, -4409.24755859375),
+        ["World 7"] = Vector3.new(4890.34912109375, 41.833194732666016, -78.66375732421875)
+    },
+    ["World BoatSeller"] = {
+        ["World 1"] = Vector3.new(425.56536865234375, 29.104568481445312, 383.85504150390625),
+        ["World 2"] = Vector3.new(-3656.605712890625, 24.215221405029297, 2368.827880859375),
+        ["World 3"] = Vector3.new(-2790.788818359375, 30.202165603637695, -2020.528076171875),
+        ["World 4"] = Vector3.new(2477.00244140625, 46.42753219604492, -2836.92919921875),
+        ["World 5"] = Vector3.new(204.87991333007812, 38.70767593383789, 4257.33251953125),
+        ["World 6"] = Vector3.new(100.19259643554688, 20.963153839111328, -4240.23095703125),
+        ["World 7"] = Vector3.new(4821.68896484375, 29.942338943481445, -97.91691589355469)
+    },
+    ["Special Locations"] = {
+        ["Enchanter"] = Vector3.new(607.4429931640625, 28.08351707458496, 222.48643493652344),
+        ["Upgrader"] = Vector3.new(593.784912109375, 28.08351707458496, 189.89276123046875),
+        ["Guild"] = Vector3.new(289.015015, 31.8532162, 157.246201, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        ["JejuIsland"] = Vector3.new(3345.33447265625, 60.123069763183594, 2607.57373046875)
+    }
+}
+
+-- Criação dos menus de teleporte
+for category, locations in pairs(teleportLocations) do
+    if category == "Special Locations" then
+        for name, position in pairs(locations) do
+            Tabs.Teleport:AddButton({
+                Title = "Teleport " .. name,
+                Callback = function()
+                    if hrp then
+                        smoothTeleport(position)
+                        print("Teleporting to " .. name .. "...")
+                    end
+                end
+            })
+        end
+    else
+        local values = {}
+        for name in pairs(locations) do
+            table.insert(values, name)
+        end
+        
+        Tabs.Teleport:AddDropdown(category, {
+            Title = category,
+            Description = "Select a destination to teleport to",
+            Values = values,
+            Multi = false,
+            Default = 1,
+            Callback = function(selected)
+                local targetPos = locations[selected]
+                if targetPos and hrp then
+                    smoothTeleport(targetPos)
+                    print("Teleporting to " .. selected .. "...")
+                end
+            end
+        })
+    end
+end
+
+-- Atualização contínua da referência do HRP (caso o personagem morra)
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    hrp = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+local CoreGui = game:GetService("CoreGui")
+
+-- Remover qualquer GUI persistente anterior com o mesmo nome
+local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
+if ExistingGui then
+    ExistingGui:Destroy()
+end
+
+local ScreenGuiToMinimize
+
+-- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
+for _, gui in ipairs(CoreGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        for _, descendant in ipairs(gui:GetDescendants()) do
+            if descendant:IsA("TextLabel") and descendant.Text == "Jujutsu Infinite | Arise Crossover" then
+                ScreenGuiToMinimize = gui
+                break
+            end
+        end
+    end
+    if ScreenGuiToMinimize then break end
+end
+
+if not ScreenGuiToMinimize then
+    warn("ScreenGui com o texto especificado não encontrado.")
+    return
+end
+
+print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
+
+-- Criar botão persistente
+local MinimizeGui = Instance.new("ScreenGui", CoreGui)
+MinimizeGui.Name = "MinimizeButtonGui"
+
+local MinimizeButton = Instance.new("ImageButton", MinimizeGui)
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 44, 0, 45)
+MinimizeButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
+
+-- Adicionar UICorner ao botão para arredondar bordas
+local UICorner = Instance.new("UICorner", MinimizeButton)
+
+-- Função para minimizar corretamente
+MinimizeButton.MouseButton1Click:Connect(function()
+    if Window and Window.Minimize then
+        Window:Minimize()
+    else
+        warn("Função Window:Minimize não está disponível.")
+    end
+end)
+
+-- Adicionar funcionalidade de arrastar o botão
+local dragging = false
+local dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MinimizeButton.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+MinimizeButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MinimizeButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MinimizeButton.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
+end)
