@@ -778,7 +778,7 @@ local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Jujutsu Infinite | DzHub" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Jujutsu Infinite | DZHUB" then
                 ScreenGuiToMinimize = gui
                 break
             end
