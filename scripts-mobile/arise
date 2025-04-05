@@ -1,3 +1,33 @@
+local function fancyNotify(step, total)
+    local percentage = math.floor((step / total) * 100)
+    local barLength = 20
+    local filledLength = math.floor((step / total) * barLength)
+    local bar = string.rep("█", filledLength) .. string.rep("░", barLength - filledLength)
+
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "⚔️ DZHUB ⚔️",
+        Text = "🔄 Loading... " .. percentage .. "%\n[" .. bar .. "]",
+        Duration = 1
+    })
+end
+
+-- Example loading animation
+task.spawn(function()
+    local totalSteps = 15
+    for i = 1, totalSteps do
+        fancyNotify(i, totalSteps)
+        task.wait(0.1)
+    end
+
+    -- Final notification
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "✅ DZHUB",
+        Text = "Loading completed!",
+        Duration = 2
+    })
+end)
+task.wait(4)
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -6,34 +36,155 @@ local Window = Fluent:CreateWindow({
     Title = "Arise Crossover | DZHUB",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
+    Acrylic = false,
     Theme = "Darker",
-    MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
---Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Dungeon = Window:AddTab({ Title = "Dungeon", Icon = "" }),
     Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
-    Misc = Window:AddTab({ Title = "Misc", Icon = "" })
+    Misc = Window:AddTab({ Title = "Misc", Icon = "" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
 }
 
-Tabs.Misc:AddButton({
-    Title = "All Gamepass",
-    Description = "Enables or disables all gamepasses",
-    Callback = function()
-        local passes = game:GetService("Players").LocalPlayer.leaderstats.Passes
-        if passes then
-            local newState = not passes:GetAttribute(next(passes:GetAttributes())) -- Alterna o estado com base no primeiro atributo encontrado
-            for attribute, _ in pairs(passes:GetAttributes()) do
-                passes:SetAttribute(attribute, newState)
+---------------------------------------------------
+----------------------SECTION----------------------
+local FarmingOptions = Tabs.Main:AddSection("Farming Options")
+local AutoFarm = Tabs.Main:AddSection("AutoFarm")
+local Action = Tabs.Main:AddSection("Action Options")
+local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
+local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
+local DungeonSearch = Tabs.Dungeon:AddSection("Dungeon Search")
+local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
+----------------------SECTION----------------------
+---------------------------------------------------
+
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local enemiesFolder = workspace.__Main.__Enemies.Client
+local enemiesServer = workspace.__Main.__Enemies.Server
+
+local lastNames = {}
+local selectedEnemyName = nil
+local autoTpEnabled = false
+
+-- Função de teleporte igual ao Auto Dungeon
+local function forcedStepTeleport(destination)
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for i = 1, 7 do
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 0, 0))
+        task.wait(0.000000005)
+    end
+end
+
+-- Teleportar para o inimigo com offset
+local function teleportToEnemy(enemy)
+    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+    if not hrp or not part then return end
+
+    local goalPosition = part.Position + Vector3.new(3, 0, 0)
+    forcedStepTeleport(goalPosition)
+end
+
+-- Buscar HP no Server
+local function getServerHP(enemyName)
+    for _, world in pairs(enemiesServer:GetChildren()) do
+        local enemy = world:FindFirstChild(enemyName)
+        if enemy and enemy:GetAttribute("HP") then
+            return enemy:GetAttribute("HP")
+        end
+    end
+    return 0
+end
+
+-- Encontrar próximo inimigo com nome igual e HP > 0
+local function findNextEnemy()
+    for _, npc in pairs(enemiesFolder:GetChildren()) do
+        local title = npc:FindFirstChild("HealthBar")
+            and npc.HealthBar:FindFirstChild("Main")
+            and npc.HealthBar.Main:FindFirstChild("Title")
+
+        if title and title.Text == selectedEnemyName then
+            local serverHP = getServerHP(npc.Name)
+            if serverHP and serverHP > 0 then
+                return npc
             end
-            print("Todos os passes foram " .. (newState and "ativados!" or "desativados!"))
-        else
-            print("leaderstats.Passes não encontrado!")
+        end
+    end
+    return nil
+end
+
+-- Dropdown de inimigos
+local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
+    Title = "Choose your enemy",
+    Values = {},
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        selectedEnemyName = value
+    end
+})
+
+-- Toggle de auto farm
+AutoFarm:AddToggle("AutoFarm Selected", {
+    Title = "Auto Farm Selected",
+    Default = false,
+    Callback = function(state)
+        autoTpEnabled = state
+        if state then
+            task.spawn(function()
+                while autoTpEnabled and task.wait(0.5) do
+                    local enemy = findNextEnemy()
+                    if enemy then
+                        teleportToEnemy(enemy:FindFirstChild("Model"))
+                    else
+                        task.wait(2)
+                    end
+                end
+            end)
         end
     end
 })
+
+-- Atualizar lista de inimigos no dropdown
+function updateDropdown()
+    local names = {}
+
+    for _, npc in pairs(enemiesFolder:GetChildren()) do
+        local success, result = pcall(function()
+            local title = npc:FindFirstChild("HealthBar")
+                and npc.HealthBar:FindFirstChild("Main")
+                and npc.HealthBar.Main:FindFirstChild("Title")
+            return title and title.Text
+        end)
+
+        if success and result and not table.find(names, result) then
+            table.insert(names, result)
+        end
+    end
+
+    table.sort(names)
+
+    if #names ~= #lastNames or table.concat(names) ~= table.concat(lastNames) then
+        lastNames = names
+        enemyDropdown:SetValues(names)
+
+        if selectedEnemyName == nil or not table.find(names, selectedEnemyName) then
+            selectedEnemyName = names[1] or nil
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(2) do
+        updateDropdown()
+    end
+end)
 
 
 local Players = game:GetService("Players")
@@ -47,7 +198,7 @@ local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
 -- Create the toggle (assuming you're using a library like Rayfield)
-local Toggle = Tabs.Main:AddToggle("AutoCapture", {Title = "Auto Capture", Default = false })
+local Toggle = Action:AddToggle("AutoCapture", {Title = "Auto Capture", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
@@ -121,7 +272,7 @@ local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
 -- Create the toggle (assuming you're using a library like Rayfield)
-local Toggle = Tabs.Main:AddToggle("AutoDestroy", {Title = "Auto Destroy", Default = false })
+local Toggle = Action:AddToggle("AutoDestroy", {Title = "Auto Destroy", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
@@ -195,14 +346,14 @@ local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
 -- Create the toggle (assuming you're using a library like Rayfield)
-local Toggle = Tabs.Main:AddToggle("AutoPunch", {Title = "Auto Punch", Default = false })
+local Toggle = AutoFarm:AddToggle("AutoPunch", {Title = "Auto Punch (Kill Aura)", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
     if Value then
-        warn("Auto Punch Enabled")
+        warn("Auto Punch (Kill Aura) Enabled")
     else
-        warn("Auto Punch Disabled")
+        warn("Auto Punch (Kill Aura) Disabled")
     end
 end)
 
@@ -260,15 +411,13 @@ end)
 
 local running = false
 
-local Toggle = Tabs.Main:AddToggle("AutoEquipBestShadows", {
+local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
     Title = "Auto Equip Best Shadows",
     Default = false,
     Callback = function(state)
         running = state -- Define o estado da variável
         
         if state then
-            print("Auto Equip ON")
-
             task.spawn(function()
                 while running do -- Verifica se o toggle ainda está ativado
                     local player = game:GetService("Players").LocalPlayer
@@ -322,17 +471,12 @@ local Toggle = Tabs.Main:AddToggle("AutoEquipBestShadows", {
 
                             -- Enviar a solicitação para equipar os novos pets
                             game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-                            print("New pets equipped:", table.concat(petsToEquip, ", "))
-                        else
-                            print("You already have the best pets equipped.")
                         end
                     end
 
                     task.wait(5) -- Ajuste o tempo de espera conforme necessário
                 end
             end)
-        else
-            print("Auto Equip OFF")
         end
     end
 })
@@ -437,22 +581,17 @@ local function attackShadow()
                                     ["Event"] = "Attack",
                                     ["Enemy"] = enemyName
                                 },
-                                [2] = "\t"
+                                [2] = "\5"
                             }
                         }
 
                         remoteEvent:FireServer(unpack(args))
-                        print("Atacando:", enemyName)
-                    else
-                        print("Nenhum pet posicionado para atacar.")
                     end
                 end
             else
-                print("Inimigo morto, procurando outro...")
                 lastTarget = nil -- Reseta o alvo para buscar um novo
             end
         else
-            print("Nenhum inimigo encontrado.")
             lastTarget = nil
         end
 
@@ -461,168 +600,30 @@ local function attackShadow()
 end
 
 -- Toggle para ativar/desativar o Auto Attack Shadow
-local Toggle = Tabs.Main:AddToggle("AutoAttackShadow", {
-    Title = "Auto Attack Shadow",
+local Toggle = AutoFarm:AddToggle("AutoAttackNearestEnemy", {
+    Title = "Auto Attack Nearest Enemy",
     Default = false,
     Callback = function(state)
         autoAttackEnabled = state
         if state then
-            print("Auto Attack Shadow ON!")
             lastTarget = nil -- Reseta o último inimigo quando ativado
             task.spawn(attackShadow)
-        else
-            print("Auto Attack Shadow OFF!")
         end
     end
 })
 
-local AutoFarm = Tabs.Main:AddSection("AutoFarm")
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
-local enemiesFolder = workspace.__Main.__Enemies.Client
-local lastNames = {}
-local selectedEnemyName = nil
-local autoTpEnabled = false
-
--- Função para teleportar suavemente até o lado do NPC
-local function smoothTeleportTo(model)
-    if not model or not model:IsA("Model") then return end
-    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-    if not hrp or not targetPart then return end
-
-    -- Offset ao lado e acima do NPC
-    local offset = Vector3.new(5, 2, 0)
-    local targetPosition = (targetPart.CFrame.Position + offset)
-
-    -- Cria um CFrame apenas com posição (sem rotação)
-    local finalCFrame = CFrame.new(targetPosition)
-
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = finalCFrame})
-    tween:Play()
-end
-
-
--- Função para encontrar o próximo NPC com o mesmo nome
-local function findNextEnemy()
-    for _, npc in pairs(enemiesFolder:GetChildren()) do
-        local title = npc:FindFirstChild("HealthBar")
-            and npc.HealthBar:FindFirstChild("Main")
-            and npc.HealthBar.Main:FindFirstChild("Title")
-
-        local healthText = npc:FindFirstChild("HealthBar")
-            and npc.HealthBar.Main:FindFirstChild("Bar")
-            and npc.HealthBar.Main.Bar:FindFirstChild("Amount")
-
-        if title and healthText and title.Text == selectedEnemyName then
-            local hp = tonumber(healthText.Text:match("%d+")) or 1
-            if hp > 0 then
-                return npc
-            end
-        end
-    end
-    return nil
-end
-
--- Dropdown de inimigos
-local enemyDropdown = AutoFarm:AddDropdown("EnemyDropdown", {
-    Title = "Choose your enemy",
-    Values = {},
-    Multi = false,
-    Default = 1,
-    Callback = function(value)
-        selectedEnemyName = value
-        print("NPC selecionado:", value)
-    end
-})
-
--- Toggle de auto teleporte
-AutoFarm:AddToggle("AutoTP", {
-    Title = "AutoFarm",
-    Default = false,
-    Callback = function(state)
-        autoTpEnabled = state
-        print("Auto TP:", state and "On" or "Off")
-
-        if state then
-            task.spawn(function()
-                while autoTpEnabled and task.wait(0.5) do
-                    local enemy = findNextEnemy()
-                    if enemy then
-                        smoothTeleportTo(enemy:FindFirstChild("Model"))
-                    else
-                        print("No enemies found. Waiting for respawn...")
-                        task.wait(2)
-                    end
-                end
-            end)
-        end
-    end
-})
-
--- Atualização automática do dropdown
-function updateDropdown()
-    local names = {}
-
-    for _, npc in pairs(enemiesFolder:GetChildren()) do
-        local success, result = pcall(function()
-            local title = npc:FindFirstChild("HealthBar")
-                and npc.HealthBar:FindFirstChild("Main")
-                and npc.HealthBar.Main:FindFirstChild("Title")
-            return title and title.Text
-        end)
-
-        if success and result and not table.find(names, result) then
-            table.insert(names, result)
-        end
-    end
-
-    table.sort(names)
-
-    if #names ~= #lastNames or table.concat(names) ~= table.concat(lastNames) then
-        lastNames = names
-        enemyDropdown:SetValues(names)
-        print("Dropdown updated:", names)
-
-        if selectedEnemyName == nil or not table.find(names, selectedEnemyName) then
-            selectedEnemyName = names[1] or nil
-        end
-    end
-end
-
-task.spawn(function()
-    while task.wait(2) do
-        updateDropdown()
-    end
-end)
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- Duração da animação de teleporte
-local teleportDuration = 1
-
--- Função para teleporte suave usando TweenService
-local function smoothTeleport(targetPosition)
+-- Teleporte forçado em múltiplos steps
+local function forcedStepTeleport(destination)
     if not hrp then return end
-
-    -- Offset para não grudar no chão
-    local finalPosition = targetPosition + Vector3.new(0, 5, 0)
-
-    -- Cria CFrame só com a posição (sem rotação)
-    local finalCFrame = CFrame.new(finalPosition)
-
-    -- Cria e executa o tween
-    local tweenInfo = TweenInfo.new(teleportDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = finalCFrame})
-    tween:Play()
+    for i = 1, 7 do
+        hrp.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0)) -- Altura ajustada
+        task.wait(0.000000005)
+    end
 end
 
 -- Tabela de posições
@@ -662,7 +663,7 @@ local teleportLocations = {
     }
 }
 
--- Criação dos menus de teleporte
+-- Criando os botões e dropdowns
 for category, locations in pairs(teleportLocations) do
     if category == "Special Locations" then
         for name, position in pairs(locations) do
@@ -670,8 +671,7 @@ for category, locations in pairs(teleportLocations) do
                 Title = "Teleport " .. name,
                 Callback = function()
                     if hrp then
-                        smoothTeleport(position)
-                        print("Teleporting to " .. name .. "...")
+                        forcedStepTeleport(position)
                     end
                 end
             })
@@ -682,7 +682,7 @@ for category, locations in pairs(teleportLocations) do
             table.insert(values, name)
         end
 
-        Tabs.Teleport:AddDropdown(category, {
+        TeleportWorlds:AddDropdown(category, {
             Title = category,
             Description = "Select a destination to teleport to",
             Values = values,
@@ -691,19 +691,466 @@ for category, locations in pairs(teleportLocations) do
             Callback = function(selected)
                 local targetPos = locations[selected]
                 if targetPos and hrp then
-                    smoothTeleport(targetPos)
-                    print("Teleporting to " .. selected .. "...")
+                    forcedStepTeleport(targetPos)
                 end
             end
         })
     end
 end
 
--- Atualização da referência do HRP quando o personagem renasce
+-- Atualizar referência ao HRP se o personagem morrer/renascer
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     hrp = newChar:WaitForChild("HumanoidRootPart")
 end)
+
+-- Services
+local isSearching = false
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+-- Variables
+local localPlayer = Players.LocalPlayer
+local remoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+-- Config
+local searchEnabled = false
+local selectedRanks = {}
+local rankToNumber = {
+    ["E"] = 1,
+    ["D"] = 2,
+    ["C"] = 3,
+    ["B"] = 4,
+    ["A"] = 5,
+    ["S"] = 6,
+    ["SS"] = 7,
+    ["G"] = 8,
+    ["N+"] = 9,
+}
+
+local worldPositions = {
+    ["World 1"] = Vector3.new(430.431, 28.083, -6.193),
+    ["World 2"] = Vector3.new(-3376.060, 30.260, 2252.275),
+    ["World 3"] = Vector3.new(-2864.344, 57.738, -2044.594),
+    ["World 4"] = Vector3.new(2791.104, 46.427, -2743.594),
+    ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
+    ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
+    ["World 7"] = Vector3.new(4938.6689453125, 40.822059631347656, -98.3121109008789),
+    ["JejuIsland"] = Vector3.new(3345.334, 60.123, 2607.574)
+}
+
+local function getDungeonFolder()
+    local main = Workspace:FindFirstChild("__Main")
+    if not main then return nil end
+
+    local dungeonParent = main:FindFirstChild("__Dungeon")
+    if not dungeonParent then return nil end
+
+    return dungeonParent
+end
+
+local function notify(title, content)
+    Fluent:Notify({
+        Title = title,
+        Content = content,
+        Duration = 5
+    })
+end
+
+local function segmentedTeleport(destination)
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then 
+        notify("Error", "Character not found")
+        return false
+    end
+
+    local root = char.HumanoidRootPart
+    for i = 1, 7 do
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
+        task.wait(0.000000005)
+    end
+
+    return true
+end
+
+local function tweenToPosition(pos)
+    return segmentedTeleport(pos)
+end
+
+local function isValidDungeon(model)
+    if not model then return false, nil end
+
+    local rankValue = model:GetAttribute("DungeonRank")
+    local idValue = model:GetAttribute("ID")
+
+    if not rankValue or not idValue then
+        return false, nil
+    end
+
+    -- Caso rankValue seja string ("S", "A", etc.), convertemos
+    if typeof(rankValue) == "string" then
+        rankValue = rankToNumber[rankValue:upper():gsub("%s+", "")]
+    end
+
+    for _, rankName in ipairs(selectedRanks) do
+        local cleanedRank = rankName:upper():gsub("%s+", "")
+        local expectedNumber = rankToNumber[cleanedRank]
+
+        if expectedNumber == rankValue then
+            return true, idValue
+        end
+    end
+
+    return false, nil
+end
+
+local function startDungeon(id)
+    local success, err = pcall(function()
+        local args = {
+            [1] = {
+                [1] = {
+                    ["Dungeon"] = id,
+                    ["Event"] = "DungeonAction",
+                    ["Action"] = "Start"
+                },
+                [2] = "\t" -- tab literal
+            }
+        }
+        remoteEvent:FireServer(unpack(args))
+    end)
+
+    if success then
+        notify("Dungeon", "Dungeon successfully started!")
+    else
+        notify("Dungeon Error", "Failed to start dungeon: "..tostring(err))
+    end
+end
+
+local function createDungeon()
+    local success, err = pcall(function()
+        local args = {
+            [1] = {
+                [1] = {
+                    ["Event"] = "DungeonAction",
+                    ["Action"] = "Create"
+                },
+                [2] = "	" -- tab literal
+            }
+        }
+        remoteEvent:FireServer(unpack(args))
+    end)
+
+    if not success then
+        notify("Dungeon Error", "Failed to create dungeon: "..tostring(err))
+        return false
+    end
+    return true
+end
+
+local function dungeonSearchLoop()
+    while searchEnabled do
+        local dungeonFolder = getDungeonFolder()
+        if not dungeonFolder then
+            notify("Error", "Dungeon folder not found!")
+            task.wait(5)
+            continue
+        end
+
+        for worldName, pos in pairs(worldPositions) do
+            if not searchEnabled then break end
+
+            notify("Search Dungeon", "Searching in "..worldName)
+            if not tweenToPosition(pos) then
+                task.wait(2)
+                continue
+            end
+
+            task.wait(1.5)
+
+            dungeonFolder = getDungeonFolder()
+            if not dungeonFolder then
+                notify("Error", "The dungeon folder disappeared!")
+                task.wait(2)
+                continue
+            end
+
+            for _, dungeon in ipairs(dungeonFolder:GetChildren()) do
+                if not searchEnabled then break end
+
+                local isValid, id = isValidDungeon(dungeon)
+                if isValid then
+                    notify("Dungeon Found", "Rank: "..dungeon:GetAttribute("DungeonRank"))
+                    
+                    if createDungeon() then
+                        task.wait(0.5)
+                        startDungeon(id)
+                    end
+
+                    searchEnabled = false
+                    return
+                end
+            end
+        end
+
+        if searchEnabled then
+            notify("Search Dungeon", "No dungeons found. Retrying...")
+            task.wait(5)
+        end
+    end
+end
+
+-- Dropdown de ranks
+local Dropdown = DungeonSearch:AddDropdown("DropdownDungeonRanks", {
+    Title = "Prioritize Ranks",
+    Description = "Select the ranks you want to prioritize",
+    Values = {"E", "D", "C", "B", "A", "S", "SS", "G", "N+"},
+    Multi = true,
+    Default = {},
+    Callback = function(Value)
+        -- Remove espaços extras
+        for i = 1, #Value do
+            Value[i] = Value[i]:gsub("%s+", "")
+        end
+        selectedRanks = Value
+        notify("Search Dungeon", "Ranks updated: " .. table.concat(Value, ", "))
+    end
+    
+})
+
+-- Toggle de busca
+local Toggle = DungeonSearch:AddToggle("ToggleDungeonSearch", {
+    Title = "Search Dungeon",
+    Description = "Enable/disable automatic dungeon search",
+    Default = false,
+    Callback = function(Value)
+        searchEnabled = Value
+    
+        if Value then
+            if not isSearching then
+                isSearching = true
+                task.spawn(function()
+                    dungeonSearchLoop()
+                    isSearching = false
+                end)
+            end
+            notify("Search Dungeon", "Search started.")
+        else
+            notify("Search Dungeon", "Search canceled.")
+        end
+    end    
+})
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local localPlayer = Players.LocalPlayer
+
+local enemiesClient = workspace.__Main.__Enemies:FindFirstChild("Client")
+local enemiesServer = workspace.__Main.__Enemies:FindFirstChild("Server")
+local petsFolder = workspace.__Main.__Pets:FindFirstChild(tostring(localPlayer.UserId))
+local remoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+local autoDungeonEnabled = false
+local priority = "More Next"
+local currentTarget = nil
+local attackCooldown = 3
+local enemyCooldowns = {}
+
+local function hasExtraEquip()
+    local passes = localPlayer.leaderstats.Passes
+    return passes and passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value
+end
+
+local function getEquippedPets()
+    local equippedPets = {}
+    local petsData = localPlayer.leaderstats.Equips.Pets
+    local maxPets = hasExtraEquip() and 7 or 4
+
+    for i = 1, maxPets do
+        local petName = petsData:GetAttribute(tostring(i))
+        if petName then
+            table.insert(equippedPets, petName)
+        end
+    end
+
+    return equippedPets
+end
+
+local function getPetPositions()
+    local equippedPets = getEquippedPets()
+    local petPositions = {}
+
+    if petsFolder then
+        for _, petName in ipairs(equippedPets) do
+            local petModelFolder = petsFolder:FindFirstChild(petName)
+            if petModelFolder then
+                local petModel = petModelFolder:FindFirstChildWhichIsA("Model")
+                if petModel and petModel.PrimaryPart then
+                    petPositions[petName] = petModel.PrimaryPart.Position
+                end
+            end
+        end
+    end
+
+    return petPositions
+end
+
+local function getServerHP(enemyName)
+    for _, worldFolder in ipairs(enemiesServer:GetChildren()) do
+        local enemy = worldFolder:FindFirstChild(enemyName)
+        if enemy and enemy:GetAttribute("HP") then
+            return enemy:GetAttribute("HP")
+        end
+    end
+    return 0
+end
+
+local function getPriorityEnemy()
+    local closest, strongest, weakest = nil, nil, nil
+    local minDist, maxHp, minHp = math.huge, 0, math.huge
+    local playerPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
+
+    if not playerPos then return nil end
+
+    for _, enemy in ipairs(enemiesClient:GetChildren()) do
+        if enemy:IsA("Model") then
+            local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+            local hp = getServerHP(enemy.Name)
+
+            if part and hp > 0 then
+                local dist = (part.Position - playerPos).Magnitude
+
+                if dist < minDist then
+                    minDist = dist
+                    closest = enemy
+                end
+                if hp > maxHp then
+                    maxHp = hp
+                    strongest = enemy
+                end
+                if hp < minHp then
+                    minHp = hp
+                    weakest = enemy
+                end
+            end
+        end
+    end
+
+    if priority == "More Next" then return closest
+    elseif priority == "Strongest" then return strongest
+    elseif priority == "Lowest" then return weakest end
+
+    return nil
+end
+
+local function forcedStepTeleport(destination)
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for i = 1, 7 do
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
+        task.wait(0.000000005)
+    end
+end
+
+local function teleportToEnemy(enemy)
+    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+    if not hrp or not part then return end
+
+    local goalPosition = part.Position + Vector3.new(3, 0, 0)
+    forcedStepTeleport(goalPosition)
+end
+
+local function autoDungeonLoop()
+    while autoDungeonEnabled do
+        local targetEnemy = currentTarget and currentTarget.Parent and getServerHP(currentTarget.Name) > 0 and currentTarget or getPriorityEnemy()
+        currentTarget = targetEnemy
+
+        if targetEnemy then
+            local enemyName = targetEnemy.Name
+            local currentTime = os.clock()
+
+            local lastAttackTime = enemyCooldowns[enemyName] or 0
+            if currentTime - lastAttackTime >= attackCooldown then
+                enemyCooldowns[enemyName] = currentTime
+
+                teleportToEnemy(targetEnemy)
+
+                local petPositions = getPetPositions()
+                if next(petPositions) then
+                    local args = {
+                        [1] = {
+                            [1] = {
+                                ["PetPos"] = petPositions,
+                                ["AttackType"] = "All",
+                                ["Event"] = "Attack",
+                                ["Enemy"] = enemyName
+                            },
+                            [2] = "\5"
+                        }
+                    }
+
+                    remoteEvent:FireServer(unpack(args))
+                end
+            end
+        else
+            currentTarget = nil
+        end
+        task.wait(0.5)
+    end
+end
+
+-- UI
+DungeonFarm:AddToggle("AutoDungeonToggle", {
+    Title = "Auto Dungeon",
+    Default = false,
+    Callback = function(state)
+        autoDungeonEnabled = state
+        currentTarget = nil
+        if state then
+            task.spawn(autoDungeonLoop)
+        end
+    end
+})
+
+DungeonFarm:AddDropdown("PriorityDropdown", {
+    Title = "Priority HP",
+    Values = {"More Next", "Strongest", "Lowest"},
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        priority = value
+    end
+})
+
+Tabs.Misc:AddButton({
+    Title = "All Gamepass",
+    Description = "Enables or disables all gamepasses",
+    Callback = function()
+        local passes = game:GetService("Players").LocalPlayer.leaderstats.Passes
+        if passes then
+            local newState = not passes:GetAttribute(next(passes:GetAttributes())) -- Alterna o estado com base no primeiro atributo encontrado
+            for attribute, _ in pairs(passes:GetAttributes()) do
+                passes:SetAttribute(attribute, newState)
+            end
+        end
+    end
+})
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
 
 local CoreGui = game:GetService("CoreGui")
 
