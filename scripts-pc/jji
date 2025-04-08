@@ -1,3 +1,33 @@
+local function fancyNotify(step, total)
+    local percentage = math.floor((step / total) * 100)
+    local barLength = 20
+    local filledLength = math.floor((step / total) * barLength)
+    local bar = string.rep("█", filledLength) .. string.rep("░", barLength - filledLength)
+
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "⚔️ DZHUB ⚔️",
+        Text = "🔄 Loading... " .. percentage .. "%\n[" .. bar .. "]",
+        Duration = 1
+    })
+end
+
+-- Example loading animation
+task.spawn(function()
+    local totalSteps = 15
+    for i = 1, totalSteps do
+        fancyNotify(i, totalSteps)
+        task.wait(0.1)
+    end
+
+    -- Final notification
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "✅ DZHUB",
+        Text = "Loading completed!",
+        Duration = 2
+    })
+end)
+task.wait(4)
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
