@@ -42,11 +42,11 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Dungeon = Window:AddTab({ Title = "Dungeon", Icon = "" }),
-    Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
-    Misc = Window:AddTab({ Title = "Misc", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
+    Main = Window:AddTab({ Title = "Main"}),
+    Dungeon = Window:AddTab({ Title = "Dungeon"}),
+    Teleport = Window:AddTab({ Title = "Teleport"}),
+    Misc = Window:AddTab({ Title = "Misc"}),
+    Settings = Window:AddTab({ Title = "Settings"})
 }
 
 ---------------------------------------------------

@@ -1,0 +1,571 @@
+local function fancyNotify(step, total)
+    local percentage = math.floor((step / total) * 100)
+    local barLength = 20
+    local filledLength = math.floor((step / total) * barLength)
+    local bar = string.rep("█", filledLength) .. string.rep("░", barLength - filledLength)
+
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "⚔️ DZHUB ⚔️",
+        Text = "🔄 Loading... " .. percentage .. "%\n[" .. bar .. "]",
+        Duration = 1
+    })
+end
+
+-- Example loading animation
+task.spawn(function()
+    local totalSteps = 15
+    for i = 1, totalSteps do
+        fancyNotify(i, totalSteps)
+        task.wait(0.1)
+    end
+
+    -- Final notification
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "✅ DZHUB",
+        Text = "Loading completed!",
+        Duration = 2
+    })
+end)
+task.wait(4)
+
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "Hunters | DZHUB",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main"}),
+    Settings = Window:AddTab({ Title = "Settings"})
+}
+
+local Rolling = Tabs.Main:AddSection("Rolling")
+local Awakening = Tabs.Main:AddSection("Awakening")
+local Dungeon = Tabs.Main:AddSection("Dungeon")
+local FarmingAutomatic = Tabs.Main:AddSection("Farming Automatic")
+local FarmingManual = Tabs.Main:AddSection("Farming Manual")
+
+
+-- Serviços
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+-- Variáveis locais
+local LocalPlayer = Players.LocalPlayer
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local running = false
+local floatingPart = nil
+local originalPosition = nil
+local instaKillConnection = nil
+
+Rolling:AddToggle("AutoRoll", {
+    Title = "Auto Roll",
+    Default = false,
+    Callback = function(state)
+        running = state
+        if running then
+            task.spawn(function()
+                while running do
+                    pcall(function()
+                        Remotes.Roll:InvokeServer()
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+Awakening:AddToggle("AutoReawaken", {
+    Title = "Auto Reawaken",
+    Default = false,
+    Callback = function(state)
+        running = state
+        if running then
+            task.spawn(function()
+                while running do
+                    pcall(function()
+                        Remotes.Reawaken:InvokeServer()
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+FarmingAutomatic:AddParagraph({
+    Title = "📌 About Auto Farm OP",
+    Content = "Auto Farm OP fully automates dungeon farming:\n" ..
+              "- Joins and starts dungeons based on your level.\n" ..
+              "- Instantly kills all mobs using an insta-kill system.\n" ..
+              "- Teleports you to a safe floating platform.\n" ..
+              "- Loops the process to farm fast and easy.\n" ..
+              "Great for fast leveling and farming rewards!"
+})
+
+
+local DungeonConfigs = {
+    [1] = {Min = 1, Max = 5, Rank = "DoubleDungeonD", Difficulty = "Regular"},
+    [2] = {Min = 5, Max = 15, Rank = "DoubleDungeonD", Difficulty = "Hard"},
+    [3] = {Min = 15, Max = 20, Rank = "DoubleDungeonD", Difficulty = "Nightmare"},
+    [4] = {Min = 20, Max = 25, Rank = "GoblinCave", Difficulty = "Regular"},
+    [5] = {Min = 25, Max = 35, Rank = "GoblinCave", Difficulty = "Hard"},
+    [6] = {Min = 35, Max = 40, Rank = "GoblinCave", Difficulty = "Nightmare"},
+    [7] = {Min = 40, Max = 45, Rank = "SpiderCavern", Difficulty = "Regular"},
+    [8] = {Min = 45, Max = 55, Rank = "SpiderCavern", Difficulty = "Hard"},
+    [9] = {Min = 55, Max = 60, Rank = "SpiderCavern", Difficulty = "Nightmare"},
+}
+
+local teleportPosition = Vector3.new(-2184.658447265625, 40.04765319824219, -537.9774780273438)
+
+-- Função para criar a part flutuante
+local function createFloatingPart()
+    if floatingPart then floatingPart:Destroy() end
+    
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(10, 0, 10)
+    part.Position = teleportPosition
+    part.Anchored = true
+    part.CanCollide = true
+    part.Transparency = 0.5
+    part.Color = Color3.fromRGB(0, 170, 255)
+    part.Material = Enum.Material.Neon
+    part.Name = "DZHUB_FarmSpot"
+    part.Parent = Workspace
+    
+    floatingPart = part
+    return part
+end
+
+-- Verificação de dungeon melhorada
+local function isInDungeon()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = playerGui:FindFirstChild("ScreenGui")
+    return screenGui and screenGui:FindFirstChild("Wave") and screenGui.Wave.Visible
+end
+
+-- Sistema de Insta-Kill aprimorado
+local function setupInstaKill()
+    -- Desconectar conexão anterior se existir
+    if instaKillConnection then
+        instaKillConnection:Disconnect()
+        instaKillConnection = nil
+    end
+    
+    -- Função para matar um mob
+    local function killMob(mob)
+        if mob and mob:FindFirstChild("Humanoid") then
+            pcall(function()
+                mob.Humanoid.Health = 0
+            end)
+        end
+    end
+    
+    -- Matar todos os mobs existentes
+    for _, mob in ipairs(Workspace.Mobs:GetChildren()) do
+        killMob(mob)
+    end
+    
+    -- Conectar para novos mobs
+    instaKillConnection = Workspace.Mobs.ChildAdded:Connect(function(mob)
+        killMob(mob)
+    end)
+end
+
+-- Função para teleportar para o spot de farm
+local function teleportToFarmSpot()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            -- Salvar posição original antes de teleportar
+            originalPosition = humanoidRootPart.CFrame
+            
+            -- Criar part flutuante se não existir
+            if not floatingPart then
+                createFloatingPart()
+            end
+            
+            -- Teleportar para cima da part
+            humanoidRootPart.CFrame = floatingPart.CFrame + Vector3.new(0, 3, 0)
+            
+            -- Manter o jogador na posição
+            local connection
+            connection = RunService.Heartbeat:Connect(function()
+                if humanoidRootPart and floatingPart then
+                    humanoidRootPart.CFrame = floatingPart.CFrame + Vector3.new(0, 3, 0)
+                else
+                    connection:Disconnect()
+                end
+            end)
+        end
+    end
+end
+
+-- Obter configuração de dungeon baseada no level
+local function getConfigForLevel(level)
+    for _, config in pairs(DungeonConfigs) do
+        if level >= config.Min and level <= config.Max then
+            return config
+        end
+    end
+    return nil
+end
+
+-- Toggle principal do Auto Farm Dungeon
+FarmingAutomatic:AddToggle("AutoFarmOP", {
+    Title = "Auto Farm OP",
+    Default = false,
+    Callback = function(state)
+        running = state
+        local dungeonStarted = false
+        local teleportedOnce = false
+
+        if not state then
+            -- Limpeza ao desativar
+            if instaKillConnection then
+                instaKillConnection:Disconnect()
+                instaKillConnection = nil
+            end
+            if floatingPart then
+                floatingPart:Destroy()
+                floatingPart = nil
+            end
+            if originalPosition then
+                pcall(function()
+                    LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = originalPosition
+                end)
+            end
+            return
+        end
+
+        task.spawn(function()
+            while running do
+                if isInDungeon() then
+                    -- Dentro da dungeon
+                    if not dungeonStarted then
+                        pcall(function()
+                            Remotes.DungeonStart:FireServer()
+                        end)
+                        dungeonStarted = true
+                    end
+
+                    pcall(function()
+                        Remotes.LeaveToLobby:FireServer()
+                    end)
+
+                    if not teleportedOnce then
+                        teleportToFarmSpot()
+                        teleportedOnce = true
+                    end
+
+                    setupInstaKill()
+                    task.wait(0.1)
+                else
+                    -- Fora da dungeon
+                    dungeonStarted = false
+                    teleportedOnce = false
+
+                    local level = LocalPlayer:GetAttribute("Level") or 1
+                    local config = getConfigForLevel(level)
+
+                    if config then
+                        pcall(function()
+                            Remotes.createLobby:InvokeServer(config.Rank)
+                            task.wait(0.5)
+                            Remotes.LobbyDifficulty:FireServer(config.Difficulty)
+                            task.wait(0.5)
+                            Remotes.LobbyStart:FireServer()
+                        end)
+                    end
+
+                    task.wait(1)
+                end
+            end
+        end)
+    end
+})
+
+local ranks = {"DoubleDungeonD", "GoblinCave", "SpiderCavern", "DoubleDungeonSSS" }
+local difficulties = {"Regular", "Hard", "Nightmare"}
+
+local selectedRank = ranks[1]
+local selectedDifficulty = difficulties[1]
+
+Dungeon:AddDropdown("DungeonDropdown", {
+    Title = "Select Dungeon",
+    Description = "Escolha o tipo de dungeon",
+    Values = ranks,
+    Default = 1,
+    Multi = false,
+    Callback = function(value)
+        selectedRank = value
+    end
+})
+
+Dungeon:AddDropdown("DungeonDifficultyDropdown", {
+    Title = "Select Difficulty",
+    Description = "Escolha a dificuldade da dungeon",
+    Values = difficulties,
+    Default = 1,
+    Multi = false,
+    Callback = function(value)
+        selectedDifficulty = value
+    end
+})
+
+Dungeon:AddToggle("StartDungeonManual", {
+    Title = "Start Manual Dungeon",
+    Description = "Inicia a dungeon selecionada manualmente",
+    Default = false,
+    Callback = function(state)
+        if state then
+            task.spawn(function()
+                Fluent:Notify({
+                    Title = "Dungeon Manual",
+                    Content = "Iniciando dungeon: " .. selectedRank .. " | " .. selectedDifficulty,
+                    Duration = 5
+                })
+
+                -- Cria a dungeon e inicia
+                pcall(function()
+                    Remotes.createLobby:InvokeServer(selectedRank)
+                    task.wait(0.5)
+                    Remotes.LobbyDifficulty:FireServer(selectedDifficulty)
+                    task.wait(0.5)
+                    Remotes.LobbyStart:FireServer()
+                end)
+            end)
+        end
+    end
+})
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local killAuraActive = false
+local autoFarmActive = false
+local autoLeaveActive = false
+local autoReplayActive = false
+local startDungeonActive = false
+local farmMode = "Above"
+local yDistance = 2
+local farmConnection = nil
+local auraConnection = nil
+
+-- Localiza o mob mais próximo
+local function findNearestMob()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return nil end
+
+    local nearestMob = nil
+    local shortestDistance = math.huge
+
+    for _, mob in ipairs(Workspace.Mobs:GetChildren()) do
+        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+            local mobRoot = mob:FindFirstChild("HumanoidRootPart") or mob:FindFirstChild("Torso") or mob:FindFirstChild("UpperTorso")
+            if mobRoot then
+                local distance = (humanoidRootPart.Position - mobRoot.Position).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestMob = mob
+                end
+            end
+        end
+    end
+
+    return nearestMob
+end
+
+-- Kill Aura
+local function startKillAura()
+    if auraConnection then auraConnection:Disconnect() end
+
+    auraConnection = RunService.Heartbeat:Connect(function()
+        for _, mob in ipairs(Workspace.Mobs:GetChildren()) do
+            if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                local mobPos = mob:FindFirstChild("HumanoidRootPart") and mob.HumanoidRootPart.Position
+                local charPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+
+                if mobPos and charPos and (mobPos - charPos).Magnitude < 20 then
+                    mob.Humanoid.Health = 0
+                end
+            end
+        end
+    end)
+end
+
+-- Auto Position em 1 mob por vez
+local function startAutoFarm()
+    if farmConnection then farmConnection:Disconnect() end
+
+    local currentMob = nil
+
+    farmConnection = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+        -- Se o mob atual morreu ou não é válido, busca outro
+        if not currentMob or not currentMob:FindFirstChild("Humanoid") or currentMob.Humanoid.Health <= 0 then
+            currentMob = findNearestMob()
+        end
+
+        if currentMob and currentMob:FindFirstChild("HumanoidRootPart") then
+            local mobPos = currentMob.HumanoidRootPart.Position
+            local offsetY = farmMode == "Above" and yDistance or -yDistance
+
+            -- Teleporta o jogador grudado no mob
+            char.HumanoidRootPart.CFrame = CFrame.new(
+                mobPos.X,
+                mobPos.Y + offsetY,
+                mobPos.Z
+            )
+        end
+    end)
+end
+
+-- Auto Leave Dungeon
+local function checkAutoLeave()
+    if not autoLeaveActive then return end
+    pcall(function()
+        ReplicatedStorage.Remotes:WaitForChild("LeaveToLobby"):FireServer()
+    end)
+end
+
+-- Auto Replay Dungeon
+local function checkAutoReplay()
+    if not autoReplayActive then return end
+    pcall(function()
+        ReplicatedStorage.Remotes:WaitForChild("ReplayDungeon"):FireServer()
+    end)
+end
+
+-- Start Dungeon
+local function checkStartDungeon()
+    if not startDungeonActive then return end
+    pcall(function()
+        ReplicatedStorage.Remotes:WaitForChild("DungeonStart"):FireServer()
+    end)
+end
+
+-- UI
+FarmingManual:AddToggle("KillAuraToggle", {
+    Title = "Kill Aura",
+    Default = false,
+    Callback = function(state)
+        killAuraActive = state
+        if state then
+            startKillAura()
+        elseif auraConnection then
+            auraConnection:Disconnect()
+            auraConnection = nil
+        end
+    end
+})
+
+FarmingManual:AddToggle("AutoFarmToggle", {
+    Title = "Auto Farm Mobs",
+    Default = false,
+    Callback = function(state)
+        autoFarmActive = state
+        if state then
+            startAutoFarm()
+        elseif farmConnection then
+            farmConnection:Disconnect()
+            farmConnection = nil
+        end
+    end
+})
+
+FarmingManual:AddDropdown("FarmModeDropdown", {
+    Title = "Position Mode",
+    Values = {"Above", "Below"},
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        farmMode = value
+    end
+})
+
+FarmingManual:AddSlider("YDistanceSlider", {
+    Title = "Y Distance",
+    Default = 10,
+    Min = 0,
+    Max = 20,
+    Rounding = 1,
+    Callback = function(value)
+        yDistance = value
+    end
+})
+
+FarmingManual:AddToggle("AutoLeaveToggle", {
+    Title = "Auto Leave Dungeon",
+    Default = false,
+    Callback = function(state)
+        autoLeaveActive = state
+        if state then
+            task.spawn(function()
+                while autoLeaveActive do
+                    checkAutoLeave()
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmingManual:AddToggle("AutoReplayToggle", {
+    Title = "Replay Dungeon",
+    Default = false,
+    Callback = function(state)
+        autoReplayActive = state
+        if state then
+            task.spawn(function()
+                while autoReplayActive do
+                    checkAutoReplay()
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmingManual:AddToggle("StartDungeonToggle", {
+    Title = "Start Dungeon",
+    Default = false,
+    Callback = function(state)
+        startDungeonActive = state
+        if state then
+            task.spawn(function()
+                while startDungeonActive do
+                    checkStartDungeon()
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)

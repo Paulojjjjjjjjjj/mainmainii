@@ -30,14 +30,14 @@ local function showUnsupportedMapMessage()
     end)
 end
 
--- Verificação 1: Menu.Frame
+-- Verificação 1:
 local menuGui = playerGui:FindFirstChild("Menu")
 if menuGui and menuGui:FindFirstChild("Frame") then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/jji"))()
     return
 end
 
--- Verificação 2: Hud.Hud.Dano
+-- Verificação 2:
 local hudGui = playerGui:FindFirstChild("Hud")
 if hudGui and hudGui:FindFirstChild("Hud") and hudGui.Hud:FindFirstChild("Dano") then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/arise"))()
@@ -51,5 +51,17 @@ if pcHud and pcHud:FindFirstChild("LeftFrame") and pcHud.LeftFrame:FindFirstChil
     return
 end
 
+-- Verificação 4:
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local pcLevel = playerGui:FindFirstChild("ScreenGui")
+    and playerGui.ScreenGui:FindFirstChild("ButtomAlign")
+    and playerGui.ScreenGui.ButtomAlign:FindFirstChild("Level")
+
+if pcLevel then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/hunters"))()
+    return
+end
 
 showUnsupportedMapMessage()

@@ -51,5 +51,18 @@ if pcHud and pcHud:FindFirstChild("LeftFrame") and pcHud.LeftFrame:FindFirstChil
     return
 end
 
+-- Verificação 4:
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local pcLevel = playerGui:FindFirstChild("ScreenGui")
+    and playerGui.ScreenGui:FindFirstChild("ButtomAlign")
+    and playerGui.ScreenGui.ButtomAlign:FindFirstChild("Level")
+
+if pcLevel then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/hunters"))()
+    return
+end
+
 
 showUnsupportedMapMessage()

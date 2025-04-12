@@ -47,7 +47,8 @@ local Tabs = {
     Raid = Window:AddTab({ Title = "Raid"}),
     Gamepass = Window:AddTab({ Title = "Gamepasses"}),
     Skills = Window:AddTab({ Title = "Skills"}),
-    Misc = Window:AddTab({ Title = "Misc"})
+    Misc = Window:AddTab({ Title = "Misc"}),
+    Settings = Window:AddTab({ Title = "Settings"})
 }
 
 -- Variável para armazenar conexões de loops
@@ -793,3 +794,12 @@ MiscMiscSection:AddButton({
         superAntiLagAndFPSBooster()
     end
 })
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
