@@ -56,7 +56,6 @@ local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local Action = Tabs.Main:AddSection("Action Options")
 local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
 local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
-local DungeonSearch = Tabs.Dungeon:AddSection("Dungeon Search")
 local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
 ----------------------SECTION----------------------
 ---------------------------------------------------
