@@ -634,7 +634,8 @@ local teleportLocations = {
         ["World 4"] = Vector3.new(2791.104, 46.427, -2743.594),
         ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
         ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
-        ["World 7"] = Vector3.new(4817.643, 29.942, -158.618)
+        ["World 7"] = Vector3.new(4817.643, 29.942, -158.618),
+        ["World 8"] = Vector3.new(-6324.643, 27.198, -71.441)
     },
     ["World BlackSmith"] = {
         ["World 1"] = Vector3.new(543.510, 28.083, 256.367),
@@ -643,7 +644,8 @@ local teleportLocations = {
         ["World 4"] = Vector3.new(2602.380, 46.427, -2711.782),
         ["World 5"] = Vector3.new(188.722, 37.853, 4388.137),
         ["World 6"] = Vector3.new(286.645, 32.896, -4409.248),
-        ["World 7"] = Vector3.new(4890.349, 41.833, -78.664)
+        ["World 7"] = Vector3.new(4890.349, 41.833, -78.664),
+        ["World 8"] = Vector3.new(-6337.448, 27.198, -150.964)
     },
     ["World BoatSeller"] = {
         ["World 1"] = Vector3.new(425.565, 29.105, 383.855),
@@ -652,7 +654,8 @@ local teleportLocations = {
         ["World 4"] = Vector3.new(2477.002, 46.427, -2836.929),
         ["World 5"] = Vector3.new(204.880, 38.708, 4257.333),
         ["World 6"] = Vector3.new(100.193, 20.963, -4240.231),
-        ["World 7"] = Vector3.new(4821.689, 29.942, -97.917)
+        ["World 7"] = Vector3.new(4821.689, 29.942, -97.917),
+        ["World 8"] = Vector3.new(-6214.947, 26.187, -115.281)
     },
     ["Special Locations"] = {
         ["Enchanter"] = Vector3.new(607.443, 28.084, 222.486),
