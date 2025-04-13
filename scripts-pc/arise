@@ -721,7 +721,7 @@ end
 
 -- Toggle na interface (adapte para sua UI)
 Mounts:AddToggle("SearchMounts", {
-    Title = "Search Mounts [TEST]",
+    Title = "Search Mounts",
     Default = false,
     Callback = function(state)
         searchMountsEnabled = state
