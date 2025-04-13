@@ -94,6 +94,9 @@ end
 
 -- Encontrar próximo inimigo com nome igual, HP > 0 e filtro de Scale
 local function findNextEnemy()
+    local bestEnemy = nil
+    local highestHP = 0
+
     for _, npc in pairs(enemiesFolder:GetChildren()) do
         local title = npc:FindFirstChild("HealthBar")
             and npc.HealthBar:FindFirstChild("Main")
@@ -101,9 +104,7 @@ local function findNextEnemy()
 
         if title and title.Text == selectedEnemyName then
             local enemyName = npc.Name
-            local matchedServerEnemy = nil
 
-            -- Buscar no servidor o inimigo correspondente
             for _, world in pairs(enemiesServer:GetChildren()) do
                 local serverEnemy = world:FindFirstChild(enemyName)
                 if serverEnemy then
@@ -112,22 +113,26 @@ local function findNextEnemy()
 
                     local isScaleMatch = (
                         (selectedScaleFilter == "Small" and scale == 1) or
-                        (selectedScaleFilter == "Big" and scale == 2)
+                        (selectedScaleFilter == "Big" and scale == 2) or
+                        (selectedScaleFilter == "All" and (scale == 1 or scale == 2))
                     )
 
                     if hp and hp > 0 and isScaleMatch then
-                        matchedServerEnemy = npc
-                        break
+                        if selectedScaleFilter == "All" then
+                            if hp > highestHP then
+                                highestHP = hp
+                                bestEnemy = npc
+                            end
+                        else
+                            return npc
+                        end
                     end
                 end
             end
-
-            if matchedServerEnemy then
-                return matchedServerEnemy
-            end
         end
     end
-    return nil
+
+    return bestEnemy
 end
 
 -- Dropdown de inimigos
@@ -144,7 +149,7 @@ local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
 -- Dropdown de filtro de tamanho (Scale)
 local scaleDropdown = FarmingOptions:AddDropdown("ScaleFilter", {
     Title = "Enemy Size",
-    Values = {"Small", "Big"},
+    Values = {"Small", "Big", "All"},
     Default = 1,
     Callback = function(value)
         selectedScaleFilter = value
