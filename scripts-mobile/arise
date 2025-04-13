@@ -111,7 +111,7 @@ local function findNextEnemy()
                     local hp = serverEnemy:GetAttribute("HP")
 
                     local isScaleMatch = (
-                        (selectedScaleFilter == "Normal" and scale == 1) or
+                        (selectedScaleFilter == "Small" and scale == 1) or
                         (selectedScaleFilter == "Big" and scale == 2)
                     )
 
@@ -602,7 +602,7 @@ local function attackShadow()
                                     ["Event"] = "Attack",
                                     ["Enemy"] = enemyName
                                 },
-                                [2] = "\5"
+                                [2] = "\t"
                             }
                         }
 
