@@ -54,9 +54,10 @@ local Tabs = {
 local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local Action = Tabs.Main:AddSection("Action Options")
+local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
+local Mounts = Tabs.Teleport:AddSection("Mounts")
 local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
 local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
-local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
 ----------------------SECTION----------------------
 ---------------------------------------------------
 
@@ -67,6 +68,7 @@ local enemiesServer = workspace.__Main.__Enemies.Server
 
 local lastNames = {}
 local selectedEnemyName = nil
+local selectedScaleFilter = "Small"
 local autoTpEnabled = false
 
 -- Função de teleporte igual ao Auto Dungeon
@@ -74,7 +76,7 @@ local function forcedStepTeleport(destination)
     local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    for i = 1, 7 do
+    for i = 1, 10 do
         root.CFrame = CFrame.new(destination + Vector3.new(0, 0, 0))
         task.wait(0.000000005)
     end
@@ -90,18 +92,7 @@ local function teleportToEnemy(enemy)
     forcedStepTeleport(goalPosition)
 end
 
--- Buscar HP no Server
-local function getServerHP(enemyName)
-    for _, world in pairs(enemiesServer:GetChildren()) do
-        local enemy = world:FindFirstChild(enemyName)
-        if enemy and enemy:GetAttribute("HP") then
-            return enemy:GetAttribute("HP")
-        end
-    end
-    return 0
-end
-
--- Encontrar próximo inimigo com nome igual e HP > 0
+-- Encontrar próximo inimigo com nome igual, HP > 0 e filtro de Scale
 local function findNextEnemy()
     for _, npc in pairs(enemiesFolder:GetChildren()) do
         local title = npc:FindFirstChild("HealthBar")
@@ -109,9 +100,30 @@ local function findNextEnemy()
             and npc.HealthBar.Main:FindFirstChild("Title")
 
         if title and title.Text == selectedEnemyName then
-            local serverHP = getServerHP(npc.Name)
-            if serverHP and serverHP > 0 then
-                return npc
+            local enemyName = npc.Name
+            local matchedServerEnemy = nil
+
+            -- Buscar no servidor o inimigo correspondente
+            for _, world in pairs(enemiesServer:GetChildren()) do
+                local serverEnemy = world:FindFirstChild(enemyName)
+                if serverEnemy then
+                    local scale = serverEnemy:GetAttribute("Scale")
+                    local hp = serverEnemy:GetAttribute("HP")
+
+                    local isScaleMatch = (
+                        (selectedScaleFilter == "Normal" and scale == 1) or
+                        (selectedScaleFilter == "Big" and scale == 2)
+                    )
+
+                    if hp and hp > 0 and isScaleMatch then
+                        matchedServerEnemy = npc
+                        break
+                    end
+                end
+            end
+
+            if matchedServerEnemy then
+                return matchedServerEnemy
             end
         end
     end
@@ -126,6 +138,16 @@ local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
     Default = 1,
     Callback = function(value)
         selectedEnemyName = value
+    end
+})
+
+-- Dropdown de filtro de tamanho (Scale)
+local scaleDropdown = FarmingOptions:AddDropdown("ScaleFilter", {
+    Title = "Enemy Size",
+    Values = {"Small", "Big"},
+    Default = 1,
+    Callback = function(value)
+        selectedScaleFilter = value
     end
 })
 
@@ -179,12 +201,12 @@ function updateDropdown()
     end
 end
 
+-- Loop para atualizar dropdown constantemente
 task.spawn(function()
     while task.wait(2) do
         updateDropdown()
     end
 end)
-
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -611,6 +633,99 @@ local Toggle = AutoFarm:AddToggle("AutoAttackNearestEnemy", {
     end
 })
 
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+
+local MountLocations = {
+    Vector3.new(-6160.187, 78.217, 5455.171),
+    Vector3.new(3306.613, 83.159, 14.523),
+    Vector3.new(-5902.75, 91.000, 419.425),
+    Vector3.new(418.633, 57.633, 3371.146),
+    Vector3.new(4295.754, 59.064, -4734.791),
+    Vector3.new(-623.221, 107.756, -3567.257),
+    Vector3.new(-5411.016, 107.441, -5495.721),
+}
+
+local searchMountsEnabled = false
+
+-- Teleporte instantâneo entre as ilhas
+local function forcedStepTeleport(destination)
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for i = 1, 15 do
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
+        task.wait(0.000000005)
+    end
+end
+
+-- Teleporte suave até a montaria com TweenService
+local function smoothTeleportTo(position)
+    local character = localPlayer.Character
+    if not character then return end
+
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Linear)
+    local goal = {CFrame = CFrame.new(position + Vector3.new(0, 3, 0))}
+    local tween = TweenService:Create(root, tweenInfo, goal)
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- Simula o botão E
+local function simulateProximityPrompt(object)
+    local prompt = object:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        fireproximityprompt(prompt)
+    end
+end
+
+-- Loop de busca pelas montarias
+local function teleportToMountsLoop()
+    task.spawn(function()
+        while searchMountsEnabled do
+            for _, location in ipairs(MountLocations) do
+                if not searchMountsEnabled then return end
+
+                -- TP instantâneo entre as ilhas
+                forcedStepTeleport(location)
+                task.wait(0.5)
+
+                for _, mount in pairs(workspace.__Extra.__Appear:GetChildren()) do
+                    local model = mount:FindFirstChildWhichIsA("Model") or mount
+                    local root = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+
+                    if root then
+                        -- TP suave até a montaria
+                        smoothTeleportTo(root.Position)
+                        task.wait(0.2)
+                        simulateProximityPrompt(mount)
+                        task.wait(1)
+                    end
+                end
+
+                task.wait(1)
+            end
+        end
+    end)
+end
+
+-- Toggle na interface
+Mounts:AddToggle("SearchMounts", {
+    Title = "Search Mounts [TEST]",
+    Default = false,
+    Callback = function(state)
+        searchMountsEnabled = state
+        if state then
+            teleportToMountsLoop()
+        end
+    end
+})
+
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -619,7 +734,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 -- Teleporte forçado em múltiplos steps
 local function forcedStepTeleport(destination)
     if not hrp then return end
-    for i = 1, 7 do
+    for i = 1, 10 do
         hrp.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0)) -- Altura ajustada
         task.wait(0.000000005)
     end
@@ -813,7 +928,7 @@ local function forcedStepTeleport(destination)
     local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    for i = 1, 7 do
+    for i = 1, 10 do
         root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
         task.wait(0.000000005)
     end
