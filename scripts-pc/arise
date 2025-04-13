@@ -660,7 +660,7 @@ local function forcedStepTeleport(destination)
     end
 end
 
--- Teleporte suave até a montaria com TweenService
+-- Teleporte suave até a montaria com TweenService (4 segundos)
 local function smoothTeleportTo(position)
     local character = localPlayer.Character
     if not character then return end
@@ -668,7 +668,7 @@ local function smoothTeleportTo(position)
     local root = character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Linear)
+    local tweenInfo = TweenInfo.new(4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local goal = {CFrame = CFrame.new(position + Vector3.new(0, 3, 0))}
     local tween = TweenService:Create(root, tweenInfo, goal)
     tween:Play()
@@ -694,6 +694,7 @@ local function teleportToMountsLoop()
                 forcedStepTeleport(location)
                 task.wait(0.5)
 
+                -- Verifica se há montarias na área
                 for _, mount in pairs(workspace.__Extra.__Appear:GetChildren()) do
                     local model = mount:FindFirstChildWhichIsA("Model") or mount
                     local root = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
@@ -713,7 +714,7 @@ local function teleportToMountsLoop()
     end)
 end
 
--- Toggle na interface
+-- Toggle na interface (adapte para sua UI)
 Mounts:AddToggle("SearchMounts", {
     Title = "Search Mounts [TEST]",
     Default = false,
