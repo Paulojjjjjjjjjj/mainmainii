@@ -436,6 +436,7 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
     end
 })
 
+-- Adicionando a Toggle para o Auto Free Wheel Spin
 UtilitiesSection:AddToggle("AutoWheelSpin", {
     Title = "Auto Free Wheel Spin",
     Description = "Gira automaticamente a roleta grátis quando estiver disponível",
@@ -458,6 +459,14 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
         end
     end
 })
+
+-- Adicionando o código para invocar o servidor para a roleta
+local args = {
+    [1] = "WheelSpin"
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function"):InvokeServer(unpack(args))
+
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
