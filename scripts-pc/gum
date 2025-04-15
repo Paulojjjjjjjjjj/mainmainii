@@ -68,7 +68,7 @@ local CodeSection = Tabs.Misc:AddSection("Codes")
 --// Auto Blow
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
-    Description = "Assopra automaticamente a bolha",
+    Description = "Automatically blows the bubble",
     Default = false,
     Callback = function(state)
         AutoBlow = state
@@ -88,7 +88,7 @@ BlowSection:AddToggle("AutoBlow", {
 --// Auto Sell
 BlowSection:AddToggle("AutoSell", {
     Title = "Auto Sell",
-    Description = "Vende a bolha automaticamente",
+    Description = "Sell the bubble automatically",
     Default = false,
     Callback = function(state)
         AutoSell = state
@@ -109,7 +109,7 @@ local AutoCollect = false
 
 CollectSection:AddToggle("AutoCollectToggle", {
     Title = "Auto Collect Coins/Gems/Crates",
-    Description = "Coleta automaticamente Coins/Gems/Crates",
+    Description = "Automatically collect Coins/Gems/Crates",
     Default = false,
     Callback = function(state)
         AutoCollect = state
@@ -140,14 +140,14 @@ CollectSection:AddToggle("AutoCollectToggle", {
                 end
             end)
             Fluent:Notify({
-                Title = "Auto Collect Ativado",
-                Content = "Coletando e destruindo pickups automaticamente",
+                Title = "Auto Collect Enabled",
+                Content = "Collecting and destroying pickups automatically",
                 Duration = 3
             })
         else
             Fluent:Notify({
-                Title = "Auto Collect Desativado",
-                Content = "Coleta automática desligada",
+                Title = "Auto Collect Disabled",
+                Content = "Auto Collect Off",
                 Duration = 3
             })
         end
@@ -156,7 +156,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
 
 CollectSection:AddToggle("AutoClaimChests", {
     Title = "Auto Claim Chests",
-    Description = "Teleporta e clama Giant e Void Chest em loop",
+    Description = "Teleports and calls Giant and Void Chest in a loop",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimChests = state
@@ -206,7 +206,7 @@ CollectSection:AddToggle("AutoClaimChests", {
 
 CollectSection:AddToggle("AutoGiftGrabber", {
     Title = "Auto Collect Gift",
-    Description = "Usa o gift, dá claim",
+    Description = "Use gift, give claim",
     Default = false,
     Callback = function(state)
         getgenv().AutoGiftGrabber = state
@@ -258,7 +258,7 @@ CollectSection:AddToggle("AutoGiftGrabber", {
 
 CollectSection:AddToggle("AutoClaimPlaytime", {
     Title = "Auto Claim Playtime Rewards",
-    Description = "Reivindica automaticamente as recompensas de playtime (1 até 9)",
+    Description = "Automatically claims playtime rewards (1 to 9)",
     Default = false,
     Callback = function(state)
         AutoClaimPlaytime = state
@@ -292,7 +292,7 @@ local equipBestRunning = false -- Variável de controle GLOBAL
 
 UtilitiesSection:AddToggle("EquipBestToggle", {
     Title = "Auto Equip Best Pets",
-    Description = "Equipa automaticamente os melhores pets",
+    Description = "Automatically equips the best pets",
     Default = false,
     Callback = function(state)
         equipBestRunning = state
@@ -315,13 +315,13 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
             
             Fluent:Notify({
                 Title = "Auto Equip Ativado",
-                Content = "Equipando melhores pets automaticamente",
+                Content = "Equipping better pets automatically",
                 Duration = 3
             })
         else
             Fluent:Notify({
                 Title = "Auto Equip Desativado",
-                Content = "Parou de equipar pets automaticamente",
+                Content = "Stopped equipping pets automatically",
                 Duration = 3
             })
         end
@@ -330,7 +330,7 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
 
 UtilitiesSection:AddToggle("AutoStartGenieQuest", {
     Title = "Auto Start Genie Quest",
-    Description = "Inicia automaticamente as fases 1 a 3 da quest do Gênio",
+    Description = "Automatically starts random Genius quests",
     Default = false,
     Callback = function(state)
         getgenv().AutoGenieQuest = state
@@ -358,7 +358,7 @@ UtilitiesSection:AddToggle("AutoStartGenieQuest", {
 
 UtilitiesSection:AddToggle("AutoBuyAlienShop", {
     Title = "Auto Buy Alien Shop Items",
-    Description = "Compra automaticamente os itens da alien-shop (1 a 3)",
+    Description = "Automatically buys items from alien-shop",
     Default = false,
     Callback = function(state)
         getgenv().AutoBuyAlienShop = state
@@ -384,7 +384,7 @@ UtilitiesSection:AddToggle("AutoBuyAlienShop", {
 
 UtilitiesSection:AddToggle("AutoBuyShardShop", {
     Title = "Auto Buy Black Market Shop Items",
-    Description = "Compra automaticamente os itens da shard shop (ID 1 a 3)",
+    Description = "Automatically buys items from shard shop",
     Default = false,
     Callback = function(state)
         getgenv().AutoBuyShardShop = state
@@ -413,7 +413,7 @@ UtilitiesSection:AddToggle("AutoBuyShardShop", {
 
 UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
     Title = "Auto Win Doggy",
-    Description = "Simula vitória no minigame Doggy Jump (Rewards 1 a 3)",
+    Description = "Simulates victory in the Doggy Jump minigame (Rewards 1 to 3)",
     Default = false,
     Callback = function(state)
         getgenv().AutoDoggyJumpWin = state
@@ -438,7 +438,7 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
 
 UtilitiesSection:AddToggle("AutoWheelSpin", {
     Title = "Auto Wheel Spin",
-    Description = "Gira automaticamente ambas as roletas (grátis e paga)",
+    Description = "Automatically spins both roulette wheels (free and paid)",
     Default = false,
     Callback = function(state)
         getgenv().AutoWheelSpin = state
@@ -498,8 +498,8 @@ local EggPositions = {
 
 -- Dropdown para seleção do ovo
 Egg:AddDropdown("EggDropdown", {
-    Title = "Selecionar Ovo",
-    Description = "Escolha o ovo que deseja abrir",
+    Title = "Selecting Egg",
+    Description = "Choose the egg you want to open",
     Values = {
         "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
         "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
@@ -514,8 +514,8 @@ Egg:AddDropdown("EggDropdown", {
 
 -- Dropdown para quantidade de ovos
 Egg:AddDropdown("HatchAmountDropdown", {
-    Title = "Quantidade de Ovos",
-    Description = "Escolha quantos ovos abrir por vez",
+    Title = "Quantity of Eggs",
+    Description = "Choose how many eggs to open at a time",
     Values = { "1", "3" },
     Multi = false,
     Default = 1,
@@ -527,7 +527,7 @@ Egg:AddDropdown("HatchAmountDropdown", {
 -- Toggle para Auto Hatch com teleporte e noclip
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
-    Description = "Abre ovos automaticamente com teleporte",
+    Description = "Automatically opens eggs with teleport",
     Default = false,
     Callback = function(state)
         AutoHatch = state
@@ -978,21 +978,21 @@ end
 -- Adicione esta toggle à sua interface Fluent
 GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Title = "Auto Gift Rift",
-    Description = "Teleporta e coleta gifts automaticamente",
+    Description = "Automatically teleports and collects gifts",
     Default = false,
     Callback = function(state)
         AutoGiftRift = state
         if state then
             Fluent:Notify({
                 Title = "Gift Rift",
-                Content = "Iniciando coleta automática de gifts",
+                Content = "Starting automatic gifts collection",
                 Duration = 3
             })
             task.spawn(teleportAndClaimGift)
         else
             Fluent:Notify({
                 Title = "Gift Rift",
-                Content = "Coleta automática desativada",
+                Content = "Automatic collection deactivated",
                 Duration = 3
             })
         end
@@ -1001,7 +1001,7 @@ GiftHunt:AddToggle("AutoGiftRiftToggle", {
 
 Tabs.Upgrades:AddToggle("AutoUpgrade", {
     Title = "Auto Upgrade Mastery for Buffs",
-    Description = "Executa o Upgrade Mastery automaticamente quando ativado.",
+    Description = "Runs Upgrade Mastery automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgrade = state  -- Armazenando o estado para controle de loop
@@ -1033,7 +1033,7 @@ Tabs.Upgrades:AddToggle("AutoUpgrade", {
 
 Tabs.Upgrades:AddToggle("AutoUpgradePets", {
     Title = "Auto Upgrade Mastery for Pets",
-    Description = "Executa o Upgrade Mastery para Pets automaticamente quando ativado.",
+    Description = "Runs Upgrade Mastery for Pets automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgradePets = state  -- Controla o estado da toggle
@@ -1065,7 +1065,7 @@ Tabs.Upgrades:AddToggle("AutoUpgradePets", {
 
 Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
     Title = "Auto Upgrade Mastery for Shops",
-    Description = "Executa o Upgrade Mastery para Shops automaticamente quando ativado.",
+    Description = "Runs Upgrade Mastery for Shops automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgradeShops = state  -- Controla o estado da toggle
@@ -1114,8 +1114,8 @@ end
 
 -- Criando o Dropdown com seleção múltipla
 local MultiDropdown = AutoPotionSection:AddDropdown("Poções", {
-    Title = "Selecionar Poções",
-    Description = "Escolha as poções para usar",
+    Title = "Selecting Potions",
+    Description = "Choose the potions to use",
     Values = dropdownOptions,
     Multi = true,
     Default = {},  -- Predefinir poções selecionadas
@@ -1133,7 +1133,7 @@ MultiDropdown:OnChanged(function(Value)
     end
 
     -- Exibe as poções selecionadas no console
-    print("Poções selecionadas:", table.concat(SelectedPotions, ", "))
+    print("Selected potions:", table.concat(SelectedPotions, ", "))
 end)
 
 -- RemoteEvent
@@ -1146,22 +1146,22 @@ local RemoteEvent = game:GetService("ReplicatedStorage")
 
 -- Toggle Auto Potion
 AutoPotionSection:AddToggle("Auto Usar Poções", {
-    Title = "Ativar uso automático de poções",
-    Description = "Ativa o uso automático das poções selecionadas",
+    Title = "Auto Use Potion",
+    Description = "Enables automatic use of selected potions",
     Default = false,
     Callback = function(state)
         getgenv().AutoPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Poções", Content = "Ativado", Duration = 3})
+            Fluent:Notify({Title = "Auto Poções", Content = "Activated", Duration = 3})
 
             task.spawn(function()
                 while getgenv().AutoPotion do
                     -- Verifica se existem poções selecionadas
                     if #SelectedPotions == 0 then
                         Fluent:Notify({
-                            Title = "Aviso",
-                            Content = "Nenhuma poção selecionada.",
+                            Title = "Warn",
+                            Content = "No potions selected.",
                             Duration = 4
                         })
                         break
@@ -1172,13 +1172,13 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                         local data = potionList[displayName]
                         if data then
                             local name, tier = unpack(data)
-                            print("Enviando:", name, tier)
+                            print("Sending:", name, tier)
                             pcall(function()
                                 RemoteEvent:FireServer("UsePotion", name, tier)
                             end)
                             task.wait(0.2)
                         else
-                            warn("Poção inválida:", displayName)
+                            warn("Potion invalid:", displayName)
                         end
                     end
 
@@ -1186,7 +1186,7 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                 end
             end)
         else
-            Fluent:Notify({Title = "Auto Poções", Content = "Desativado", Duration = 3})
+            Fluent:Notify({Title = "Auto Potions", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1210,8 +1210,8 @@ end
 
 -- Criando o Dropdown com seleção múltipla
 local MultiDropdown = AutoCraftPotionSection:AddDropdown("Poções", {
-    Title = "Selecionar Poções para Craftar",
-    Description = "Escolha as poções e tiers que deseja craftar",
+    Title = "Selecting Potions to Craft",
+    Description = "Choose the potions and tiers you want to craft",
     Values = dropdownOptions,
     Multi = true,
     Default = {},
@@ -1239,21 +1239,21 @@ local RemoteEvent = game:GetService("ReplicatedStorage")
 
 -- Toggle Auto Craft
 AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
-    Title = "Ativar Auto Craft",
-    Description = "Crafta automaticamente as poções selecionadas",
+    Title = "Auto Craft Potion",
+    Description = "Automatically brews selected potions",
     Default = false,
     Callback = function(state)
         getgenv().AutoCraftPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Craft", Content = "Ativado", Duration = 3})
+            Fluent:Notify({Title = "Auto Craft", Content = "Activated", Duration = 3})
 
             task.spawn(function()
                 while getgenv().AutoCraftPotion do
                     if #SelectedPotions == 0 then
                         Fluent:Notify({
-                            Title = "Aviso",
-                            Content = "Nenhuma poção selecionada para craftar.",
+                            Title = "Warn",
+                            Content = "No potions selected for crafting.",
                             Duration = 4
                         })
                         break
@@ -1269,7 +1269,7 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                             end)
                             task.wait(0.2)
                         else
-                            warn("Poção inválida:", displayName)
+                            warn("Potion invalid:", displayName)
                         end
                     end
 
@@ -1277,7 +1277,7 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                 end
             end)
         else
-            Fluent:Notify({Title = "Auto Craft", Content = "Desativado", Duration = 3})
+            Fluent:Notify({Title = "Auto Craft", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1286,8 +1286,8 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
 local AutoTween = false
 
 TeleportSection:AddToggle("TweenTeleport", {
-    Title = "Ir para localização (Tween)",
-    Description = "Leva suavemente até a posição com TweenService",
+    Title = "Unlock All Island",
+    Description = "unlock all the islands",
     Default = false,
     Callback = function(state)
         AutoTween = state
@@ -1333,7 +1333,7 @@ local teleportLocations = {
 for name, path in pairs(teleportLocations) do
     Tabs.Teleport:AddButton({
         Title = name,
-        Description = "Teleporta para " .. name,
+        Description = "Teleport to " .. name,
         Callback = function()
             local RemoteEvent = game:GetService("ReplicatedStorage")
                 :WaitForChild("Shared")
@@ -1345,8 +1345,8 @@ for name, path in pairs(teleportLocations) do
             RemoteEvent:FireServer("Teleport", path)
 
             Fluent:Notify({
-                Title = "Teleporte",
-                Content = "Teleportado para: " .. name,
+                Title = "Teleport",
+                Content = "Teleport to: " .. name,
                 Duration = 3
             })
         end
@@ -1356,7 +1356,7 @@ end
 --// Botão de resgatar códigos
 CodeSection:AddButton({
     Title = "Redeem Codes",
-    Description = "Resgata todos os códigos disponíveis",
+    Description = "Redeem all available codes",
     Callback = function()
         local codes = { "Release", "Thanks", "Lucky" }
         for _, code in ipairs(codes) do
@@ -1366,9 +1366,9 @@ CodeSection:AddButton({
                     :InvokeServer("RedeemCode", code)
             end)
             if success then
-                print("Código resgatado:", code)
+                print("Code redeemed:", code)
             else
-                warn("Erro ao resgatar código:", code, result)
+                warn("Error redeeming code:", code, result)
             end
             task.wait(1)
         end
