@@ -11,7 +11,7 @@ local function fancyNotify(step, total)
     })
 end
 
--- Example loading animation
+-- Loading animation
 task.spawn(function()
     local totalSteps = 15
     for i = 1, totalSteps do

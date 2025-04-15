@@ -1415,3 +1415,97 @@ InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/BubbleGumInfinity")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
+
+local CoreGui = game:GetService("CoreGui")
+
+-- Remover qualquer GUI persistente anterior com o mesmo nome
+local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
+if ExistingGui then
+    ExistingGui:Destroy()
+end
+
+local ScreenGuiToMinimize
+
+-- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
+for _, gui in ipairs(CoreGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        for _, descendant in ipairs(gui:GetDescendants()) do
+            if descendant:IsA("TextLabel") and descendant.Text == "Bubble Gum Simulator INFINITY | DZHUB" then
+                ScreenGuiToMinimize = gui
+                break
+            end
+        end
+    end
+    if ScreenGuiToMinimize then break end
+end
+
+if not ScreenGuiToMinimize then
+    warn("ScreenGui com o texto especificado não encontrado.")
+    return
+end
+
+print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
+
+-- Criar botão persistente
+local MinimizeGui = Instance.new("ScreenGui", CoreGui)
+MinimizeGui.Name = "MinimizeButtonGui"
+
+local MinimizeButton = Instance.new("ImageButton", MinimizeGui)
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 44, 0, 45)
+MinimizeButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
+
+-- Adicionar UICorner ao botão para arredondar bordas
+local UICorner = Instance.new("UICorner", MinimizeButton)
+
+-- Função para minimizar corretamente
+MinimizeButton.MouseButton1Click:Connect(function()
+    if Window and Window.Minimize then
+        Window:Minimize()
+    else
+        warn("Função Window:Minimize não está disponível.")
+    end
+end)
+
+-- Adicionar funcionalidade de arrastar o botão
+local dragging = false
+local dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MinimizeButton.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+MinimizeButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MinimizeButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MinimizeButton.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        update(input)
+    end
+end)
