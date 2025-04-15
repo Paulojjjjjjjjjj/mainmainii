@@ -1,0 +1,1375 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+--// Janela principal
+local Window = Fluent:CreateWindow({
+    Title = "Bubble Gum Simulator INFINITY | DZHUB",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+--// Abas
+local Tabs = {
+    Main = Window:AddTab({ 
+        Title = "Main", 
+        Icon = "rbxassetid://14456045412" -- Ícone de casa
+    }),
+    EggHunt = Window:AddTab({ 
+        Title = "Egg / Hunt", 
+        Icon = "rbxassetid://119629336187267" -- Ícone de ovo
+    }),
+    Upgrades = Window:AddTab({ 
+        Title = "Upgrades", 
+        Icon = "rbxassetid://97136202386756" -- Ícone de seta para cima
+    }),
+    Potions = Window:AddTab({ 
+        Title = "Potions", 
+        Icon = "rbxassetid://109178225112633" -- Ícone de frasco
+    }),
+    Teleport = Window:AddTab({ 
+        Title = "Teleport", 
+        Icon = "rbxassetid://12689978575" -- Ícone de teletransporte
+    }),
+    Misc = Window:AddTab({ 
+        Title = "Misc", 
+        Icon = "rbxassetid://90998363974520" -- Ícone de engrenagem
+    }),
+    Settings = Window:AddTab({ 
+        Title = "Settings", 
+        Icon = "rbxassetid://96957318452720" -- Ícone de configurações
+    })
+}
+
+--// Variáveis globais
+local AutoBlow = false
+local AutoSell = false
+local AutoHatch = false
+local SelectedEgg = "Iceshard Egg"
+local HatchAmount = 1
+
+--// ======= [MAIN TAB SECTIONS] =======
+
+local BlowSection = Tabs.Main:AddSection("Bubble Automation")
+local CollectSection = Tabs.Main:AddSection("Auto Collect")
+local UtilitiesSection = Tabs.Main:AddSection("Utilities")
+local Egg = Tabs.EggHunt:AddSection("Egg")
+local EggRift = Tabs.EggHunt:AddSection("Egg Rift")
+local ChestHunt = Tabs.EggHunt:AddSection("Chest Hunt")
+local GiftHunt = Tabs.EggHunt:AddSection("Gift Hunt")
+local AutoPotionSection = Tabs.Potions:AddSection("Auto Use Potion")
+local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
+local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
+local CodeSection = Tabs.Misc:AddSection("Codes") 
+
+--// Auto Blow
+BlowSection:AddToggle("AutoBlow", {
+    Title = "Auto Blow",
+    Description = "Assopra automaticamente a bolha",
+    Default = false,
+    Callback = function(state)
+        AutoBlow = state
+        task.spawn(function()
+            while AutoBlow do
+                pcall(function()
+                    game:GetService("ReplicatedStorage")
+                        .Shared.Framework.Network.Remote.Event
+                        :FireServer("BlowBubble")
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+--// Auto Sell
+BlowSection:AddToggle("AutoSell", {
+    Title = "Auto Sell",
+    Description = "Vende a bolha automaticamente",
+    Default = false,
+    Callback = function(state)
+        AutoSell = state
+        task.spawn(function()
+            while AutoSell do
+                pcall(function()
+                    game:GetService("ReplicatedStorage")
+                        .Shared.Framework.Network.Remote.Event
+                        :FireServer("SellBubble")
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+local AutoCollect = false
+
+CollectSection:AddToggle("AutoCollectToggle", {
+    Title = "Auto Collect Coins/Gems/Crates",
+    Description = "Coleta automaticamente Coins/Gems/Crates",
+    Default = false,
+    Callback = function(state)
+        AutoCollect = state
+        
+        if state then
+            task.spawn(function()
+                local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+                                      :WaitForChild("Pickups"):WaitForChild("CollectPickup")
+                
+                while AutoCollect and task.wait(0.1) do
+                    pcall(function()
+                        local rendered = workspace:FindFirstChild("Rendered")
+                        if rendered then
+                            for _, folder in ipairs(rendered:GetChildren()) do
+                                if folder.Name == "Chunker" then
+                                    for _, model in ipairs(folder:GetChildren()) do
+                                        if model:IsA("Model") then
+                                            -- Coleta o pickup
+                                            pickupRemote:FireServer(model.Name)
+                                            -- Destroi o modelo após coletar
+                                            model:Destroy()
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+            end)
+            Fluent:Notify({
+                Title = "Auto Collect Ativado",
+                Content = "Coletando e destruindo pickups automaticamente",
+                Duration = 3
+            })
+        else
+            Fluent:Notify({
+                Title = "Auto Collect Desativado",
+                Content = "Coleta automática desligada",
+                Duration = 3
+            })
+        end
+    end
+})
+
+CollectSection:AddToggle("AutoClaimChests", {
+    Title = "Auto Claim Chests",
+    Description = "Teleporta e clama Giant e Void Chest em loop",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClaimChests = state
+
+        if state then
+            spawn(function()
+                local TweenService = game:GetService("TweenService")
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HRP = Character:WaitForChild("HumanoidRootPart")
+
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                local chestData = {
+                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
+                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                }
+
+                local function tweenToPosition(pos, duration)
+                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+                        CFrame = CFrame.new(pos)
+                    })
+                end
+
+                while getgenv().AutoClaimChests do
+                    for chestName, position in pairs(chestData) do
+                        local tween = tweenToPosition(position, 4)
+                        tween:Play()
+                        tween.Completed:Wait(0.3) -- espera terminar o movimento
+                        task.wait(1)
+
+                        -- Clama o baú
+                        RemoteEvent:FireServer("ClaimChest", chestName)
+                        task.wait(0.1)
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+
+CollectSection:AddToggle("AutoGiftGrabber", {
+    Title = "Auto Collect Gift",
+    Description = "Usa o gift, dá claim",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoGiftGrabber = state
+
+        if state then
+            spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
+                local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
+                local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
+
+                while AutoGiftGrabber do
+                    -- 1. Usa o gift
+                    RemoteEvent:FireServer("UseGift", "Mystery Box", 1)
+
+                    -- 2. Detecta e faz claim do gift
+                    local giftPart = nil
+                    local startTime = os.clock()
+
+                    repeat
+                        for _, obj in pairs(RenderedGifts:GetChildren()) do
+                            if obj:IsA("BasePart") then
+                                giftPart = obj
+                                break
+                            end
+                        end
+                        task.wait(0.3)
+                    until giftPart or (os.clock() - startTime > 10) or not AutoGiftGrabber
+
+                    -- 3. Processo de claim + destruição
+                    if giftPart and AutoGiftGrabber then
+                        -- Faz o claim
+                        RemoteEvent:FireServer("ClaimGift", giftPart.Name)
+                        
+                        -- Destrói a part após 0.5 segundos (garantir que o server processou)
+                        task.wait(0.3)
+                        if giftPart.Parent then -- Verifica se ainda existe
+                            giftPart:Destroy()
+                        end
+                    end
+
+                    -- 4. Cooldown
+                    task.wait(0.3)
+                end
+            end)
+        end
+    end
+})
+
+CollectSection:AddToggle("AutoClaimPlaytime", {
+    Title = "Auto Claim Playtime Rewards",
+    Description = "Reivindica automaticamente as recompensas de playtime (1 até 9)",
+    Default = false,
+    Callback = function(state)
+        AutoClaimPlaytime = state
+
+        task.spawn(function()
+            while AutoClaimPlaytime do
+                for i = 1, 9 do
+                    pcall(function()
+                        local args = {
+                            [1] = "ClaimPlaytime",
+                            [2] = i
+                        }
+
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Network")
+                            :WaitForChild("Remote")
+                            :WaitForChild("Function")
+                            :InvokeServer(unpack(args))
+                    end)
+                end
+
+                task.wait(1) -- Espera 5 segundos antes de repetir tudo
+            end
+        end)
+    end
+})
+
+local equipBestRunning = false -- Variável de controle GLOBAL
+
+UtilitiesSection:AddToggle("EquipBestToggle", {
+    Title = "Auto Equip Best Pets",
+    Description = "Equipa automaticamente os melhores pets",
+    Default = false,
+    Callback = function(state)
+        equipBestRunning = state
+        
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("Shared")
+                    :WaitForChild("Framework")
+                    :WaitForChild("Network")
+                    :WaitForChild("Remote")
+                    :WaitForChild("Event")
+                
+                while equipBestRunning do
+                    local args = {[1] = "EquipBestPets"}
+                    remote:FireServer(unpack(args))
+                    task.wait(2) -- Espera 2 segundos
+                end
+            end)
+            
+            Fluent:Notify({
+                Title = "Auto Equip Ativado",
+                Content = "Equipando melhores pets automaticamente",
+                Duration = 3
+            })
+        else
+            Fluent:Notify({
+                Title = "Auto Equip Desativado",
+                Content = "Parou de equipar pets automaticamente",
+                Duration = 3
+            })
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoStartGenieQuest", {
+    Title = "Auto Start Genie Quest",
+    Description = "Inicia automaticamente as fases 1 a 3 da quest do Gênio",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoGenieQuest = state
+
+        if state then
+            task.spawn(function()
+                local RemoteEvent = game:GetService("ReplicatedStorage")
+                    :WaitForChild("Shared")
+                    :WaitForChild("Framework")
+                    :WaitForChild("Network")
+                    :WaitForChild("Remote")
+                    :WaitForChild("Event")
+
+                while getgenv().AutoGenieQuest do
+                    for i = 1, 3 do
+                        RemoteEvent:FireServer("StartGenieQuest", i)
+                        task.wait(0.5)
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoBuyAlienShop", {
+    Title = "Auto Buy Alien Shop Items",
+    Description = "Compra automaticamente os itens da alien-shop (1 a 3)",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoBuyAlienShop = state
+
+        if state then
+            spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
+                    :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoBuyAlienShop do
+                    for i = 1, 3 do
+                        RemoteEvent:FireServer("BuyShopItem", "alien-shop", i)
+                        task.wait(0.5) -- pequeno delay entre compras
+                    end
+
+                    task.wait(0.5) -- espera 3s antes de comprar novamente
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoBuyShardShop", {
+    Title = "Auto Buy Black Market Shop Items",
+    Description = "Compra automaticamente os itens da shard shop (ID 1 a 3)",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoBuyShardShop = state
+
+        if state then
+            task.spawn(function()
+                local RemoteEvent = game:GetService("ReplicatedStorage")
+                    :WaitForChild("Shared")
+                    :WaitForChild("Framework")
+                    :WaitForChild("Network")
+                    :WaitForChild("Remote")
+                    :WaitForChild("Event")
+
+                while getgenv().AutoBuyShardShop do
+                    for i = 1, 3 do
+                        RemoteEvent:FireServer("BuyShopItem", "shard-shop", i)
+                        task.wait(0.5)
+                    end
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
+
+UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
+    Title = "Auto Win Doggy",
+    Description = "Simula vitória no minigame Doggy Jump (Rewards 1 a 3)",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoDoggyJumpWin = state
+
+        if state then
+            spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
+                    :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoDoggyJumpWin do
+                    for i = 1, 3 do
+                        RemoteEvent:FireServer("DoggyJumpWin", i)
+                        task.wait(0.5)
+                    end
+                    task.wait(1) -- espera 3s antes de repetir
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoWheelSpin", {
+    Title = "Auto Free Wheel Spin",
+    Description = "Gira automaticamente a roleta grátis quando estiver disponível",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoWheelSpin = state
+
+        if state then
+            spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoWheelSpin do
+                    RemoteEvent:FireServer("ClaimFreeWheelSpin")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local SelectedEgg = "Common Egg"
+local HatchAmount = 1
+local AutoHatch = false
+
+-- Posições dos ovos
+local EggPositions = {
+    ["Common Egg"] = Vector3.new(-83.11856079101562, 9.816669464111328, 2.463975429534912),
+    ["Spotted Egg"] = Vector3.new(-94.04642486572266, 9.816669464111328, 8.982151985168457),
+    ["Iceshard Egg"] = Vector3.new(-117.86749267578125, 9.816670417785645, 8.478747367858887),
+    ["Spikey Egg"] = Vector3.new(-127.3304672241211, 9.926098823547363, 6.771097183227539),
+    ["Magma Egg"] = Vector3.new(-134.0933837890625, 9.816493034362793, 0.9699831008911133),
+    ["Crystal Egg"] = Vector3.new(-140.66168212890625, 9.816670417785645, -6.721883296966553),
+    ["Lunar Egg"] = Vector3.new(-144.31298828125, 9.81663990020752, -16.05261993408203),
+    ["Void Egg"] = Vector3.new(-146.59307861328125, 9.816607475280762, -26.15677833557129),
+    ["Hell Egg"] = Vector3.new(-144.9036865234375, 9.816670417785645, -36.547821044921875),
+    ["Nightmare Egg"] = Vector3.new(-142.51422119140625, 9.816670417785645, -45.37887954711914),
+    ["Rainbow Egg"] = Vector3.new(-137.2113494873047, 9.816374778747559, -53.9847297668457),
+    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004)
+}
+
+-- Dropdown para seleção do ovo
+Egg:AddDropdown("EggDropdown", {
+    Title = "Selecionar Ovo",
+    Description = "Escolha o ovo que deseja abrir",
+    Values = {
+        "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
+        "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
+        "Rainbow Egg", "Infinity Egg"
+    },
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        SelectedEgg = value
+    end
+})
+
+-- Dropdown para quantidade de ovos
+Egg:AddDropdown("HatchAmountDropdown", {
+    Title = "Quantidade de Ovos",
+    Description = "Escolha quantos ovos abrir por vez",
+    Values = { "1", "3" },
+    Multi = false,
+    Default = 1,
+    Callback = function(value)
+        HatchAmount = tonumber(value)
+    end
+})
+
+-- Toggle para Auto Hatch com teleporte e noclip
+Egg:AddToggle("AutoHatch", {
+    Title = "Auto Hatch",
+    Description = "Abre ovos automaticamente com teleporte",
+    Default = false,
+    Callback = function(state)
+        AutoHatch = state
+
+        if state then
+            local Noclip = false
+            local noclipConnection
+
+            local function EnableNoclip()
+                Noclip = true
+                noclipConnection = RunService.Stepped:Connect(function()
+                    if Noclip and LocalPlayer.Character then
+                        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            end
+
+            local function DisableNoclip()
+                Noclip = false
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
+                end
+            end
+
+            -- Teleporte antes de iniciar o loop de hatch
+            local function teleportToEgg()
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+                local target = EggPositions[SelectedEgg]
+                if target and HumanoidRootPart then
+                    EnableNoclip()
+                    local tween = TweenService:Create(
+                        HumanoidRootPart,
+                        TweenInfo.new(6, Enum.EasingStyle.Linear),
+                        { CFrame = CFrame.new(target + Vector3.new(0, 3, 0)) }
+                    )
+                    tween:Play()
+                    tween.Completed:Wait()
+                    DisableNoclip()
+                end
+            end
+
+            teleportToEgg()
+
+            -- Loop de Auto Hatch
+            task.spawn(function()
+                while AutoHatch do
+                    pcall(function()
+                        game:GetService("ReplicatedStorage")
+                            .Shared.Framework.Network.Remote.Event
+                            :FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+-- Services
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
+
+-- Variables
+local AutoRiftHatch = false
+local SelectedRiftEggs = {}
+local SelectedLuckMultipliers = {}
+local ActiveTweens = {}
+local CurrentTargetEgg = nil
+local CurrentTargetMultiplier = nil
+local NoClipEnabled = false
+local NoClipConnection = nil
+
+-- Egg Name Mapping
+local EggNameMap = {
+    ["spotted-egg"] = "Spotted Egg",
+    ["iceshard-egg"] = "Iceshard Egg",
+    ["spikey-egg"] = "Spikey Egg",
+    ["magma-egg"] = "Magma Egg",
+    ["crystal-egg"] = "Crystal Egg",
+    ["lunar-egg"] = "Lunar Egg",
+    ["void-egg"] = "Void Egg",
+    ["hell-egg"] = "Hell Egg",
+    ["nightmare-egg"] = "Nightmare Egg",
+    ["rainbow-egg"] = "Rainbow Egg",
+    ["infinity-egg"] = "Infinity Egg"
+}
+
+-- RemoteEvent
+local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
+-- Dropdown Egg Names
+local RiftEggNames = {}
+for k in pairs(EggNameMap) do
+    table.insert(RiftEggNames, k)
+end
+
+local RiftEggDropdown = EggRift:AddDropdown("RiftEggDropdown", {
+    Title = "Select Rift Eggs",
+    Description = "Choose which eggs to hatch",
+    Values = RiftEggNames,
+    Multi = true,
+    Default = {},
+})
+
+RiftEggDropdown:OnChanged(function(selectedTable)
+    SelectedRiftEggs = {}
+    for eggName, isSelected in pairs(selectedTable) do
+        if isSelected then
+            table.insert(SelectedRiftEggs, eggName)
+        end
+    end
+    Fluent:Notify({
+        Title = "Egg Selection",
+        Content = #SelectedRiftEggs > 0 and ("Selected: " .. table.concat(SelectedRiftEggs, ", ")) or "No eggs selected (will use all)",
+        Duration = 3
+    })
+end)
+
+local LuckMultiplierDropdown = EggRift:AddDropdown("LuckMultiplierDropdown", {
+    Title = "Luck Multiplier",
+    Description = "Select desired luck multipliers",
+    Values = { "x5", "x7", "x10", "x25" },
+    Multi = true,
+    Default = {},
+})
+
+LuckMultiplierDropdown:OnChanged(function(selectedTable)
+    SelectedLuckMultipliers = {}
+    for multiplier, isSelected in pairs(selectedTable) do
+        if isSelected then
+            table.insert(SelectedLuckMultipliers, multiplier)
+        end
+    end
+    Fluent:Notify({
+        Title = "Multiplier Selection",
+        Content = #SelectedLuckMultipliers > 0 and ("Selected: " .. table.concat(SelectedLuckMultipliers, ", ")) or "No multipliers selected (will use all)",
+        Duration = 3
+    })
+end)
+
+-- NoClip Functionality
+local function enableNoClip()
+    if NoClipConnection then return end
+    
+    NoClipConnection = RunService.Stepped:Connect(function()
+        if LocalPlayer.Character then
+            for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+        NoClipConnection = nil
+    end
+    
+    if LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Utility Functions
+local function teleportToEgg(egg)
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    -- Cancel any existing tween
+    if ActiveTweens[hrp] then 
+        ActiveTweens[hrp]:Cancel() 
+    end
+    
+    -- Enable NoClip during teleport
+    enableNoClip()
+    
+    local targetCFrame = CFrame.new(egg:GetPivot().Position + Vector3.new(0, 3, 0))
+    local tween = TweenService:Create(hrp, TweenInfo.new(6, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    ActiveTweens[hrp] = tween
+    
+    tween:Play()
+    local success = pcall(function() 
+        tween.Completed:Wait()
+        -- Keep NoClip enabled during hatching
+    end)
+    
+    ActiveTweens[hrp] = nil
+    return success
+end
+
+local function hatchEgg(eggName)
+    local args = {
+        [1] = "HatchEgg",
+        [2] = EggNameMap[eggName],
+        [3] = 1
+    }
+    pcall(function()
+        RemoteEvent:FireServer(unpack(args))
+    end)
+end
+
+local function cancelAllOperations()
+    for hrp, tween in pairs(ActiveTweens) do
+        if tween then tween:Cancel() end
+    end
+    ActiveTweens = {}
+    disableNoClip()
+end
+
+local function chooseNewTarget()
+    if #SelectedRiftEggs > 0 then
+        CurrentTargetEgg = SelectedRiftEggs[math.random(1, #SelectedRiftEggs)]
+    else
+        local eggs = {}
+        for k in pairs(EggNameMap) do table.insert(eggs, k) end
+        CurrentTargetEgg = eggs[math.random(1, #eggs)]
+    end
+
+    if #SelectedLuckMultipliers > 0 then
+        CurrentTargetMultiplier = SelectedLuckMultipliers[math.random(1, #SelectedLuckMultipliers)]
+    else
+        CurrentTargetMultiplier = nil -- accept any multiplier
+    end
+end
+
+-- Main Toggle
+EggRift:AddToggle("AutoRiftHatchToggle", {
+    Title = "Auto Hatch (Rift)",
+    Description = "Automatically teleport and hatch rift eggs (with NoClip)",
+    Default = false,
+    Callback = function(state)
+        AutoRiftHatch = state
+        if state then
+            chooseNewTarget()
+            Fluent:Notify({ 
+                Title = "Auto Hatch", 
+                Content = "Started auto hatching with NoClip", 
+                Duration = 3 
+            })
+
+            task.spawn(function()
+                while AutoRiftHatch do
+                    local found = false
+                    for _, egg in pairs(Rifts:GetChildren()) do
+                        if not AutoRiftHatch then break end
+                        if egg:IsA("Model") and egg:FindFirstChild("Display") and egg.Name == CurrentTargetEgg then
+                            local display = egg.Display
+                            local gui = display:FindFirstChildWhichIsA("SurfaceGui")
+                            local icon = gui and gui:FindFirstChild("Icon")
+                            local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
+                            if luck and luck.Text then
+                                local validMultiplier = not CurrentTargetMultiplier or luck.Text == CurrentTargetMultiplier
+                                if validMultiplier then
+                                    found = true
+                                    if teleportToEgg(egg) then
+                                        repeat
+                                            if not AutoRiftHatch then break end
+                                            hatchEgg(egg.Name)
+                                            task.wait(0.3)
+                                        until not egg.Parent
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if not found then
+                        local stillExists = false
+                        for _, egg in pairs(Rifts:GetChildren()) do
+                            if egg:IsA("Model") and egg.Name == CurrentTargetEgg then
+                                local display = egg:FindFirstChild("Display")
+                                local gui = display and display:FindFirstChildWhichIsA("SurfaceGui")
+                                local icon = gui and gui:FindFirstChild("Icon")
+                                local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
+                                local validMultiplier = not CurrentTargetMultiplier or (luck and luck.Text == CurrentTargetMultiplier)
+                                
+                                if validMultiplier then
+                                    stillExists = true
+                                    break
+                                end
+                            end
+                        end
+                    
+                        if not stillExists then
+                            chooseNewTarget()
+                        end
+                    end                    
+
+                    task.wait(0.5)
+                end
+                disableNoClip() -- Ensure NoClip is disabled when loop ends
+            end)
+        else
+            cancelAllOperations()
+            Fluent:Notify({ 
+                Title = "Auto Hatch", 
+                Content = "Stopped auto hatching", 
+                Duration = 3 
+            })
+        end
+    end
+})
+
+local AutoGoldenChest = false
+local ActiveTween
+local NoClipConnection
+
+local function enableNoClip()
+    if NoClipConnection then return end
+    NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+        if game.Players.LocalPlayer.Character then
+            for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+        NoClipConnection = nil
+    end
+end
+
+local function teleportAndFarm()
+    while AutoGoldenChest do
+        local chest = workspace.Rendered.Rifts:FindFirstChild("golden-chest")
+        if chest then
+            -- Teleport with TweenService (6 seconds)
+            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                enableNoClip()
+                local tween = TweenService:Create(hrp, TweenInfo.new(6), {
+                    CFrame = chest:GetPivot() * CFrame.new(0, 0, -3)
+                })
+                tween:Play()
+                tween.Completed:Wait()
+                
+                -- Farm while chest exists
+                while AutoGoldenChest and chest.Parent do
+                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "golden-chest")
+                    task.wait(0.5)
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+    disableNoClip()
+end
+
+-- Add this to your existing Fluent UI
+ChestHunt:AddToggle("AutoGoldenChestToggle", {
+    Title = "Auto Golden Chest",
+    Description = "Teleport and farm golden chest automatically",
+    Default = false,
+    Callback = function(state)
+        AutoGoldenChest = state
+        if state then
+            Fluent:Notify({
+                Title = "Golden Chest",
+                Content = "Started farming golden chest",
+                Duration = 3
+            })
+            task.spawn(teleportAndFarm)
+        else
+            Fluent:Notify({
+                Title = "Golden Chest",
+                Content = "Stopped farming golden chest",
+                Duration = 3
+            })
+        end
+    end
+})
+
+local AutoGiftRift = false
+local ActiveTween
+local NoClipConnection
+
+-- Função NoClip (reutilizável)
+local function manageNoClip(enable)
+    if enable then
+        if not NoClipConnection then
+            NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+                if game.Players.LocalPlayer.Character then
+                    for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    else
+        if NoClipConnection then
+            NoClipConnection:Disconnect()
+            NoClipConnection = nil
+        end
+    end
+end
+
+-- Função principal para o Gift Rift
+local function teleportAndClaimGift()
+    while AutoGiftRift do
+        local gift = workspace.Rendered.Rifts:FindFirstChild("gift-rift")
+        if gift then
+            -- Teleporte com TweenService (6 segundos)
+            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                manageNoClip(true)
+                local tween = TweenService:Create(hrp, TweenInfo.new(6), {
+                    CFrame = gift:GetPivot() * CFrame.new(0, 0, -3)
+                })
+                tween:Play()
+                tween.Completed:Wait()
+                
+                -- Fica reivindicando enquanto o gift existir
+                while AutoGiftRift and gift.Parent do
+                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("ClaimRiftGift", "gift-rift")
+                    task.wait(0.5) -- Intervalo entre claims
+                end
+            end
+        end
+        task.wait(0.5) -- Verifica a cada 1 segundo se o gift reapareceu
+    end
+    manageNoClip(false)
+end
+
+-- Adicione esta toggle à sua interface Fluent
+GiftHunt:AddToggle("AutoGiftRiftToggle", {
+    Title = "Auto Gift Rift",
+    Description = "Teleporta e coleta gifts automaticamente",
+    Default = false,
+    Callback = function(state)
+        AutoGiftRift = state
+        if state then
+            Fluent:Notify({
+                Title = "Gift Rift",
+                Content = "Iniciando coleta automática de gifts",
+                Duration = 3
+            })
+            task.spawn(teleportAndClaimGift)
+        else
+            Fluent:Notify({
+                Title = "Gift Rift",
+                Content = "Coleta automática desativada",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Upgrades:AddToggle("AutoUpgrade", {
+    Title = "Auto Upgrade Mastery for Buffs",
+    Description = "Executa o Upgrade Mastery automaticamente quando ativado.",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoUpgrade = state  -- Armazenando o estado para controle de loop
+
+        if state then
+            spawn(function()  -- Usando spawn para rodar em uma thread separada
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoUpgrade do  -- Enquanto a toggle estiver ativada, o loop continua
+                    local args = {
+                        [1] = "UpgradeMastery",
+                        [2] = "Buffs"
+                    }
+
+                    -- Envia a requisição ao servidor
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                end
+            end)
+        else
+            -- Se a toggle for desativada, o loop será interrompido
+            getgenv().AutoUpgrade = false
+        end
+    end
+})
+
+Tabs.Upgrades:AddToggle("AutoUpgradePets", {
+    Title = "Auto Upgrade Mastery for Pets",
+    Description = "Executa o Upgrade Mastery para Pets automaticamente quando ativado.",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoUpgradePets = state  -- Controla o estado da toggle
+
+        if state then
+            spawn(function()  -- Usando spawn para rodar em uma thread separada
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoUpgradePets do  -- Enquanto a toggle estiver ativada, o loop continua
+                    local args = {
+                        [1] = "UpgradeMastery",
+                        [2] = "Pets"  -- Aqui está o "Pets" que você mencionou
+                    }
+
+                    -- Envia a requisição ao servidor
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                end
+            end)
+        else
+            -- Se a toggle for desativada, o loop será interrompido
+            getgenv().AutoUpgradePets = false
+        end
+    end
+})
+
+Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
+    Title = "Auto Upgrade Mastery for Shops",
+    Description = "Executa o Upgrade Mastery para Shops automaticamente quando ativado.",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoUpgradeShops = state  -- Controla o estado da toggle
+
+        if state then
+            spawn(function()  -- Usando spawn para rodar em uma thread separada
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoUpgradeShops do  -- Enquanto a toggle estiver ativada, o loop continua
+                    local args = {
+                        [1] = "UpgradeMastery",
+                        [2] = "Shops"  -- Aqui está o "Shops" que você mencionou
+                    }
+
+                    -- Envia a requisição ao servidor
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                end
+            end)
+        else
+            -- Se a toggle for desativada, o loop será interrompido
+            getgenv().AutoUpgradeShops = false
+        end
+    end
+})
+
+-- Tabela com poções válidas
+local potionList = {}
+local dropdownOptions = {}
+
+local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
+local tiers = {1, 2, 3, 4, 5, 6}
+local roman = {"I", "II", "III", "IV", "V", "VI"}
+
+-- Cria mapeamento: "Lucky I" → {"Lucky", 1}
+for _, potion in ipairs(potionNames) do
+    for i, tier in ipairs(tiers) do
+        local displayName = potion .. " " .. roman[i]
+        potionList[displayName] = {potion, tier}
+        table.insert(dropdownOptions, displayName)
+    end
+end
+
+-- Criando o Dropdown com seleção múltipla
+local MultiDropdown = AutoPotionSection:AddDropdown("Poções", {
+    Title = "Selecionar Poções",
+    Description = "Escolha as poções para usar",
+    Values = dropdownOptions,
+    Multi = true,
+    Default = {},  -- Predefinir poções selecionadas
+})
+
+-- A variável SelectedPotions vai ser atualizada quando o usuário fizer alterações
+local SelectedPotions = {}
+
+-- Função para capturar as seleções após mudança
+MultiDropdown:OnChanged(function(Value)
+    -- Atualiza a lista de poções selecionadas
+    SelectedPotions = {}
+    for potion, _ in pairs(Value) do
+        table.insert(SelectedPotions, potion)
+    end
+
+    -- Exibe as poções selecionadas no console
+    print("Poções selecionadas:", table.concat(SelectedPotions, ", "))
+end)
+
+-- RemoteEvent
+local RemoteEvent = game:GetService("ReplicatedStorage")
+    :WaitForChild("Shared")
+    :WaitForChild("Framework")
+    :WaitForChild("Network")
+    :WaitForChild("Remote")
+    :WaitForChild("Event")
+
+-- Toggle Auto Potion
+AutoPotionSection:AddToggle("Auto Usar Poções", {
+    Title = "Ativar uso automático de poções",
+    Description = "Ativa o uso automático das poções selecionadas",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoPotion = state
+
+        if state then
+            Fluent:Notify({Title = "Auto Poções", Content = "Ativado", Duration = 3})
+
+            task.spawn(function()
+                while getgenv().AutoPotion do
+                    -- Verifica se existem poções selecionadas
+                    if #SelectedPotions == 0 then
+                        Fluent:Notify({
+                            Title = "Aviso",
+                            Content = "Nenhuma poção selecionada.",
+                            Duration = 4
+                        })
+                        break
+                    end
+
+                    -- Envia as poções selecionadas para o servidor
+                    for _, displayName in ipairs(SelectedPotions) do
+                        local data = potionList[displayName]
+                        if data then
+                            local name, tier = unpack(data)
+                            print("Enviando:", name, tier)
+                            pcall(function()
+                                RemoteEvent:FireServer("UsePotion", name, tier)
+                            end)
+                            task.wait(0.2)
+                        else
+                            warn("Poção inválida:", displayName)
+                        end
+                    end
+
+                    task.wait(0.3)
+                end
+            end)
+        else
+            Fluent:Notify({Title = "Auto Poções", Content = "Desativado", Duration = 3})
+        end
+    end
+})
+
+-- Tabela com poções válidas
+local potionList = {}
+local dropdownOptions = {}
+
+local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
+local tiers = {2, 3, 4, 5, 6}
+local roman = {"II", "III", "IV", "V", "VI"}
+
+-- Cria mapeamento: "Lucky I" → {"Lucky", 1}
+for _, potion in ipairs(potionNames) do
+    for i, tier in ipairs(tiers) do
+        local displayName = potion .. " " .. roman[i]
+        potionList[displayName] = {potion, tier}
+        table.insert(dropdownOptions, displayName)
+    end
+end
+
+-- Criando o Dropdown com seleção múltipla
+local MultiDropdown = AutoCraftPotionSection:AddDropdown("Poções", {
+    Title = "Selecionar Poções para Craftar",
+    Description = "Escolha as poções e tiers que deseja craftar",
+    Values = dropdownOptions,
+    Multi = true,
+    Default = {},
+})
+
+-- Lista com as poções selecionadas
+local SelectedPotions = {}
+
+-- Atualiza quando o usuário seleciona
+MultiDropdown:OnChanged(function(Value)
+    SelectedPotions = {}
+    for potion, _ in pairs(Value) do
+        table.insert(SelectedPotions, potion)
+    end
+    print("Poções para craft:", table.concat(SelectedPotions, ", "))
+end)
+
+-- RemoteEvent
+local RemoteEvent = game:GetService("ReplicatedStorage")
+    :WaitForChild("Shared")
+    :WaitForChild("Framework")
+    :WaitForChild("Network")
+    :WaitForChild("Remote")
+    :WaitForChild("Event")
+
+-- Toggle Auto Craft
+AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
+    Title = "Ativar Auto Craft",
+    Description = "Crafta automaticamente as poções selecionadas",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoCraftPotion = state
+
+        if state then
+            Fluent:Notify({Title = "Auto Craft", Content = "Ativado", Duration = 3})
+
+            task.spawn(function()
+                while getgenv().AutoCraftPotion do
+                    if #SelectedPotions == 0 then
+                        Fluent:Notify({
+                            Title = "Aviso",
+                            Content = "Nenhuma poção selecionada para craftar.",
+                            Duration = 4
+                        })
+                        break
+                    end
+
+                    for _, displayName in ipairs(SelectedPotions) do
+                        local data = potionList[displayName]
+                        if data then
+                            local name, tier = unpack(data)
+                            print("Craftando:", name, tier)
+                            pcall(function()
+                                RemoteEvent:FireServer("CraftPotion", name, tier, false)
+                            end)
+                            task.wait(0.2)
+                        else
+                            warn("Poção inválida:", displayName)
+                        end
+                    end
+
+                    task.wait(1.5)
+                end
+            end)
+        else
+            Fluent:Notify({Title = "Auto Craft", Content = "Desativado", Duration = 3})
+        end
+    end
+})
+
+-- Toggle para teleportar com TweenService
+local AutoTween = false
+
+TeleportSection:AddToggle("TweenTeleport", {
+    Title = "Ir para localização (Tween)",
+    Description = "Leva suavemente até a posição com TweenService",
+    Default = false,
+    Callback = function(state)
+        AutoTween = state
+
+        if AutoTween then
+            local targetPos = Vector3.new(5.7106, 16206.042, -8.6645)
+
+            local character = game.Players.LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local hrp = character.HumanoidRootPart
+                local tweenService = game:GetService("TweenService")
+
+                local tweenInfo = TweenInfo.new(
+                    20, -- tempo de transição (segundos)
+                    Enum.EasingStyle.Linear,
+                    Enum.EasingDirection.Out
+                )
+
+                local goal = { CFrame = CFrame.new(targetPos) }
+
+                local tween = tweenService:Create(hrp, tweenInfo, goal)
+                tween:Play()
+
+                tween.Completed:Connect(function()
+                    AutoTween = false
+                end)
+            end
+        end
+    end
+})
+
+-- Tabela com locais de teleporte
+local teleportLocations = {
+    ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Spawn (Overworld)"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+}
+
+-- Loop para criar os botões de teleporte
+for name, path in pairs(teleportLocations) do
+    Tabs.Teleport:AddButton({
+        Title = name,
+        Description = "Teleporta para " .. name,
+        Callback = function()
+            local RemoteEvent = game:GetService("ReplicatedStorage")
+                :WaitForChild("Shared")
+                :WaitForChild("Framework")
+                :WaitForChild("Network")
+                :WaitForChild("Remote")
+                :WaitForChild("Event")
+
+            RemoteEvent:FireServer("Teleport", path)
+
+            Fluent:Notify({
+                Title = "Teleporte",
+                Content = "Teleportado para: " .. name,
+                Duration = 3
+            })
+        end
+    })
+end
+
+--// Botão de resgatar códigos
+CodeSection:AddButton({
+    Title = "Redeem Codes",
+    Description = "Resgata todos os códigos disponíveis",
+    Callback = function()
+        local codes = { "Release", "Thanks", "Lucky" }
+        for _, code in ipairs(codes) do
+            local success, result = pcall(function()
+                return game:GetService("ReplicatedStorage")
+                    .Shared.Framework.Network.Remote.Function
+                    :InvokeServer("RedeemCode", code)
+            end)
+            if success then
+                print("Código resgatado:", code)
+            else
+                warn("Erro ao resgatar código:", code, result)
+            end
+            task.wait(1)
+        end
+    end
+})
+
+--// ======= [SETTINGS] =======
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/BubbleGumInfinity")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
