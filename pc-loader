@@ -64,5 +64,16 @@ if pcLevel then
     return
 end
 
+-- Verificação 5:
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local isMobile = playerGui:FindFirstChild("ScreenGui")
+    and playerGui.ScreenGui:FindFirstChild("DoggyJump")
+
+if isMobile then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/gum"))()
+    return
+end
 
 showUnsupportedMapMessage()
