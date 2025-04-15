@@ -436,37 +436,40 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
     end
 })
 
--- Adicionando a Toggle para o Auto Free Wheel Spin
 UtilitiesSection:AddToggle("AutoWheelSpin", {
-    Title = "Auto Free Wheel Spin",
-    Description = "Gira automaticamente a roleta grátis quando estiver disponível",
+    Title = "Auto Wheel Spin",
+    Description = "Gira automaticamente ambas as roletas (grátis e paga)",
     Default = false,
     Callback = function(state)
         getgenv().AutoWheelSpin = state
 
         if state then
-            spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+            task.spawn(function()
+                local Event = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
                     :WaitForChild("Framework"):WaitForChild("Network")
                     :WaitForChild("Remote"):WaitForChild("Event")
+                
+                local Function = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Function")
 
-                while AutoWheelSpin do
-                    RemoteEvent:FireServer("ClaimFreeWheelSpin")
-                    task.wait(1)
+                while getgenv().AutoWheelSpin do
+                    -- Roleta grátis
+                    pcall(function()
+                        Event:FireServer("ClaimFreeWheelSpin")
+                    end)
+                    
+                    -- Roleta paga
+                    pcall(function()
+                        Function:InvokeServer("WheelSpin")
+                    end)
+                    
+                    task.wait(1) -- Espera exatamente 1 segundo
                 end
             end)
         end
     end
 })
-
--- Adicionando o código para invocar o servidor para a roleta
-local args = {
-    [1] = "WheelSpin"
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function"):InvokeServer(unpack(args))
-
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
