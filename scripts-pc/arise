@@ -284,7 +284,7 @@ local function attackShadow()
                                     ["Event"] = "Attack",
                                     ["Enemy"] = enemyName
                                 },
-                                [2] = attackOption -- Usando a variável attackOption
+                                [2] = attackOption 
                             }
                         }
 
