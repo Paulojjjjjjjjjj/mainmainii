@@ -498,6 +498,8 @@ local LocalPlayer = Players.LocalPlayer
 local SelectedEgg = "Common Egg"
 local HatchAmount = 1
 local AutoHatch = false
+local Noclip = false
+local NoclipConnection = nil
 
 -- Posições dos ovos
 local EggPositions = {
@@ -515,7 +517,32 @@ local EggPositions = {
     ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004)
 }
 
--- Dropdown para seleção do ovo
+local function EnableNoclip()
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+    end
+    
+    Noclip = true
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if Noclip and LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function DisableNoclip()
+    Noclip = false
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+        NoclipConnection = nil
+    end
+end
+
+-- Dropdowns
 Egg:AddDropdown("EggDropdown", {
     Title = "Selecting Egg",
     Description = "Choose the egg you want to open",
@@ -531,7 +558,6 @@ Egg:AddDropdown("EggDropdown", {
     end
 })
 
--- Dropdown para quantidade de ovos
 Egg:AddDropdown("HatchAmountDropdown", {
     Title = "Quantity of Eggs",
     Description = "Choose how many eggs to open at a time",
@@ -543,72 +569,67 @@ Egg:AddDropdown("HatchAmountDropdown", {
     end
 })
 
--- Toggle para Auto Hatch com teleporte e noclip
+-- Toggle de Auto Hatch
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
-    Description = "Automatically opens eggs with teleport",
+    Description = "Automatically opens eggs after walking to them",
     Default = false,
     Callback = function(state)
         AutoHatch = state
-
+        
         if state then
-            local Noclip = false
-            local noclipConnection
-
-            local function EnableNoclip()
-                Noclip = true
-                noclipConnection = RunService.Stepped:Connect(function()
-                    if Noclip and LocalPlayer.Character then
-                        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                            if part:IsA("BasePart") and part.CanCollide then
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end)
-            end
-
-            local function DisableNoclip()
-                Noclip = false
-                if noclipConnection then
-                    noclipConnection:Disconnect()
-                    noclipConnection = nil
-                end
-            end
-
-            -- Teleporte antes de iniciar o loop de hatch
-            local function teleportToEgg()
+            EnableNoclip()
+            
+            task.spawn(function()
+                -- Teleportar para a área
+                local args = {
+                    [1] = "Teleport",
+                    [2] = "Workspace.Worlds.The Overworld.PortalSpawn"
+                }
+                
+                game:GetService("ReplicatedStorage")
+                    .Shared.Framework.Network.Remote.Event
+                    :FireServer(unpack(args))
+                
+                -- Aguardar o personagem recarregar
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+                local Humanoid = Character:WaitForChild("Humanoid")
+                
+                -- Esperar um tempo para garantir que o teleporte terminou
+                task.wait(1)
+                
+                -- Andar até o ovo
                 local target = EggPositions[SelectedEgg]
-                if target and HumanoidRootPart then
-                    EnableNoclip()
-                    local tween = TweenService:Create(
-                        HumanoidRootPart,
-                        TweenInfo.new(6, Enum.EasingStyle.Linear),
-                        { CFrame = CFrame.new(target + Vector3.new(0, 3, 0)) }
-                    )
-                    tween:Play()
-                    tween.Completed:Wait()
-                    DisableNoclip()
-                end
-            end
-
-            teleportToEgg()
-
-            -- Loop de Auto Hatch
-            task.spawn(function()
-                while AutoHatch do
-                    pcall(function()
-                        game:GetService("ReplicatedStorage")
-                            .Shared.Framework.Network.Remote.Event
-                            :FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                if target then
+                    Humanoid:MoveTo(target)
+                    local reached = false
+                    
+                    Humanoid.MoveToFinished:Connect(function(success)
+                        if success then
+                            reached = true
+                        end
                     end)
-                    task.wait(0.5)
+                    
+                    while not reached and AutoHatch do
+                        task.wait(0.1)
+                    end
+                    
+                    -- Loop de auto hatch
+                    while AutoHatch do
+                        pcall(function()
+                            game:GetService("ReplicatedStorage")
+                                .Shared.Framework.Network.Remote.Event
+                                :FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                        end)
+                        task.wait(0.5)
+                    end
                 end
             end)
+        else
+            DisableNoclip()
         end
-    end
+    end    
 })
 
 -- Services
