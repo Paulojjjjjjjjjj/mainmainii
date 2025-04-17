@@ -3,7 +3,7 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/d
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Hunters | DZHUB",
+    Title = "Hunters | DZ HUB",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -534,7 +534,7 @@ local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Hunters | DZHUB" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Hunters | DZ HUB" then
                 ScreenGuiToMinimize = gui
                 break
             end

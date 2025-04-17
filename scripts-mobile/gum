@@ -4,7 +4,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 --// Janela principal
 local Window = Fluent:CreateWindow({
-    Title = "Bubble Gum Simulator INFINITY | DZHUB",
+    Title = "Bubble Gum Simulator INFINITY | DZ HUB",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -1419,7 +1419,7 @@ local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Bubble Gum Simulator INFINITY | DZHUB" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Bubble Gum Simulator INFINITY | DZ HUB" then
                 ScreenGuiToMinimize = gui
                 break
             end
