@@ -911,7 +911,7 @@ local function teleportAndFarm()
             if hrp then
                 enableNoClip()
                 local tween = TweenService:Create(hrp, TweenInfo.new(7), {
-                    CFrame = chest:GetPivot() * CFrame.new(0, 0, -3)
+                    CFrame = chest:GetPivot() * CFrame.new(0, 0, 0)
                 })
                 tween:Play()
                 tween.Completed:Wait()
