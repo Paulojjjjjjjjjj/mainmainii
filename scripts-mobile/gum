@@ -910,7 +910,7 @@ local function teleportAndFarm()
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 enableNoClip()
-                local tween = TweenService:Create(hrp, TweenInfo.new(6), {
+                local tween = TweenService:Create(hrp, TweenInfo.new(7), {
                     CFrame = chest:GetPivot() * CFrame.new(0, 0, -3)
                 })
                 tween:Play()
