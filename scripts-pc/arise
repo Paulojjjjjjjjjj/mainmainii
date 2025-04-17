@@ -110,7 +110,7 @@ local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
     Title = "Choose your enemy",
     Values = {},
     Multi = false,
-    Default = 1,
+    Default = nil,
     Callback = function(value)
         selectedEnemyName = value
     end
@@ -182,6 +182,154 @@ task.spawn(function()
         updateDropdown()
     end
 end)
+
+local player = game:GetService("Players").LocalPlayer
+local userId = tostring(player.UserId)
+local petsFolder = workspace.__Main.__Pets:FindFirstChild(userId)
+local enemiesFolder = workspace.__Main.__Enemies:FindFirstChild("Client")
+local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+local autoAttackEnabled = false
+local lastTarget = nil -- Armazena o último inimigo atacado
+local attackOption = "\t" -- Valor padrão para o Attack Option
+
+local function hasExtraEquip()
+    local passes = player.leaderstats.Passes
+    return passes and passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value
+end
+
+local function getEquippedPets()
+    local equippedPets = {}
+    local petsData = player.leaderstats.Equips.Pets
+    local maxPets = hasExtraEquip() and 7 or 4
+
+    for i = 1, maxPets do
+        local petName = petsData:GetAttribute(tostring(i))
+        if petName then
+            table.insert(equippedPets, petName)
+        end
+    end
+
+    return equippedPets
+end
+
+local function getPetPositions()
+    local equippedPets = getEquippedPets()
+    local petPositions = {}
+
+    if petsFolder then
+        for _, petName in ipairs(equippedPets) do
+            local petModelFolder = petsFolder:FindFirstChild(petName)
+            if petModelFolder then
+                local petModel = petModelFolder:FindFirstChildWhichIsA("Model")
+                if petModel and petModel.PrimaryPart then
+                    petPositions[petName] = petModel.PrimaryPart.Position
+                end
+            end
+        end
+    end
+
+    return petPositions
+end
+
+local function getClosestEnemy()
+    if not enemiesFolder then return nil end
+
+    local closestEnemy = nil
+    local minDistance = math.huge
+    local playerPosition = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+
+    if not playerPosition then return nil end
+
+    for _, enemy in ipairs(enemiesFolder:GetChildren()) do
+        if enemy:IsA("Model") then
+            local enemyPart = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+            if enemyPart then
+                local distance = (enemyPart.Position - playerPosition).Magnitude
+                if distance < minDistance then
+                    minDistance = distance
+                    closestEnemy = enemy
+                end
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+local function attackShadow()
+    while autoAttackEnabled do
+        local enemy = getClosestEnemy()
+        if enemy then
+            local enemyName = enemy.Name
+            local enemyHealthText = enemy:FindFirstChild("HealthBar") 
+                and enemy.HealthBar:FindFirstChild("Main") 
+                and enemy.HealthBar.Main:FindFirstChild("Bar") 
+                and enemy.HealthBar.Main.Bar:FindFirstChild("Amount") 
+                and enemy.HealthBar.Main.Bar.Amount.Text
+
+            local enemyHealth = enemyHealthText and tonumber(enemyHealthText:match("%d+")) or 0
+
+            if enemyHealth > 0 then
+                if lastTarget ~= enemyName then -- Evita atacar o mesmo inimigo repetidamente
+                    lastTarget = enemyName
+
+                    local petPositions = getPetPositions()
+                    if next(petPositions) then
+                        local args = {
+                            [1] = {
+                                [1] = {
+                                    ["PetPos"] = petPositions,
+                                    ["AttackType"] = "All",
+                                    ["Event"] = "Attack",
+                                    ["Enemy"] = enemyName
+                                },
+                                [2] = attackOption -- Usando a variável attackOption
+                            }
+                        }
+
+                        remoteEvent:FireServer(unpack(args))
+                    end
+                end
+            else
+                lastTarget = nil -- Reseta o alvo para buscar um novo
+            end
+        else
+            lastTarget = nil
+        end
+
+        task.wait(1)
+    end
+end
+
+local attackOptionMap = {
+	["t"] = "\t",
+	["5"] = "\5"
+}
+
+local attackOptionDropdown = FarmingOptions:AddDropdown("AttackOptionDropdown", {
+	Title = "Mode Code (Nearest Enemy)",
+    Description = "change if Auto Attack Nearest Enemy doesn't work",
+	Values = {"t", "5"},
+	Default = 1
+})
+
+attackOptionDropdown:OnChanged(function(value)
+	attackOption = attackOptionMap[value]
+end)
+
+-- Toggle para ativar/desativar o Auto Attack Shadow
+local Toggle = AutoFarm:AddToggle("AutoAttackNearestEnemy", {
+    Title = "Auto Attack Nearest Enemy",
+    Default = false,
+    Callback = function(state)
+        autoAttackEnabled = state
+        if state then
+            lastTarget = nil -- Reseta o último inimigo quando ativado
+            task.spawn(attackShadow)
+        end
+    end
+})
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -473,137 +621,6 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
                     task.wait(5) -- Ajuste o tempo de espera conforme necessário
                 end
             end)
-        end
-    end
-})
-
-local player = game:GetService("Players").LocalPlayer
-local userId = tostring(player.UserId)
-local petsFolder = workspace.__Main.__Pets:FindFirstChild(userId)
-local enemiesFolder = workspace.__Main.__Enemies:FindFirstChild("Client")
-local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
-
-local autoAttackEnabled = false
-local lastTarget = nil -- Armazena o último inimigo atacado
-
-local function hasExtraEquip()
-    local passes = player.leaderstats.Passes
-    return passes and passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value
-end
-
-local function getEquippedPets()
-    local equippedPets = {}
-    local petsData = player.leaderstats.Equips.Pets
-    local maxPets = hasExtraEquip() and 7 or 4
-
-    for i = 1, maxPets do
-        local petName = petsData:GetAttribute(tostring(i))
-        if petName then
-            table.insert(equippedPets, petName)
-        end
-    end
-
-    return equippedPets
-end
-
-local function getPetPositions()
-    local equippedPets = getEquippedPets()
-    local petPositions = {}
-
-    if petsFolder then
-        for _, petName in ipairs(equippedPets) do
-            local petModelFolder = petsFolder:FindFirstChild(petName)
-            if petModelFolder then
-                local petModel = petModelFolder:FindFirstChildWhichIsA("Model")
-                if petModel and petModel.PrimaryPart then
-                    petPositions[petName] = petModel.PrimaryPart.Position
-                end
-            end
-        end
-    end
-
-    return petPositions
-end
-
-local function getClosestEnemy()
-    if not enemiesFolder then return nil end
-
-    local closestEnemy = nil
-    local minDistance = math.huge
-    local playerPosition = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
-
-    if not playerPosition then return nil end
-
-    for _, enemy in ipairs(enemiesFolder:GetChildren()) do
-        if enemy:IsA("Model") then
-            local enemyPart = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
-            if enemyPart then
-                local distance = (enemyPart.Position - playerPosition).Magnitude
-                if distance < minDistance then
-                    minDistance = distance
-                    closestEnemy = enemy
-                end
-            end
-        end
-    end
-
-    return closestEnemy
-end
-
-local function attackShadow()
-    while autoAttackEnabled do
-        local enemy = getClosestEnemy()
-        if enemy then
-            local enemyName = enemy.Name
-            local enemyHealthText = enemy:FindFirstChild("HealthBar") 
-                and enemy.HealthBar:FindFirstChild("Main") 
-                and enemy.HealthBar.Main:FindFirstChild("Bar") 
-                and enemy.HealthBar.Main.Bar:FindFirstChild("Amount") 
-                and enemy.HealthBar.Main.Bar.Amount.Text
-
-            local enemyHealth = enemyHealthText and tonumber(enemyHealthText:match("%d+")) or 0
-
-            if enemyHealth > 0 then
-                if lastTarget ~= enemyName then -- Evita atacar o mesmo inimigo repetidamente
-                    lastTarget = enemyName
-
-                    local petPositions = getPetPositions()
-                    if next(petPositions) then
-                        local args = {
-                            [1] = {
-                                [1] = {
-                                    ["PetPos"] = petPositions,
-                                    ["AttackType"] = "All",
-                                    ["Event"] = "Attack",
-                                    ["Enemy"] = enemyName
-                                },
-                                [2] = "\t"
-                            }
-                        }
-
-                        remoteEvent:FireServer(unpack(args))
-                    end
-                end
-            else
-                lastTarget = nil -- Reseta o alvo para buscar um novo
-            end
-        else
-            lastTarget = nil
-        end
-
-        task.wait(1)
-    end
-end
-
--- Toggle para ativar/desativar o Auto Attack Shadow
-local Toggle = AutoFarm:AddToggle("AutoAttackNearestEnemy", {
-    Title = "Auto Attack Nearest Enemy",
-    Default = false,
-    Callback = function(state)
-        autoAttackEnabled = state
-        if state then
-            lastTarget = nil -- Reseta o último inimigo quando ativado
-            task.spawn(attackShadow)
         end
     end
 })
