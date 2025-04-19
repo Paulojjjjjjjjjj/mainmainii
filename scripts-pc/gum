@@ -85,26 +85,6 @@ BlowSection:AddToggle("AutoBlow", {
     end
 })
 
---// Auto Sell
-BlowSection:AddToggle("AutoSell", {
-    Title = "Auto Sell",
-    Description = "Sell the bubble automatically",
-    Default = false,
-    Callback = function(state)
-        AutoSell = state
-        task.spawn(function()
-            while AutoSell do
-                pcall(function()
-                    game:GetService("ReplicatedStorage")
-                        .Shared.Framework.Network.Remote.Event
-                        :FireServer("SellBubble")
-                end)
-                task.wait(0.1)
-            end
-        end)
-    end
-})
-
 local AutoCollect = false
 
 -- Lista de nomes que NÃO devem ser deletados
