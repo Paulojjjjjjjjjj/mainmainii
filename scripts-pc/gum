@@ -15,32 +15,32 @@ local Window = Fluent:CreateWindow({
 --// Abas
 local Tabs = {
     Main = Window:AddTab({ 
-        Title = "Main", 
-        Icon = "rbxassetid://14456045412" -- Ícone de casa
+        Title = "Main",
+        Icon = "rbxassetid://124620632231839"
     }),
     EggHunt = Window:AddTab({ 
-        Title = "Egg / Hunt", 
-        Icon = "rbxassetid://119629336187267" -- Ícone de ovo
+        Title = "Egg / Hunt",
+        Icon = "egg"
     }),
     Upgrades = Window:AddTab({ 
-        Title = "Upgrades", 
-        Icon = "rbxassetid://97136202386756" -- Ícone de seta para cima
+        Title = "Upgrades",
+        Icon = "arrow-big-up"
     }),
     Potions = Window:AddTab({ 
-        Title = "Potions", 
-        Icon = "rbxassetid://109178225112633" -- Ícone de frasco
+        Title = "Potions",
+        Icon = "glass-water"
     }),
     Teleport = Window:AddTab({ 
-        Title = "Teleport", 
-        Icon = "rbxassetid://12689978575" -- Ícone de teletransporte
+        Title = "Teleport",
+        Icon = "rbxassetid://12689978575"
     }),
     Misc = Window:AddTab({ 
-        Title = "Misc", 
-        Icon = "rbxassetid://90998363974520" -- Ícone de engrenagem
+        Title = "Misc",
+        Icon = "scroll"
     }),
     Settings = Window:AddTab({ 
-        Title = "Settings", 
-        Icon = "rbxassetid://96957318452720" -- Ícone de configurações
+        Title = "Settings",
+        Icon = "settings"
     })
 }
 

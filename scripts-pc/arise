@@ -11,12 +11,28 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
+--// Abas
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main"}),
-    Dungeon = Window:AddTab({ Title = "Dungeon"}),
-    Teleport = Window:AddTab({ Title = "Teleport"}),
-    Misc = Window:AddTab({ Title = "Misc"}),
-    Settings = Window:AddTab({ Title = "Settings"})
+    Main = Window:AddTab({ 
+        Title = "Main", 
+        Icon = "rbxassetid://124620632231839" 
+    }),
+    Dungeon = Window:AddTab({ 
+        Title = "Dungeon", 
+        Icon = "skull"
+    }),
+    Teleport = Window:AddTab({ 
+        Title = "Teleport", 
+        Icon = "rbxassetid://12689978575" 
+    }),
+    Misc = Window:AddTab({ 
+        Title = "Misc", 
+        Icon = "scroll" 
+    }),
+    Settings = Window:AddTab({ 
+        Title = "Settings", 
+        Icon = "settings" 
+    })
 }
 
 ---------------------------------------------------
