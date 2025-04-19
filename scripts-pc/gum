@@ -1347,6 +1347,8 @@ local teleportLocations = {
     ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
     ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Event"] = "Workspace.Event.Portal.Spawn"
+    
 }
 
 -- Loop para criar os botões de teleporte
