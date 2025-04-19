@@ -519,7 +519,9 @@ local EggPositions = {
     ["Hell Egg"] = Vector3.new(-144.9036865234375, 9.816670417785645, -36.547821044921875),
     ["Nightmare Egg"] = Vector3.new(-142.51422119140625, 9.816670417785645, -45.37887954711914),
     ["Rainbow Egg"] = Vector3.new(-137.2113494873047, 9.816374778747559, -53.9847297668457),
-    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004)
+    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004),
+    ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
+    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469)
 }
 
 local function EnableNoclip()
@@ -554,7 +556,7 @@ Egg:AddDropdown("EggDropdown", {
     Values = {
         "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
         "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
-        "Rainbow Egg", "Infinity Egg"
+        "Rainbow Egg", "Infinity Egg", "Pastel Egg", "Bunny Egg"
     },
     Multi = false,
     Default = 1,
@@ -566,7 +568,7 @@ Egg:AddDropdown("EggDropdown", {
 Egg:AddDropdown("HatchAmountDropdown", {
     Title = "Quantity of Eggs",
     Description = "Choose how many eggs to open at a time",
-    Values = { "1", "3" },
+    Values = { "1", "3", "6", "9" },
     Multi = false,
     Default = 1,
     Callback = function(value)
@@ -584,27 +586,24 @@ Egg:AddToggle("AutoHatch", {
         
         if state then
             EnableNoclip()
-            
+
             task.spawn(function()
-                -- Teleportar para a área
-                local args = {
-                    [1] = "Teleport",
-                    [2] = "Workspace.Worlds.The Overworld.PortalSpawn"
-                }
-                
-                game:GetService("ReplicatedStorage")
+                local remote = game:GetService("ReplicatedStorage")
                     .Shared.Framework.Network.Remote.Event
-                    :FireServer(unpack(args))
-                
-                -- Aguardar o personagem recarregar
+
+                -- Teleporte de acordo com o ovo selecionado
+                if SelectedEgg == "Pastel Egg" or SelectedEgg == "Bunny Egg" then
+                    remote:FireServer("Teleport", "Workspace.Event.Portal.Spawn")
+                else
+                    remote:FireServer("Teleport", "Workspace.Worlds.The Overworld.PortalSpawn")
+                end
+
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
                 local Humanoid = Character:WaitForChild("Humanoid")
                 
-                -- Esperar um tempo para garantir que o teleporte terminou
                 task.wait(1)
                 
-                -- Andar até o ovo
                 local target = EggPositions[SelectedEgg]
                 if target then
                     Humanoid:MoveTo(target)
@@ -620,12 +619,9 @@ Egg:AddToggle("AutoHatch", {
                         task.wait(0.1)
                     end
                     
-                    -- Loop de auto hatch
                     while AutoHatch do
                         pcall(function()
-                            game:GetService("ReplicatedStorage")
-                                .Shared.Framework.Network.Remote.Event
-                                :FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                            remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
                         end)
                         task.wait(0.5)
                     end
@@ -667,7 +663,9 @@ local EggNameMap = {
     ["hell-egg"] = "Hell Egg",
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
-    ["infinity-egg"] = "Infinity Egg"
+    ["infinity-egg"] = "Infinity Egg",
+    ["bunny-egg"] = "Bunny Egg",
+    ["pastel-egg"] = "Pastel Egg"
 }
 
 -- RemoteEvent
