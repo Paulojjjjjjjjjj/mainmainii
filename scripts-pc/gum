@@ -218,7 +218,7 @@ CollectSection:AddToggle("AutoGiftGrabber", {
 
                 while AutoGiftGrabber do
                     -- 1. Usa o gift
-                    RemoteEvent:FireServer("UseGift", "Mystery Box", 100)
+                    RemoteEvent:FireServer("UseGift", "Mystery Box", 1)
 
                     -- 2. Detecta e faz claim do gift
                     local giftPart = nil
