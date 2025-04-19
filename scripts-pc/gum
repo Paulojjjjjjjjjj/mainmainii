@@ -202,7 +202,6 @@ CollectSection:AddToggle("AutoClaimChests", {
     end
 })
 
-
 CollectSection:AddToggle("AutoGiftGrabber", {
     Title = "Auto Collect Gift",
     Description = "Use gift, give claim",
@@ -219,7 +218,7 @@ CollectSection:AddToggle("AutoGiftGrabber", {
 
                 while AutoGiftGrabber do
                     -- 1. Usa o gift
-                    RemoteEvent:FireServer("UseGift", "Mystery Box", 1)
+                    RemoteEvent:FireServer("UseGift", "Mystery Box", 100)
 
                     -- 2. Detecta e faz claim do gift
                     local giftPart = nil
