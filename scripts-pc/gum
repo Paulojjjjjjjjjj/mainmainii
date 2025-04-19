@@ -106,6 +106,9 @@ local excludedEggs = {
     ["Nightmare Egg"] = true,
     ["Rainbow Egg"] = true,
     ["Infinity Egg"] = true,
+    ["Bunny Egg"] = true,
+    ["Pastel Egg"] = true,
+    ["Aura Egg"] = true,
 }
 
 CollectSection:AddToggle("AutoCollectToggle", {
@@ -120,7 +123,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                       :WaitForChild("Pickups"):WaitForChild("CollectPickup")
                 
-                while AutoCollect and task.wait(0.1) do
+                while AutoCollect and task.wait(0.5) do
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
                         if rendered then
