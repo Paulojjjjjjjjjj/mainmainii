@@ -153,57 +153,8 @@ CollectSection:AddToggle("AutoCollectToggle", {
     end
 })
 
-CollectSection:AddToggle("AutoClaimChests", {
-    Title = "Auto Claim Chests",
-    Description = "Teleports and calls Giant and Void Chest in a loop",
-    Default = false,
-    Callback = function(state)
-        getgenv().AutoClaimChests = state
-
-        if state then
-            spawn(function()
-                local TweenService = game:GetService("TweenService")
-                local Players = game:GetService("Players")
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local LocalPlayer = Players.LocalPlayer
-                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local HRP = Character:WaitForChild("HumanoidRootPart")
-
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-
-                local chestData = {
-                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
-                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
-                }
-
-                local function tweenToPosition(pos, duration)
-                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-                        CFrame = CFrame.new(pos)
-                    })
-                end
-
-                while getgenv().AutoClaimChests do
-                    for chestName, position in pairs(chestData) do
-                        local tween = tweenToPosition(position, 4)
-                        tween:Play()
-                        tween.Completed:Wait(0.3) -- espera terminar o movimento
-                        task.wait(1)
-
-                        -- Clama o baú
-                        RemoteEvent:FireServer("ClaimChest", chestName)
-                        task.wait(0.1)
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
 CollectSection:AddToggle("AutoGiftGrabber", {
-    Title = "Auto Collect Gift",
+    Title = "Auto Use Gift",
     Description = "Use gift, give claim",
     Default = false,
     Callback = function(state)
@@ -254,37 +205,6 @@ CollectSection:AddToggle("AutoGiftGrabber", {
     end
 })
 
-CollectSection:AddToggle("AutoClaimPlaytime", {
-    Title = "Auto Claim Playtime Rewards",
-    Description = "Automatically claims playtime rewards (1 to 9)",
-    Default = false,
-    Callback = function(state)
-        AutoClaimPlaytime = state
-
-        task.spawn(function()
-            while AutoClaimPlaytime do
-                for i = 1, 9 do
-                    pcall(function()
-                        local args = {
-                            [1] = "ClaimPlaytime",
-                            [2] = i
-                        }
-
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Shared")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Network")
-                            :WaitForChild("Remote")
-                            :WaitForChild("Function")
-                            :InvokeServer(unpack(args))
-                    end)
-                end
-
-                task.wait(1) -- Espera 5 segundos antes de repetir tudo
-            end
-        end)
-    end
-})
 
 local equipBestRunning = false -- Variável de controle GLOBAL
 
@@ -323,6 +243,112 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
                 Duration = 3
             })
         end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimChests", {
+    Title = "Auto Claim Chests",
+    Description = "Teleports and calls Giant and Void Chest in a loop",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClaimChests = state
+
+        if state then
+            spawn(function()
+                local TweenService = game:GetService("TweenService")
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HRP = Character:WaitForChild("HumanoidRootPart")
+
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                local chestData = {
+                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
+                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                }
+
+                local function tweenToPosition(pos, duration)
+                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+                        CFrame = CFrame.new(pos)
+                    })
+                end
+
+                while getgenv().AutoClaimChests do
+                    for chestName, position in pairs(chestData) do
+                        local tween = tweenToPosition(position, 4)
+                        tween:Play()
+                        tween.Completed:Wait(0.3) -- espera terminar o movimento
+                        task.wait(1)
+
+                        -- Clama o baú
+                        RemoteEvent:FireServer("ClaimChest", chestName)
+                        task.wait(0.1)
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimSeason", {
+    Title = "Auto Claim Season",
+    Description = "Claim automático do Season Pass",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClaimSeason = state
+
+        if state then
+            task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoClaimSeason do
+                    local args = {
+                        [1] = "ClaimSeason"
+                    }
+
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(5) -- tempo entre cada claim (ajuste conforme necessário)
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimPlaytime", {
+    Title = "Auto Claim Playtime Rewards",
+    Description = "Automatically claims playtime rewards (1 to 9)",
+    Default = false,
+    Callback = function(state)
+        AutoClaimPlaytime = state
+
+        task.spawn(function()
+            while AutoClaimPlaytime do
+                for i = 1, 9 do
+                    pcall(function()
+                        local args = {
+                            [1] = "ClaimPlaytime",
+                            [2] = i
+                        }
+
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Network")
+                            :WaitForChild("Remote")
+                            :WaitForChild("Function")
+                            :InvokeServer(unpack(args))
+                    end)
+                end
+
+                task.wait(1) -- Espera 5 segundos antes de repetir tudo
+            end
+        end)
     end
 })
 
