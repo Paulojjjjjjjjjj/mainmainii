@@ -65,6 +65,11 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes") 
 
+EggRift:AddParagraph({
+    Title = "Warning",
+    Content = "Note: 'event-1' refers to the Bunny Egg, and 'event-2' refers to the Pastel Egg.\nThis will be fixed later."
+})
+
 --// Auto Blow
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
@@ -664,8 +669,8 @@ local EggNameMap = {
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
-    ["bunny-egg"] = "Bunny Egg",
-    ["pastel-egg"] = "Pastel Egg"
+    ["event-1"] = "Bunny Egg",
+    ["event-2"] = "Pastel Egg"
 }
 
 -- RemoteEvent
@@ -765,7 +770,7 @@ local function teleportToEgg(egg)
     enableNoClip()
     
     local targetCFrame = CFrame.new(egg:GetPivot().Position + Vector3.new(0, 3, 0))
-    local tween = TweenService:Create(hrp, TweenInfo.new(6, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    local tween = TweenService:Create(hrp, TweenInfo.new(10, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
     ActiveTweens[hrp] = tween
     
     tween:Play()
@@ -846,7 +851,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                         repeat
                                             if not AutoRiftHatch then break end
                                             hatchEgg(egg.Name)
-                                            task.wait(0.3)
+                                            task.wait(0.1)
                                         until not egg.Parent
                                     end
                                 end
@@ -876,7 +881,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                         end
                     end                    
 
-                    task.wait(0.5)
+                    task.wait(0.1)
                 end
                 disableNoClip() -- Ensure NoClip is disabled when loop ends
             end)
