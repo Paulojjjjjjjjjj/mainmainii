@@ -11,9 +11,16 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
+--// Abas
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    Main = Window:AddTab({ 
+        Title = "Main",
+        Icon = "rbxassetid://124620632231839"
+    }),
+    Settings = Window:AddTab({ 
+        Title = "Settings",
+        Icon = "settings"
+    })
 }
 
 local Rolling = Tabs.Main:AddSection("Rolling")

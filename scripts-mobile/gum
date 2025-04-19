@@ -15,32 +15,32 @@ local Window = Fluent:CreateWindow({
 --// Abas
 local Tabs = {
     Main = Window:AddTab({ 
-        Title = "Main", 
-        Icon = "rbxassetid://14456045412" -- Ícone de casa
+        Title = "Main",
+        Icon = "rbxassetid://124620632231839"
     }),
     EggHunt = Window:AddTab({ 
-        Title = "Egg / Hunt", 
-        Icon = "rbxassetid://119629336187267" -- Ícone de ovo
+        Title = "Egg / Hunt",
+        Icon = "egg"
     }),
     Upgrades = Window:AddTab({ 
-        Title = "Upgrades", 
-        Icon = "rbxassetid://97136202386756" -- Ícone de seta para cima
+        Title = "Upgrades",
+        Icon = "arrow-big-up"
     }),
     Potions = Window:AddTab({ 
-        Title = "Potions", 
-        Icon = "rbxassetid://109178225112633" -- Ícone de frasco
+        Title = "Potions",
+        Icon = "glass-water"
     }),
     Teleport = Window:AddTab({ 
-        Title = "Teleport", 
-        Icon = "rbxassetid://12689978575" -- Ícone de teletransporte
+        Title = "Teleport",
+        Icon = "rbxassetid://12689978575"
     }),
     Misc = Window:AddTab({ 
-        Title = "Misc", 
-        Icon = "rbxassetid://90998363974520" -- Ícone de engrenagem
+        Title = "Misc",
+        Icon = "scroll"
     }),
     Settings = Window:AddTab({ 
-        Title = "Settings", 
-        Icon = "rbxassetid://96957318452720" -- Ícone de configurações
+        Title = "Settings",
+        Icon = "settings"
     })
 }
 
@@ -78,26 +78,6 @@ BlowSection:AddToggle("AutoBlow", {
                     game:GetService("ReplicatedStorage")
                         .Shared.Framework.Network.Remote.Event
                         :FireServer("BlowBubble")
-                end)
-                task.wait(0.1)
-            end
-        end)
-    end
-})
-
---// Auto Sell
-BlowSection:AddToggle("AutoSell", {
-    Title = "Auto Sell",
-    Description = "Sell the bubble automatically",
-    Default = false,
-    Callback = function(state)
-        AutoSell = state
-        task.spawn(function()
-            while AutoSell do
-                pcall(function()
-                    game:GetService("ReplicatedStorage")
-                        .Shared.Framework.Network.Remote.Event
-                        :FireServer("SellBubble")
                 end)
                 task.wait(0.1)
             end
@@ -173,58 +153,8 @@ CollectSection:AddToggle("AutoCollectToggle", {
     end
 })
 
-CollectSection:AddToggle("AutoClaimChests", {
-    Title = "Auto Claim Chests",
-    Description = "Teleports and calls Giant and Void Chest in a loop",
-    Default = false,
-    Callback = function(state)
-        getgenv().AutoClaimChests = state
-
-        if state then
-            spawn(function()
-                local TweenService = game:GetService("TweenService")
-                local Players = game:GetService("Players")
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local LocalPlayer = Players.LocalPlayer
-                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local HRP = Character:WaitForChild("HumanoidRootPart")
-
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-
-                local chestData = {
-                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
-                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
-                }
-
-                local function tweenToPosition(pos, duration)
-                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-                        CFrame = CFrame.new(pos)
-                    })
-                end
-
-                while getgenv().AutoClaimChests do
-                    for chestName, position in pairs(chestData) do
-                        local tween = tweenToPosition(position, 4)
-                        tween:Play()
-                        tween.Completed:Wait(0.3) -- espera terminar o movimento
-                        task.wait(1)
-
-                        -- Clama o baú
-                        RemoteEvent:FireServer("ClaimChest", chestName)
-                        task.wait(0.1)
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
-
 CollectSection:AddToggle("AutoGiftGrabber", {
-    Title = "Auto Collect Gift",
+    Title = "Auto Use Gift",
     Description = "Use gift, give claim",
     Default = false,
     Callback = function(state)
@@ -275,37 +205,6 @@ CollectSection:AddToggle("AutoGiftGrabber", {
     end
 })
 
-CollectSection:AddToggle("AutoClaimPlaytime", {
-    Title = "Auto Claim Playtime Rewards",
-    Description = "Automatically claims playtime rewards (1 to 9)",
-    Default = false,
-    Callback = function(state)
-        AutoClaimPlaytime = state
-
-        task.spawn(function()
-            while AutoClaimPlaytime do
-                for i = 1, 9 do
-                    pcall(function()
-                        local args = {
-                            [1] = "ClaimPlaytime",
-                            [2] = i
-                        }
-
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Shared")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Network")
-                            :WaitForChild("Remote")
-                            :WaitForChild("Function")
-                            :InvokeServer(unpack(args))
-                    end)
-                end
-
-                task.wait(1) -- Espera 5 segundos antes de repetir tudo
-            end
-        end)
-    end
-})
 
 local equipBestRunning = false -- Variável de controle GLOBAL
 
@@ -344,6 +243,112 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
                 Duration = 3
             })
         end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimChests", {
+    Title = "Auto Claim Chests",
+    Description = "Teleports and calls Giant and Void Chest in a loop",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClaimChests = state
+
+        if state then
+            spawn(function()
+                local TweenService = game:GetService("TweenService")
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HRP = Character:WaitForChild("HumanoidRootPart")
+
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework"):WaitForChild("Network")
+                    :WaitForChild("Remote"):WaitForChild("Event")
+
+                local chestData = {
+                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
+                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                }
+
+                local function tweenToPosition(pos, duration)
+                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+                        CFrame = CFrame.new(pos)
+                    })
+                end
+
+                while getgenv().AutoClaimChests do
+                    for chestName, position in pairs(chestData) do
+                        local tween = tweenToPosition(position, 4)
+                        tween:Play()
+                        tween.Completed:Wait(0.3) -- espera terminar o movimento
+                        task.wait(1)
+
+                        -- Clama o baú
+                        RemoteEvent:FireServer("ClaimChest", chestName)
+                        task.wait(0.1)
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimSeason", {
+    Title = "Auto Claim Season",
+    Description = "Claim automático do Season Pass",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClaimSeason = state
+
+        if state then
+            task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
+                while AutoClaimSeason do
+                    local args = {
+                        [1] = "ClaimSeason"
+                    }
+
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(5) -- tempo entre cada claim (ajuste conforme necessário)
+                end
+            end)
+        end
+    end
+})
+
+UtilitiesSection:AddToggle("AutoClaimPlaytime", {
+    Title = "Auto Claim Playtime Rewards",
+    Description = "Automatically claims playtime rewards (1 to 9)",
+    Default = false,
+    Callback = function(state)
+        AutoClaimPlaytime = state
+
+        task.spawn(function()
+            while AutoClaimPlaytime do
+                for i = 1, 9 do
+                    pcall(function()
+                        local args = {
+                            [1] = "ClaimPlaytime",
+                            [2] = i
+                        }
+
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Network")
+                            :WaitForChild("Remote")
+                            :WaitForChild("Function")
+                            :InvokeServer(unpack(args))
+                    end)
+                end
+
+                task.wait(1) -- Espera 5 segundos antes de repetir tudo
+            end
+        end)
     end
 })
 
@@ -498,6 +503,8 @@ local LocalPlayer = Players.LocalPlayer
 local SelectedEgg = "Common Egg"
 local HatchAmount = 1
 local AutoHatch = false
+local Noclip = false
+local NoclipConnection = nil
 
 -- Posições dos ovos
 local EggPositions = {
@@ -512,17 +519,44 @@ local EggPositions = {
     ["Hell Egg"] = Vector3.new(-144.9036865234375, 9.816670417785645, -36.547821044921875),
     ["Nightmare Egg"] = Vector3.new(-142.51422119140625, 9.816670417785645, -45.37887954711914),
     ["Rainbow Egg"] = Vector3.new(-137.2113494873047, 9.816374778747559, -53.9847297668457),
-    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004)
+    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004),
+    ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
+    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469)
 }
 
--- Dropdown para seleção do ovo
+local function EnableNoclip()
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+    end
+    
+    Noclip = true
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if Noclip and LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function DisableNoclip()
+    Noclip = false
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+        NoclipConnection = nil
+    end
+end
+
+-- Dropdowns
 Egg:AddDropdown("EggDropdown", {
     Title = "Selecting Egg",
     Description = "Choose the egg you want to open",
     Values = {
         "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
         "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
-        "Rainbow Egg", "Infinity Egg"
+        "Rainbow Egg", "Infinity Egg", "Pastel Egg", "Bunny Egg"
     },
     Multi = false,
     Default = 1,
@@ -531,11 +565,10 @@ Egg:AddDropdown("EggDropdown", {
     end
 })
 
--- Dropdown para quantidade de ovos
 Egg:AddDropdown("HatchAmountDropdown", {
     Title = "Quantity of Eggs",
     Description = "Choose how many eggs to open at a time",
-    Values = { "1", "3" },
+    Values = { "1", "3", "6", "9" },
     Multi = false,
     Default = 1,
     Callback = function(value)
@@ -543,72 +576,61 @@ Egg:AddDropdown("HatchAmountDropdown", {
     end
 })
 
--- Toggle para Auto Hatch com teleporte e noclip
+-- Toggle de Auto Hatch
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
-    Description = "Automatically opens eggs with teleport",
+    Description = "Automatically opens eggs after walking to them",
     Default = false,
     Callback = function(state)
         AutoHatch = state
-
+        
         if state then
-            local Noclip = false
-            local noclipConnection
+            EnableNoclip()
 
-            local function EnableNoclip()
-                Noclip = true
-                noclipConnection = RunService.Stepped:Connect(function()
-                    if Noclip and LocalPlayer.Character then
-                        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                            if part:IsA("BasePart") and part.CanCollide then
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end)
-            end
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    .Shared.Framework.Network.Remote.Event
 
-            local function DisableNoclip()
-                Noclip = false
-                if noclipConnection then
-                    noclipConnection:Disconnect()
-                    noclipConnection = nil
+                -- Teleporte de acordo com o ovo selecionado
+                if SelectedEgg == "Pastel Egg" or SelectedEgg == "Bunny Egg" then
+                    remote:FireServer("Teleport", "Workspace.Event.Portal.Spawn")
+                else
+                    remote:FireServer("Teleport", "Workspace.Worlds.The Overworld.PortalSpawn")
                 end
-            end
 
-            -- Teleporte antes de iniciar o loop de hatch
-            local function teleportToEgg()
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+                local Humanoid = Character:WaitForChild("Humanoid")
+                
+                task.wait(1)
+                
                 local target = EggPositions[SelectedEgg]
-                if target and HumanoidRootPart then
-                    EnableNoclip()
-                    local tween = TweenService:Create(
-                        HumanoidRootPart,
-                        TweenInfo.new(6, Enum.EasingStyle.Linear),
-                        { CFrame = CFrame.new(target + Vector3.new(0, 3, 0)) }
-                    )
-                    tween:Play()
-                    tween.Completed:Wait()
-                    DisableNoclip()
-                end
-            end
-
-            teleportToEgg()
-
-            -- Loop de Auto Hatch
-            task.spawn(function()
-                while AutoHatch do
-                    pcall(function()
-                        game:GetService("ReplicatedStorage")
-                            .Shared.Framework.Network.Remote.Event
-                            :FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                if target then
+                    Humanoid:MoveTo(target)
+                    local reached = false
+                    
+                    Humanoid.MoveToFinished:Connect(function(success)
+                        if success then
+                            reached = true
+                        end
                     end)
-                    task.wait(0.5)
+                    
+                    while not reached and AutoHatch do
+                        task.wait(0.1)
+                    end
+                    
+                    while AutoHatch do
+                        pcall(function()
+                            remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                        end)
+                        task.wait(0.5)
+                    end
                 end
             end)
+        else
+            DisableNoclip()
         end
-    end
+    end    
 })
 
 -- Services
@@ -641,7 +663,9 @@ local EggNameMap = {
     ["hell-egg"] = "Hell Egg",
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
-    ["infinity-egg"] = "Infinity Egg"
+    ["infinity-egg"] = "Infinity Egg",
+    ["bunny-egg"] = "Bunny Egg",
+    ["pastel-egg"] = "Pastel Egg"
 }
 
 -- RemoteEvent
@@ -1346,6 +1370,8 @@ local teleportLocations = {
     ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
     ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Event"] = "Workspace.Event.Portal.Spawn"
+    
 }
 
 -- Loop para criar os botões de teleporte
