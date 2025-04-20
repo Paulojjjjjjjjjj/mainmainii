@@ -65,56 +65,53 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes") 
 
---// Auto Blow
+-- Declara a variável como local no início do script
+local AutoBlow = false
+
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
     Description = "Automatically blows the bubble",
     Default = false,
     Callback = function(state)
+        -- Para qualquer loop anterior antes de iniciar um novo
+        AutoBlow = false
+        task.wait(0.1) -- Pequena pausa para garantir que o loop anterior foi encerrado
+        
         AutoBlow = state
-        task.spawn(function()
-            while AutoBlow do
-                pcall(function()
-                    game:GetService("ReplicatedStorage")
-                        .Shared.Framework.Network.Remote.Event
-                        :FireServer("BlowBubble")
-                end)
-                task.wait(0.1)
-            end
-        end)
+        if state then
+            task.spawn(function()
+                local lastBlowTime = 0
+                while AutoBlow do
+                    pcall(function()
+                        -- Adiciona um pequeno cooldown para evitar spam excessivo
+                        if tick() - lastBlowTime >= 0.1 then
+                            game:GetService("ReplicatedStorage")
+                                .Shared.Framework.Network.Remote.Event
+                                :FireServer("BlowBubble")
+                            lastBlowTime = tick()
+                        end
+                    end)
+                    task.wait(0.05) -- Intervalo mais curto mas com cooldown controlado
+                end
+            end)
+        end
     end
 })
 
 local AutoCollect = false
 
--- Lista de nomes que NÃO devem ser deletados
-local excludedEggs = {
-    ["Common Egg"] = true,
-    ["Spotted Egg"] = true,
-    ["Iceshard Egg"] = true,
-    ["Spikey Egg"] = true,
-    ["Magma Egg"] = true,
-    ["Crystal Egg"] = true,
-    ["Lunar Egg"] = true,
-    ["Void Egg"] = true,
-    ["Hell Egg"] = true,
-    ["Nightmare Egg"] = true,
-    ["Rainbow Egg"] = true,
-    ["Infinity Egg"] = true,
-}
-
 CollectSection:AddToggle("AutoCollectToggle", {
     Title = "Auto Collect Coins/Gems/Crates",
-    Description = "Automatically collect Coins/Gems/Crates",
+    Description = "Automatically collect Coins/Gems/Crates with name length ≥ 25",
     Default = false,
     Callback = function(state)
         AutoCollect = state
-        
+
         if state then
             task.spawn(function()
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                       :WaitForChild("Pickups"):WaitForChild("CollectPickup")
-                
+
                 while AutoCollect and task.wait(0.1) do
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
@@ -122,14 +119,10 @@ CollectSection:AddToggle("AutoCollectToggle", {
                             for _, folder in ipairs(rendered:GetChildren()) do
                                 if folder.Name == "Chunker" then
                                     for _, model in ipairs(folder:GetChildren()) do
-                                        if model:IsA("Model") then
-                                            -- Coleta o pickup
+                                        if model:IsA("Model") and #model.Name >= 25 then
+                                            -- Coleta e destrói apenas se o nome for ≥ 25 caracteres
                                             pickupRemote:FireServer(model.Name)
-
-                                            -- Somente destrói se NÃO estiver na lista de exclusão
-                                            if not excludedEggs[model.Name] then
-                                                model:Destroy()
-                                            end
+                                            model:Destroy()
                                         end
                                     end
                                 end
@@ -138,9 +131,10 @@ CollectSection:AddToggle("AutoCollectToggle", {
                     end)
                 end
             end)
+
             Fluent:Notify({
                 Title = "Auto Collect Enabled",
-                Content = "Collecting and destroying pickups automatically",
+                Content = "Collecting pickups with long names (25+)",
                 Duration = 3
             })
         else
