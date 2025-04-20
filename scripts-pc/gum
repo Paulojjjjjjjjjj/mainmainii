@@ -65,11 +65,6 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes") 
 
-EggRift:AddParagraph({
-    Title = "Warning",
-    Content = "Note: 'event-1' refers to the Bunny Egg, and 'event-2' refers to the Pastel Egg.\nThis will be fixed later."
-})
-
 --// Auto Blow
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
@@ -106,9 +101,6 @@ local excludedEggs = {
     ["Nightmare Egg"] = true,
     ["Rainbow Egg"] = true,
     ["Infinity Egg"] = true,
-    ["Bunny Egg"] = true,
-    ["Pastel Egg"] = true,
-    ["Aura Egg"] = true,
 }
 
 CollectSection:AddToggle("AutoCollectToggle", {
@@ -123,7 +115,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                       :WaitForChild("Pickups"):WaitForChild("CollectPickup")
                 
-                while AutoCollect and task.wait(0.5) do
+                while AutoCollect and task.wait(0.1) do
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
                         if rendered then
@@ -672,8 +664,8 @@ local EggNameMap = {
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
-    ["event-1"] = "Bunny Egg",
-    ["event-2"] = "Pastel Egg"
+    ["bunny-egg"] = "Bunny Egg",
+    ["pastel-egg"] = "Pastel Egg"
 }
 
 -- RemoteEvent
@@ -773,7 +765,7 @@ local function teleportToEgg(egg)
     enableNoClip()
     
     local targetCFrame = CFrame.new(egg:GetPivot().Position + Vector3.new(0, 3, 0))
-    local tween = TweenService:Create(hrp, TweenInfo.new(10, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    local tween = TweenService:Create(hrp, TweenInfo.new(6, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
     ActiveTweens[hrp] = tween
     
     tween:Play()
@@ -790,7 +782,7 @@ local function hatchEgg(eggName)
     local args = {
         [1] = "HatchEgg",
         [2] = EggNameMap[eggName],
-        [3] = 10
+        [3] = 1
     }
     pcall(function()
         RemoteEvent:FireServer(unpack(args))
@@ -854,7 +846,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                         repeat
                                             if not AutoRiftHatch then break end
                                             hatchEgg(egg.Name)
-                                            task.wait(0.1)
+                                            task.wait(0.3)
                                         until not egg.Parent
                                     end
                                 end
@@ -884,7 +876,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                         end
                     end                    
 
-                    task.wait(0.1)
+                    task.wait(0.5)
                 end
                 disableNoClip() -- Ensure NoClip is disabled when loop ends
             end)
@@ -1424,6 +1416,53 @@ CodeSection:AddButton({
                 warn("Error redeeming code:", code, result)
             end
             task.wait(1)
+        end
+    end
+})
+
+-- Anti AFK
+local AntiAfkConfig = {
+    connection = nil
+}
+
+function AntiAfkConfig:Toggle(state)
+    local player = game:GetService("Players").LocalPlayer
+    if state then
+        -- Ativa o Anti AFK
+        self.connection = player.Idled:Connect(function()
+            local vu = game:GetService("VirtualUser")
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+    else
+        -- Desativa o Anti AFK
+        if self.connection then
+            self.connection:Disconnect()
+            self.connection = nil
+        end
+    end
+end
+
+function AntiAfkConfig:Unload()
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
+end
+
+-- Toggle para ligar/desligar o Anti AFK
+local Toggle = Tabs.Misc:AddToggle("MyToggle", {
+    Title = "Anti AFK", 
+    Default = false,
+    Callback = function(state)
+        if state then
+            -- Ativa o Anti AFK
+            AntiAfkConfig:Toggle(true)
+            print("Anti AFK ativado")
+        else
+            -- Desativa o Anti AFK
+            AntiAfkConfig:Toggle(false)
+            print("Anti AFK desativado")
         end
     end
 })

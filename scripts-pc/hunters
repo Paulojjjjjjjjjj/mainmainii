@@ -17,6 +17,10 @@ local Tabs = {
         Title = "Main",
         Icon = "rbxassetid://124620632231839"
     }),
+    Misc = Window:AddTab({ 
+        Title = "Misc", 
+        Icon = "scroll" 
+    }),
     Settings = Window:AddTab({ 
         Title = "Settings",
         Icon = "settings"
@@ -518,6 +522,54 @@ FarmingManual:AddToggle("StartDungeonToggle", {
     end
 })
 
+-- Anti AFK
+local AntiAfkConfig = {
+    connection = nil
+}
+
+function AntiAfkConfig:Toggle(state)
+    local player = game:GetService("Players").LocalPlayer
+    if state then
+        -- Ativa o Anti AFK
+        self.connection = player.Idled:Connect(function()
+            local vu = game:GetService("VirtualUser")
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+    else
+        -- Desativa o Anti AFK
+        if self.connection then
+            self.connection:Disconnect()
+            self.connection = nil
+        end
+    end
+end
+
+function AntiAfkConfig:Unload()
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
+end
+
+-- Toggle para ligar/desligar o Anti AFK
+local Toggle = Tabs.Misc:AddToggle("MyToggle", {
+    Title = "Anti AFK", 
+    Default = false,
+    Callback = function(state)
+        if state then
+            -- Ativa o Anti AFK
+            AntiAfkConfig:Toggle(true)
+            print("Anti AFK ativado")
+        else
+            -- Desativa o Anti AFK
+            AntiAfkConfig:Toggle(false)
+            print("Anti AFK desativado")
+        end
+    end
+})
+
+-- Save/Load system
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
