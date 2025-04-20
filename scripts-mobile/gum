@@ -102,7 +102,6 @@ local AutoCollect = false
 
 CollectSection:AddToggle("AutoCollectToggle", {
     Title = "Auto Collect Coins/Gems/Crates",
-    Description = "Automatically collect Coins/Gems/Crates with name length ≥ 25",
     Default = false,
     Callback = function(state)
         AutoCollect = state
