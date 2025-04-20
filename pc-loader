@@ -76,4 +76,15 @@ if isMobile then
     return
 end
 
+-- Verificação 6:
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local placeId = game.PlaceId
+
+if placeId == 17334984034 then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-pc/aks"))()
+    return
+end
+
 showUnsupportedMapMessage()
