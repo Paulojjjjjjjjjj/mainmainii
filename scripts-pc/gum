@@ -633,6 +633,11 @@ Egg:AddToggle("AutoHatch", {
     end    
 })
 
+EggRift:AddParagraph({
+    Title = "Warning",
+    Content = "Note: 'event-1' refers to the Bunny Egg, and 'event-2' refers to the Pastel Egg.\nThis will be fixed later."
+})
+
 -- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -664,8 +669,8 @@ local EggNameMap = {
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
-    ["bunny-egg"] = "Bunny Egg",
-    ["pastel-egg"] = "Pastel Egg"
+    ["event-1"] = "Bunny Egg",
+    ["event-2"] = "Pastel Egg"
 }
 
 -- RemoteEvent
