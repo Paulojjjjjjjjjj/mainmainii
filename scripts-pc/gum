@@ -251,6 +251,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                 local Players = game:GetService("Players")
                 local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local RunService = game:GetService("RunService")
+                local Workspace = game:GetService("Workspace")
 
                 local LocalPlayer = Players.LocalPlayer
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -264,13 +265,31 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                 local chestData = {
                     ["Giant Chest"] = {
                         teleportTo = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-                        walkTo = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                        walkTo = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375),
+                        path = "Giant Chest"
                     },
                     ["Void Chest"] = {
                         teleportTo = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-                        walkTo = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266)
+                        walkTo = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
+                        path = "Void Chest"
                     }
                 }
+
+                local function isChestReady(chestName)
+                    local genericChest = Workspace.Rendered.Generic:FindFirstChild(chestName)
+                    return genericChest and genericChest:FindFirstChild("Outer") ~= nil
+                end
+
+                -- Notifica imediatamente se os baús estão em cooldown
+                for chestName, data in pairs(chestData) do
+                    if not isChestReady(data.path) then
+                        Fluent:Notify({
+                            Title = "Cooldown",
+                            Content = chestName .. " está em cooldown!",
+                            Duration = 4
+                        })
+                    end
+                end
 
                 -- Noclip loop
                 local noclipConnection
@@ -298,10 +317,17 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
 
                 while getgenv().AutoClaimChests do
                     for chestName, data in pairs(chestData) do
-                        fireTeleport(data.teleportTo)
-                        walkTo(data.walkTo)
-                        task.wait(0.5)
-                        RemoteEvent:FireServer("ClaimChest", chestName)
+                        if isChestReady(data.path) then
+                            fireTeleport(data.teleportTo)
+                            walkTo(data.walkTo)
+                            task.wait(0.5)
+                            RemoteEvent:FireServer("ClaimChest", chestName)
+                            Fluent:Notify({
+                                Title = "Chest Claimed",
+                                Content = chestName .. " coletado com sucesso!",
+                                Duration = 3
+                            })
+                        end
                         task.wait(1)
                     end
                     task.wait(1)
@@ -449,7 +475,6 @@ UtilitiesSection:AddToggle("AutoBuyShardShop", {
         end
     end
 })
-
 
 UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
     Title = "Auto Win Doggy",
