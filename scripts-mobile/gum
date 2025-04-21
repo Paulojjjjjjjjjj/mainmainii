@@ -241,45 +241,68 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
 
 UtilitiesSection:AddToggle("AutoClaimChests", {
     Title = "Auto Claim Chests",
-    Description = "Teleports and calls Giant and Void Chest in a loop",
+    Description = "Teleports and claims Giant and Void Chests using Remote Event + Noclip",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimChests = state
 
         if state then
             spawn(function()
-                local TweenService = game:GetService("TweenService")
                 local Players = game:GetService("Players")
                 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RunService = game:GetService("RunService")
+
                 local LocalPlayer = Players.LocalPlayer
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HRP = Character:WaitForChild("HumanoidRootPart")
+                local Humanoid = Character:WaitForChild("Humanoid")
 
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
                     :WaitForChild("Framework"):WaitForChild("Network")
                     :WaitForChild("Remote"):WaitForChild("Event")
 
                 local chestData = {
-                    ["Void Chest"] = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
-                    ["Giant Chest"] = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                    ["Giant Chest"] = {
+                        teleportTo = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+                        walkTo = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375)
+                    },
+                    ["Void Chest"] = {
+                        teleportTo = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+                        walkTo = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266)
+                    }
                 }
 
-                local function tweenToPosition(pos, duration)
-                    return TweenService:Create(HRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-                        CFrame = CFrame.new(pos)
-                    })
+                -- Noclip loop
+                local noclipConnection
+                noclipConnection = RunService.Stepped:Connect(function()
+                    if getgenv().AutoClaimChests then
+                        for _, part in ipairs(Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then
+                                part.CanCollide = false
+                            end
+                        end
+                    else
+                        noclipConnection:Disconnect()
+                    end
+                end)
+
+                local function fireTeleport(path)
+                    RemoteEvent:FireServer("Teleport", path)
+                    task.wait(2.5)
+                end
+
+                local function walkTo(position)
+                    Humanoid:MoveTo(position)
+                    Humanoid.MoveToFinished:Wait()
                 end
 
                 while getgenv().AutoClaimChests do
-                    for chestName, position in pairs(chestData) do
-                        local tween = tweenToPosition(position, 4)
-                        tween:Play()
-                        tween.Completed:Wait(0.3) -- espera terminar o movimento
-                        task.wait(1)
-
-                        -- Clama o baú
+                    for chestName, data in pairs(chestData) do
+                        fireTeleport(data.teleportTo)
+                        walkTo(data.walkTo)
+                        task.wait(0.5)
                         RemoteEvent:FireServer("ClaimChest", chestName)
-                        task.wait(0.1)
+                        task.wait(1)
                     end
                     task.wait(1)
                 end
@@ -1141,8 +1164,8 @@ local potionList = {}
 local dropdownOptions = {}
 
 local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
-local tiers = {1, 2, 3, 4, 5, 6}
-local roman = {"I", "II", "III", "IV", "V", "VI"}
+local tiers = {1, 2, 3, 4, 5,}
+local roman = {"I", "II", "III", "IV", "V"}
 
 -- Cria mapeamento: "Lucky I" → {"Lucky", 1}
 for _, potion in ipairs(potionNames) do
@@ -1237,7 +1260,7 @@ local potionList = {}
 local dropdownOptions = {}
 
 local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
-local tiers = {2, 3, 4, 5, 6}
+local tiers = {2, 3, 4, 5}
 local roman = {"II", "III", "IV", "V"}
 
 -- Cria mapeamento: "Lucky I" → {"Lucky", 1}
