@@ -1238,7 +1238,7 @@ local dropdownOptions = {}
 
 local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
 local tiers = {2, 3, 4, 5, 6}
-local roman = {"II", "III", "IV", "V", "VI"}
+local roman = {"II", "III", "IV", "V"}
 
 -- Cria mapeamento: "Lucky I" → {"Lucky", 1}
 for _, potion in ipairs(potionNames) do
