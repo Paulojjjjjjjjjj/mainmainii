@@ -87,5 +87,16 @@ if placeId == 17334984034 then
     return
 end
 
+-- Verificação 7:
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local hasExpBar = playerGui:FindFirstChild("HUD")
+    and playerGui.HUD:FindFirstChild("ExpBar")
+
+if hasExpBar then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/rangers"))()
+    return
+end
 
 showUnsupportedMapMessage()
