@@ -28,6 +28,10 @@ local Tabs = {
         Title = "Egg", 
         Icon = "egg" 
     }),
+    Teleport = Window:AddTab({ 
+        Title = "Teleport", 
+        Icon = "rbxassetid://12689978575" 
+    }),
     Misc = Window:AddTab({ 
         Title = "Misc", 
         Icon = "scroll" 
@@ -42,6 +46,8 @@ local Tabs = {
 ----------------------SECTION----------------------
 local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
+local TeleportWorlds = Tabs.Teleport:AddSection("Teleport Worlds")
+local SpecialTeleport = Tabs.Teleport:AddSection("Special Teleport")
 local AFK = Tabs.Misc:AddSection("AFK")
 ----------------------SECTION----------------------
 ---------------------------------------------------
@@ -411,7 +417,7 @@ local lastRaidTime = 0
 local raidConnection
 
 -- World selection dropdown
-local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5"}
+local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5", "World 6"}
 local selectedWorld = worldOptions[1]
 
 local Dropdown = Tabs.AutoRaid:AddDropdown("WorldDropdown", {
@@ -1098,6 +1104,88 @@ Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
         end
     end
 })
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- World teleportation system
+local Worlds = {
+    ["World 1"] = CFrame.new(2728.59375, 104.373451, 86.0751495),
+    ["World 2"] = CFrame.new(3128.5835, 109.899307, -2531.13989, 0, 0, 1, 0, 1, 0, -1, 0, 0),
+    ["World 3"] = CFrame.new(2688.51465, 185.987976, -4572.60156, 0.999701619, 0, 0.0244273134, 0, 1, -0.000172631175, -0.0244273134, 0.000172631175, 0.999701619),
+    ["World 4"] = CFrame.new(2688.70703, 99.3535614, -7086.10205),
+    ["World 5"] = CFrame.new(2269.69189, 114.595337, -9791.73242, 0, 0, -1, 0, 1, 0, 1, 0, 0),
+    ["World 6"] = CFrame.new(4773.37744, 105.832397, 241.102875, 0, 0, -1, 0, 1, 0, 1, 0, 0),
+}
+
+local WorldDropdown = TeleportWorlds:AddDropdown("WorldTeleportDropdown", {
+    Title = "Select World",
+    Values = {"World 1", "World 2", "World 3", "World 4", "World 5", "World 6"},
+})
+
+WorldDropdown:OnChanged(function(selected)
+    local function TeleportToWorld()
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        
+        local destination = Worlds[selected]
+        if destination then
+            hrp.CFrame = destination
+            print("Teleportado para:", selected)
+        else
+            warn("CFrame não encontrado para:", selected)
+        end
+    end
+
+    -- Handle character loading
+    if not LocalPlayer.Character then
+        LocalPlayer.CharacterAdded:Once(function()
+            task.wait(1) -- Give time for HRP to load
+            TeleportToWorld()
+        end)
+    else
+        TeleportToWorld()
+    end
+end)
+
+-- Fixed location teleportation system
+local Locations = {
+    ["Group Chest"] = CFrame.new(2710.32, 103.66, 24.61),
+    ["Raid List"] = CFrame.new(2646.49, 103.35, -166.41),
+    ["Shiny Creator"] = CFrame.new(3104.14, 108.76, -2505.99),
+    ["Stat Changer"] = CFrame.new(2641.63, 184.99, -4619.49),
+    ["Exchange (W3)"] = CFrame.new(2716.65, 184.99, -4649.16),
+    ["Dungeon List"] = CFrame.new(2858.52, 98.22, -7476.73),
+    ["Dungeon Shop"] = CFrame.new(3470.70, 103.75, -7391.25),
+    ["Passives"] = CFrame.new(2538.18, 98.22, -7187.28),
+    ["Enchantments"] = CFrame.new(2274.61, 113.30, -9823.18),
+    ["Exchange (W5)"] = CFrame.new(2383.51, 113.30, -9824.31),
+    ["Armaments"] = CFrame.new(4730.95, 104.38, 230.48),
+}
+
+-- Create dropdown for fixed locations
+local LocationNames = {}
+for name in pairs(Locations) do
+    table.insert(LocationNames, name)
+end
+table.sort(LocationNames) -- Sort alphabetically
+
+local LocationDropdown = SpecialTeleport:AddDropdown("TeleportFixed", {
+    Title = "Teleport Misc",
+    Values = LocationNames
+})
+
+LocationDropdown:OnChanged(function(selected)
+    local destination = Locations[selected]
+    if destination then
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = destination
+        print("Teleportado para:", selected)
+    else
+        warn("Destino não encontrado:", selected)
+    end
+end)
 
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
