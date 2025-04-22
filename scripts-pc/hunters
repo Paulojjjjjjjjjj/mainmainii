@@ -560,11 +560,11 @@ local Toggle = Tabs.Misc:AddToggle("MyToggle", {
         if state then
             -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK ativado")
+            print("Anti AFK Active")
         else
             -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK desativado")
+            print("Anti AFK Disabled")
         end
     end
 })
