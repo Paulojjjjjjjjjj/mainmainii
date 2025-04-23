@@ -52,8 +52,8 @@ local SelectedEgg = "Iceshard Egg"
 local HatchAmount = 1
 
 --// ======= [MAIN TAB SECTIONS] =======
-
-local BlowSection = Tabs.Main:AddSection("Bubble Automation")
+local SellOptions = Tabs.Main:AddSection("Sell Options")
+local BlowSection = Tabs.Main:AddSection("Bubble + Sell Automation")
 local CollectSection = Tabs.Main:AddSection("Auto Collect")
 local UtilitiesSection = Tabs.Main:AddSection("Utilities")
 local Egg = Tabs.EggHunt:AddSection("Egg")
@@ -65,38 +65,265 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes") 
 
--- Declara a variável como local no início do script
-local AutoBlow = false
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
 
+-- Auto Blow Feature
+local AutoBlow = false
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
     Description = "Automatically blows the bubble",
     Default = false,
     Callback = function(state)
-        -- Para qualquer loop anterior antes de iniciar um novo
-        AutoBlow = false
-        task.wait(0.1) -- Pequena pausa para garantir que o loop anterior foi encerrado
-        
         AutoBlow = state
         if state then
             task.spawn(function()
                 local lastBlowTime = 0
+                local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
                 while AutoBlow do
-                    pcall(function()
-                        -- Adiciona um pequeno cooldown para evitar spam excessivo
-                        if tick() - lastBlowTime >= 0.1 then
-                            game:GetService("ReplicatedStorage")
-                                .Shared.Framework.Network.Remote.Event
-                                :FireServer("BlowBubble")
-                            lastBlowTime = tick()
-                        end
-                    end)
-                    task.wait(0.05) -- Intervalo mais curto mas com cooldown controlado
+                    if tick() - lastBlowTime >= 0.1 then
+                        pcall(function()
+                            remote:FireServer("BlowBubble")
+                        end)
+                        lastBlowTime = tick()
+                    end
+                    task.wait(0.05)
                 end
             end)
         end
     end
 })
+
+-- Auto Sell System
+local selectedThreshold = 10000
+local returnLocation = nil
+local shouldSavePosition = false
+local savedPosition = nil
+local autoSellEnabled = false
+local useTweenService = false
+local noReturn = false -- New variable for no return option
+
+local sellAmountOptions = {
+    ["1K"] = 1000,
+    ["5K"] = 5000,
+    ["10K"] = 10000,
+    ["25K"] = 25000,
+    ["50K"] = 50000,
+    ["100K"] = 100000,
+    ["500K"] = 500000,
+    ["1M"] = 1000000,
+    ["2.5M"] = 2500000,
+    ["5M"] = 5000000,
+    ["10M"] = 10000000,
+    ["50M"] = 50000000,
+    ["100M"] = 100000000,
+}
+
+local formattedOptions = {}
+for label in pairs(sellAmountOptions) do
+    table.insert(formattedOptions, label)
+end
+
+table.sort(formattedOptions, function(a, b)
+    return sellAmountOptions[a] < sellAmountOptions[b]
+end)
+
+local thresholdDropdown = SellOptions:AddDropdown("SellAmount", {
+    Title = "Minimum Amount to Sell",
+    Description = "Minimum bubble amount required to sell",
+    Values = formattedOptions,
+    Default = "10K",
+})
+
+thresholdDropdown:OnChanged(function(val)
+    selectedThreshold = sellAmountOptions[val] or 10000
+end)
+
+-- Teleport Locations
+local teleportLocations = {
+    ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Spawn (Overworld)"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Event"] = "Workspace.Event.Portal.Spawn",
+    ["None"] = nil -- Added "None" option
+}
+
+-- Return Location Dropdown (updated with "None" option)
+local returnDropdown = SellOptions:AddDropdown("ReturnIsland", {
+    Title = "Return Location After Sell",
+    Description = "Choose where to return after selling (or None)",
+    Values = {"None", "Twilight Island", "Outer Space", "Spawn (Overworld)", "The Void", "Floating Island", "Zen", "Event"},
+    Default = "None",
+})
+
+returnDropdown:OnChanged(function(val)
+    returnLocation = teleportLocations[val]
+    noReturn = val == "None" -- Set noReturn based on selection
+end)
+
+-- Save Position Dropdown
+local savePosDropdown = SellOptions:AddDropdown("SavePos", {
+    Title = "Save Position Before Selling?",
+    Description = "Will walk back to original position after selling",
+    Values = {"Yes", "No"},
+    Default = "No",
+})
+
+savePosDropdown:OnChanged(function(val)
+    shouldSavePosition = val == "Yes"
+end)
+
+-- Tween Service Option Dropdown
+local tweenBackDropdown = SellOptions:AddDropdown("TweenBack", {
+    Title = "Return Method",
+    Description = "Choose how to return to saved position",
+    Values = {"Walk", "Tween"},
+    Default = "Walk",
+})
+
+tweenBackDropdown:OnChanged(function(val)
+    useTweenService = val == "Tween"
+end)
+
+-- Position Return Function
+local function returnToPosition(position)
+    if not player.Character or not position then return end
+    
+    local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+    if not humanoid then return end
+    
+    if useTweenService then
+        local tweenService = game:GetService("TweenService")
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local distance = (hrp.Position - position).Magnitude
+            local tweenInfo = TweenInfo.new(
+                distance / 1000, -- Adjust speed (higher divisor = faster)
+                Enum.EasingStyle.Linear
+            )
+            local tween = tweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(position)})
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    else
+        humanoid:MoveTo(position)
+        humanoid.MoveToFinished:Wait()
+    end
+end
+
+-- Main Auto Sell Toggle
+BlowSection:AddToggle("AutoSellToggle", {
+    Title = "Enable Auto Sell",
+    Description = "Activates the complete auto sell system",
+    Default = false,
+    Callback = function(state)
+        autoSellEnabled = state
+        if state then
+            savedPosition = nil
+            selectedThreshold = sellAmountOptions[thresholdDropdown.Value] or 10000
+            returnLocation = teleportLocations[returnDropdown.Value]
+            noReturn = returnDropdown.Value == "None"
+            shouldSavePosition = savePosDropdown.Value == "Yes"
+            useTweenService = tweenBackDropdown.Value == "Tween"
+            
+            Fluent:Notify({
+                Title = "Auto Sell",
+                Content = "Auto Sell activated and state reset",
+                Duration = 3
+            })
+        else
+            Fluent:Notify({
+                Title = "Auto Sell",
+                Content = "Auto Sell deactivated",
+                Duration = 3
+            })
+        end
+    end
+})
+
+-- Auto Sell Loop (Versão Corrigida)
+task.spawn(function()
+    local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+    
+    while true do
+        if autoSellEnabled and player.Character then
+            -- Pausa outros processos temporariamente
+            local wasAutoHatchActive = AutoHatch
+            if wasAutoHatchActive then
+                AutoHatch = false
+                DisableNoclip()
+            end
+            
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            local bubbleLabel = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label
+
+            if bubbleLabel then
+                local bubbleText = bubbleLabel.Text
+                local cleanedText = bubbleText:gsub("<[^>]+>", "")
+                local amountStr = cleanedText:match("(%d+,?%d*)")
+
+                if amountStr then
+                    local cleanedAmountStr = amountStr:gsub(",", "")
+                    local bubbleAmount = tonumber(cleanedAmountStr) or 0
+
+                    if bubbleAmount >= selectedThreshold then
+                        if shouldSavePosition and hrp then
+                            savedPosition = hrp.Position
+                        end
+
+                        -- Teleporta para vender
+                        remote:FireServer("Teleport", teleportLocations["Twilight Island"])
+                        task.wait(0.5) -- Aumentei o tempo de espera
+
+                        -- Loop de venda com tratamento de erro melhorado
+                        local sellAttempts = 0
+                        local maxAttempts = 5
+                        
+                        while sellAttempts < maxAttempts and autoSellEnabled do
+                            local success, err = pcall(function()
+                                remote:FireServer("SellBubble")
+                            end)
+
+                            if success then
+                                break
+                            else
+                                warn("Erro ao tentar vender (Tentativa "..sellAttempts.."): ", err)
+                                sellAttempts = sellAttempts + 1
+                                task.wait(0.5)
+                            end
+                        end
+
+                        task.wait(1) -- Tempo adicional após venda
+
+                        -- Volta se necessário
+                        if not noReturn and returnLocation then
+                            remote:FireServer("Teleport", returnLocation)
+                            task.wait(3)
+                        end
+
+                        if shouldSavePosition and savedPosition and hrp then
+                            returnToPosition(savedPosition)
+                            task.wait(1)
+                        end
+                    end
+                end
+            end
+            
+            -- Reativa outros processos se estavam ativos
+            if wasAutoHatchActive then
+                AutoHatch = true
+                EnableNoclip()
+            end
+        end
+        task.wait(1)
+    end
+end)
 
 local AutoCollect = false
 
@@ -828,7 +1055,7 @@ local function hatchEgg(eggName)
     local args = {
         [1] = "HatchEgg",
         [2] = EggNameMap[eggName],
-        [3] = 1
+        [3] = 10
     }
     pcall(function()
         RemoteEvent:FireServer(unpack(args))
@@ -888,13 +1115,14 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                 local validMultiplier = not CurrentTargetMultiplier or luck.Text == CurrentTargetMultiplier
                                 if validMultiplier then
                                     found = true
+                                    task.wait(2) -- Aguarda antes de teleportar
                                     if teleportToEgg(egg) then
-                                        repeat
-                                            if not AutoRiftHatch then break end
+                                        while AutoRiftHatch and egg.Parent do
                                             hatchEgg(egg.Name)
-                                            task.wait(0.3)
-                                        until not egg.Parent
+                                            task.wait(0.3) -- Loop contínuo só para hatch
+                                        end
                                     end
+                                    
                                 end
                             end
                         end
