@@ -247,7 +247,18 @@ BlowSection:AddToggle("AutoSellToggle", {
     end
 })
 
--- Auto Sell Loop (Versão Corrigida)
+-- Função para limpar e tentar converter a string para número
+local function tryParseNumber(str)
+    -- Remover quaisquer caracteres não numéricos e espaços
+    local cleanedStr = str:gsub("[^0-9]", "")
+    if cleanedStr == "" then
+        return 0 -- Se não houver valor numérico, retorna 0
+    end
+    local num = tonumber(cleanedStr)
+    return num or 0 -- Retorna o número ou 0 se não for válido
+end
+
+-- Auto Sell Loop com verificação de venda concluída
 task.spawn(function()
     local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
     
@@ -269,34 +280,74 @@ task.spawn(function()
                 local amountStr = cleanedText:match("(%d+,?%d*)")
 
                 if amountStr then
-                    local cleanedAmountStr = amountStr:gsub(",", "")
-                    local bubbleAmount = tonumber(cleanedAmountStr) or 0
+                    local initialBubbleAmount = tryParseNumber(amountStr) -- Usando a função para garantir uma conversão válida
 
-                    if bubbleAmount >= selectedThreshold then
+                    if initialBubbleAmount >= selectedThreshold then
                         if shouldSavePosition and hrp then
                             savedPosition = hrp.Position
                         end
 
                         -- Teleporta para vender
                         remote:FireServer("Teleport", teleportLocations["Twilight Island"])
-                        task.wait(0.5) -- Aumentei o tempo de espera
+                        task.wait(0.5) -- Tempo para o teleporte completar
 
-                        -- Loop de venda com tratamento de erro melhorado
+                        -- Função para verificar se o valor diminuiu
+                        local function checkBubbleReduced()
+                            local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
+                            local currentCleaned = currentText:gsub("<[^>]+>", "")
+                            local currentAmountStr = currentCleaned:match("(%d+,?%d*)")
+                            if currentAmountStr then
+                                local currentAmount = tryParseNumber(currentAmountStr) -- Usando a função para garantir uma conversão válida
+                                return currentAmount < initialBubbleAmount
+                            end
+                            return false
+                        end
+
+                        -- Loop de venda com verificação
                         local sellAttempts = 0
-                        local maxAttempts = 5
+                        local maxAttempts = 10
+                        local saleConfirmed = false
                         
-                        while sellAttempts < maxAttempts and autoSellEnabled do
+                        while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
+                            -- Verifica o valor atual antes de tentar vender
+                            if checkBubbleReduced() then
+                                saleConfirmed = true
+                                break
+                            end
+                            
+                            -- Tenta vender
                             local success, err = pcall(function()
                                 remote:FireServer("SellBubble")
                             end)
 
                             if success then
-                                break
+                                -- Espera e verifica se o valor diminuiu
+                                task.wait(0.5)
+                                saleConfirmed = checkBubbleReduced()
+                                
+                                if saleConfirmed then
+                                    Fluent:Notify({
+                                        Title = "Auto Sell",
+                                        Content = "Venda confirmada!",
+                                        Duration = 2
+                                    })
+                                else
+                                    warn("Venda não confirmada, tentando novamente...")
+                                end
                             else
                                 warn("Erro ao tentar vender (Tentativa "..sellAttempts.."): ", err)
-                                sellAttempts = sellAttempts + 1
-                                task.wait(0.5)
                             end
+                            
+                            sellAttempts = sellAttempts + 1
+                            task.wait(0.5)
+                        end
+
+                        if not saleConfirmed then
+                            Fluent:Notify({
+                                Title = "Auto Sell Error",
+                                Content = "Falha ao confirmar venda após "..maxAttempts.." tentativas",
+                                Duration = 5
+                            })
                         end
 
                         task.wait(1) -- Tempo adicional após venda
@@ -769,7 +820,7 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local SelectedEgg = "Common Egg"
-local HatchAmount = 1
+local HatchAmount = 10
 local AutoHatch = false
 local Noclip = false
 local NoclipConnection = nil
@@ -789,7 +840,8 @@ local EggPositions = {
     ["Rainbow Egg"] = Vector3.new(-137.2113494873047, 9.816374778747559, -53.9847297668457),
     ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004),
     ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
-    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469)
+    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469),
+    ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
 }
 
 local function EnableNoclip()
@@ -824,23 +876,12 @@ Egg:AddDropdown("EggDropdown", {
     Values = {
         "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
         "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
-        "Rainbow Egg", "Infinity Egg", "Pastel Egg", "Bunny Egg"
+        "Rainbow Egg", "Infinity Egg", "Pastel Egg", "Bunny Egg", "Throwback Egg"
     },
     Multi = false,
     Default = 1,
     Callback = function(value)
         SelectedEgg = value
-    end
-})
-
-Egg:AddDropdown("HatchAmountDropdown", {
-    Title = "Quantity of Eggs",
-    Description = "Choose how many eggs to open at a time",
-    Values = { "1", "3", "6", "9" },
-    Multi = false,
-    Default = 1,
-    Callback = function(value)
-        HatchAmount = tonumber(value)
     end
 })
 
@@ -860,7 +901,7 @@ Egg:AddToggle("AutoHatch", {
                     .Shared.Framework.Network.Remote.Event
 
                 -- Teleporte de acordo com o ovo selecionado
-                if SelectedEgg == "Pastel Egg" or SelectedEgg == "Bunny Egg" then
+                if SelectedEgg == "Pastel Egg" or SelectedEgg == "Bunny Egg" or SelectedEgg == "Throwback Egg" then
                     remote:FireServer("Teleport", "Workspace.Event.Portal.Spawn")
                 else
                     remote:FireServer("Teleport", "Workspace.Worlds.The Overworld.PortalSpawn")
@@ -903,7 +944,7 @@ Egg:AddToggle("AutoHatch", {
 
 EggRift:AddParagraph({
     Title = "Warning",
-    Content = "Note: 'event-1' refers to the Bunny Egg, and 'event-2' refers to the Pastel Egg.\nThis will be fixed later."
+    Content = "Note:\n- 'event-1' refers to the Bunny Egg\n- 'event-2' refers to the Pastel Egg\n- 'event-3' refers to the Throwback Egg"
 })
 
 -- Services
@@ -938,7 +979,8 @@ local EggNameMap = {
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
     ["event-1"] = "Bunny Egg",
-    ["event-2"] = "Pastel Egg"
+    ["event-2"] = "Pastel Egg",
+    ["event-3"] = "Throwback Egg"
 }
 
 -- RemoteEvent
