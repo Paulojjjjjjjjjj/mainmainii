@@ -328,14 +328,14 @@ task.spawn(function()
                                 if saleConfirmed then
                                     Fluent:Notify({
                                         Title = "Auto Sell",
-                                        Content = "Venda confirmada!",
+                                        Content = "Sale confirmed!",
                                         Duration = 2
                                     })
                                 else
-                                    warn("Venda não confirmada, tentando novamente...")
+                                    warn("Sale not confirmed, trying again...")
                                 end
                             else
-                                warn("Erro ao tentar vender (Tentativa "..sellAttempts.."): ", err)
+                                warn("Error when trying to sell ( "..sellAttempts.."): ", err)
                             end
                             
                             sellAttempts = sellAttempts + 1
@@ -345,7 +345,7 @@ task.spawn(function()
                         if not saleConfirmed then
                             Fluent:Notify({
                                 Title = "Auto Sell Error",
-                                Content = "Falha ao confirmar venda após "..maxAttempts.." tentativas",
+                                Content = "Failed to confirm sale after "..maxAttempts.." Attempts",
                                 Duration = 5
                             })
                         end
