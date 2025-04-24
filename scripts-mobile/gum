@@ -439,43 +439,36 @@ CollectSection:AddToggle("AutoGiftGrabber", {
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
 
                 while AutoGiftGrabber do
-                    -- 1. Usa o gift
-                    RemoteEvent:FireServer("UseGift", "Mystery Box", 1)
+                    -- 1. Usa 10 gifts de uma vez
+                    RemoteEvent:FireServer("UseGift", "Mystery Box", 10)
 
-                    -- 2. Detecta e faz claim do gift
-                    local giftPart = nil
+                    -- 2. Detecta e faz claim dos gifts
                     local startTime = os.clock()
+                    local detectedGifts = {}
 
                     repeat
                         for _, obj in pairs(RenderedGifts:GetChildren()) do
-                            if obj:IsA("BasePart") then
-                                giftPart = obj
-                                break
+                            if obj:IsA("BasePart") and not detectedGifts[obj] then
+                                detectedGifts[obj] = true
+                                -- Faz o claim
+                                RemoteEvent:FireServer("ClaimGift", obj.Name)
+                                
+                                task.delay(0.3, function()
+                                    if obj and obj.Parent then
+                                        obj:Destroy()
+                                    end
+                                end)
                             end
                         end
                         task.wait(0.3)
-                    until giftPart or (os.clock() - startTime > 10) or not AutoGiftGrabber
+                    until os.clock() - startTime > 10 or not AutoGiftGrabber
 
-                    -- 3. Processo de claim + destruição
-                    if giftPart and AutoGiftGrabber then
-                        -- Faz o claim
-                        RemoteEvent:FireServer("ClaimGift", giftPart.Name)
-                        
-                        -- Destrói a part após 0.5 segundos (garantir que o server processou)
-                        task.wait(0.3)
-                        if giftPart.Parent then -- Verifica se ainda existe
-                            giftPart:Destroy()
-                        end
-                    end
-
-                    -- 4. Cooldown
-                    task.wait(0.3)
+                    task.wait(0.5)
                 end
             end)
         end
     end
 })
-
 
 local equipBestRunning = false -- Variável de controle GLOBAL
 
@@ -817,6 +810,7 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local SelectedEgg = "Common Egg"
@@ -825,30 +819,53 @@ local AutoHatch = false
 local Noclip = false
 local NoclipConnection = nil
 
--- Posições dos ovos
+-- Mapas de teleporte por ovo
+local EggTeleportMap = {
+    ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+
+    ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+
+    ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+
+    ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+
+    ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+
+    ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+
+    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+
+    ["Pastel Egg"] = "Workspace.Event.Portal.Spawn",
+    ["Bunny Egg"] = "Workspace.Event.Portal.Spawn",
+    ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
+}
+
+-- Posições atualizadas dos ovos
 local EggPositions = {
-    ["Common Egg"] = Vector3.new(-83.11856079101562, 9.816669464111328, 2.463975429534912),
-    ["Spotted Egg"] = Vector3.new(-94.04642486572266, 9.816669464111328, 8.982151985168457),
-    ["Iceshard Egg"] = Vector3.new(-117.86749267578125, 9.816670417785645, 8.478747367858887),
-    ["Spikey Egg"] = Vector3.new(-127.3304672241211, 9.926098823547363, 6.771097183227539),
-    ["Magma Egg"] = Vector3.new(-134.0933837890625, 9.816493034362793, 0.9699831008911133),
-    ["Crystal Egg"] = Vector3.new(-140.66168212890625, 9.816670417785645, -6.721883296966553),
-    ["Lunar Egg"] = Vector3.new(-144.31298828125, 9.81663990020752, -16.05261993408203),
-    ["Void Egg"] = Vector3.new(-146.59307861328125, 9.816607475280762, -26.15677833557129),
-    ["Hell Egg"] = Vector3.new(-144.9036865234375, 9.816670417785645, -36.547821044921875),
-    ["Nightmare Egg"] = Vector3.new(-142.51422119140625, 9.816670417785645, -45.37887954711914),
-    ["Rainbow Egg"] = Vector3.new(-137.2113494873047, 9.816374778747559, -53.9847297668457),
-    ["Infinity Egg"] = Vector3.new(-98.00410461425781, 8.299989700317383, -27.44309425354004),
+    ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
+    ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
+    ["Iceshard Egg"] = Vector3.new(-8.795853614807129, 9.29999828338623, -59.287872314453125),
+    ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
+    ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
+    ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
+    ["Lunar Egg"] = Vector3.new(-57.51275634765625, 6862.583984375, 79.98605346679688),
+    ["Void Egg"] = Vector3.new(5.301668167114258, 10147.8046875, 188.5633087158203),
+    ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
+    ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
+    ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
+    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
     ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
     ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469),
     ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
 }
 
 local function EnableNoclip()
-    if NoclipConnection then
-        NoclipConnection:Disconnect()
-    end
-    
+    if NoclipConnection then NoclipConnection:Disconnect() end
     Noclip = true
     NoclipConnection = RunService.Stepped:Connect(function()
         if Noclip and LocalPlayer.Character then
@@ -869,65 +886,60 @@ local function DisableNoclip()
     end
 end
 
--- Dropdowns
-Egg:AddDropdown("EggDropdown", {
+local function GetEggNames()
+    local keys = {}
+    for eggName in pairs(EggTeleportMap) do
+        table.insert(keys, eggName)
+    end
+    return keys
+end
+
+local EggDropdown = Egg:AddDropdown("EggDropdown", {
     Title = "Selecting Egg",
     Description = "Choose the egg you want to open",
-    Values = {
-        "Common Egg", "Spotted Egg", "Iceshard Egg", "Spikey Egg", "Magma Egg",
-        "Crystal Egg", "Lunar Egg", "Void Egg", "Hell Egg", "Nightmare Egg",
-        "Rainbow Egg", "Infinity Egg", "Pastel Egg", "Bunny Egg", "Throwback Egg"
-    },
+    Values = GetEggNames(),
     Multi = false,
-    Default = 1,
-    Callback = function(value)
-        SelectedEgg = value
-    end
+    Default = 1
 })
 
--- Toggle de Auto Hatch
+EggDropdown:OnChanged(function(val)
+    SelectedEgg = val
+end)
+
+-- Auto Hatch Toggle
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
     Description = "Automatically opens eggs after walking to them",
     Default = false,
     Callback = function(state)
         AutoHatch = state
-        
         if state then
             EnableNoclip()
-
             task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    .Shared.Framework.Network.Remote.Event
-
-                -- Teleporte de acordo com o ovo selecionado
-                if SelectedEgg == "Pastel Egg" or SelectedEgg == "Bunny Egg" or SelectedEgg == "Throwback Egg" then
-                    remote:FireServer("Teleport", "Workspace.Event.Portal.Spawn")
-                else
-                    remote:FireServer("Teleport", "Workspace.Worlds.The Overworld.PortalSpawn")
+                local remote = ReplicatedStorage.Shared.Framework.Network.Remote.Event
+                local teleportPath = EggTeleportMap[SelectedEgg]
+                if teleportPath then
+                    remote:FireServer("Teleport", teleportPath)
                 end
 
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
                 local Humanoid = Character:WaitForChild("Humanoid")
-                
+
                 task.wait(1)
-                
+
                 local target = EggPositions[SelectedEgg]
                 if target then
                     Humanoid:MoveTo(target)
                     local reached = false
-                    
                     Humanoid.MoveToFinished:Connect(function(success)
-                        if success then
-                            reached = true
-                        end
+                        if success then reached = true end
                     end)
-                    
+
                     while not reached and AutoHatch do
                         task.wait(0.1)
                     end
-                    
+
                     while AutoHatch do
                         pcall(function()
                             remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
@@ -939,7 +951,7 @@ Egg:AddToggle("AutoHatch", {
         else
             DisableNoclip()
         end
-    end    
+    end
 })
 
 EggRift:AddParagraph({
