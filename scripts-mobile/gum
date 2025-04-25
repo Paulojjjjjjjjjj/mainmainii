@@ -442,20 +442,42 @@ CollectSection:AddToggle("AutoCollectToggle", {
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                       :WaitForChild("Pickups"):WaitForChild("CollectPickup")
 
-                while AutoCollect and task.wait(0.1) do
+                while AutoCollect and task.wait(1) do -- Longer wait time (1 second)
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
                         if rendered then
+                            -- Create a collection of items to pick up
+                            local itemsToCollect = {}
+                            
                             for _, folder in ipairs(rendered:GetChildren()) do
                                 if folder.Name == "Chunker" then
                                     for _, model in ipairs(folder:GetChildren()) do
+                                        -- Only collect items with name length >= 25
                                         if model:IsA("Model") and #model.Name >= 25 then
-                                            -- Coleta e destrói apenas se o nome for ≥ 25 caracteres
-                                            pickupRemote:FireServer(model.Name)
-                                            model:Destroy()
+                                            table.insert(itemsToCollect, model)
                                         end
                                     end
                                 end
+                            end
+                            
+                            -- Process the batch - collect everything at once then destroy
+                            for i, model in ipairs(itemsToCollect) do
+                                pickupRemote:FireServer(model.Name)
+                                model:Destroy()
+                                
+                                -- Small yield every 20 items to prevent overwhelming the server
+                                if i % 20 == 0 then
+                                    task.wait(0.1)
+                                end
+                            end
+                            
+                            -- Only notify if items were actually collected
+                            if #itemsToCollect > 0 then
+                                Fluent:Notify({
+                                    Title = "Items Collected",
+                                    Content = "Collected " .. #itemsToCollect .. " items",
+                                    Duration = 2
+                                })
                             end
                         end
                     end)
@@ -464,7 +486,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
 
             Fluent:Notify({
                 Title = "Auto Collect Enabled",
-                Content = "Collecting pickups with long names (25+)",
+                Content = "Batch collecting pickups every second",
                 Duration = 3
             })
         else
