@@ -1228,9 +1228,10 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1) -- Seleciona a primeira aba ao abrir
 Fluent:Notify({
     Title = "Anime Kingdom Simulator | DZ HUB",
-    Content = "Script carregado com sucesso!",
+    Content = "Script loaded successfully!",
     Duration = 5
 })
+
 local CoreGui = game:GetService("CoreGui")
 
 -- Remover qualquer GUI persistente anterior com o mesmo nome

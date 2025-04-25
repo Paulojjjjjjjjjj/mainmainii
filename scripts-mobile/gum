@@ -90,7 +90,7 @@ BlowSection:AddToggle("AutoBlow", {
                         end)
                         lastBlowTime = tick()
                     end
-                    task.wait(0.05)
+                    task.wait(0.5)
                 end
             end)
         end
@@ -455,7 +455,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
                                 
                                 -- Small yield every 20 items to prevent overwhelming the server
                                 if i % 20 == 0 then
-                                    task.wait(0.1)
+                                    task.wait(0.5)
                                 end
                             end
                             
@@ -499,14 +499,14 @@ CollectSection:AddToggle("AutoGiftGrabber", {
                                 -- Faz o claim
                                 RemoteEvent:FireServer("ClaimGift", obj.Name)
                                 
-                                task.delay(0.3, function()
+                                task.delay(0.5, function()
                                     if obj and obj.Parent then
                                         obj:Destroy()
                                     end
                                 end)
                             end
                         end
-                        task.wait(0.3)
+                        task.wait(0.5)
                     until os.clock() - startTime > 10 or not AutoGiftGrabber
 
                     task.wait(0.5)
@@ -693,7 +693,7 @@ UtilitiesSection:AddToggle("AutoClaimPlaytime", {
                     end)
                 end
 
-                task.wait(1) -- Espera 5 segundos antes de repetir tudo
+                task.wait(5) -- Espera 5 segundos antes de repetir tudo
             end
         end)
     end
@@ -718,7 +718,7 @@ UtilitiesSection:AddToggle("AutoStartGenieQuest", {
                 while getgenv().AutoGenieQuest do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("StartGenieQuest", i)
-                        task.wait(0.5)
+                        task.wait(1)
                     end
                     task.wait(1)
                 end
@@ -746,7 +746,7 @@ UtilitiesSection:AddToggle("AutoBuyAlienShop", {
                         task.wait(0.5) -- pequeno delay entre compras
                     end
 
-                    task.wait(0.5) -- espera 3s antes de comprar novamente
+                    task.wait(3) -- espera 3s antes de comprar novamente
                 end
             end)
         end
@@ -774,7 +774,7 @@ UtilitiesSection:AddToggle("AutoBuyShardShop", {
                         RemoteEvent:FireServer("BuyShopItem", "shard-shop", i)
                         task.wait(0.5)
                     end
-                    task.wait(5)
+                    task.wait(3)
                 end
             end)
         end
@@ -797,9 +797,9 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
                 while AutoDoggyJumpWin do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("DoggyJumpWin", i)
-                        task.wait(0.5)
+                        task.wait(1)
                     end
-                    task.wait(1) -- espera 3s antes de repetir
+                    task.wait(3) -- espera 3s antes de repetir
                 end
             end)
         end
@@ -971,7 +971,7 @@ Egg:AddToggle("AutoHatch", {
                     end)
 
                     while not reached and AutoHatch do
-                        task.wait(0.1)
+                        task.wait(0.5)
                     end
 
                     while AutoHatch do
@@ -1122,7 +1122,6 @@ local function teleportToEgg(egg)
     tween:Play()
     local success = pcall(function() 
         tween.Completed:Wait()
-        -- Keep NoClip enabled during hatching
     end)
     
     ActiveTweens[hrp] = nil
@@ -1191,7 +1190,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                     if teleportToEgg(egg) then
                                         while AutoRiftHatch and egg.Parent do
                                             hatchEgg(egg.Name)
-                                            task.wait(0.3) -- Loop contínuo só para hatch
+                                            task.wait(0.5) -- Loop contínuo só para hatch
                                         end
                                     end
                                     
@@ -1273,11 +1272,11 @@ local function teleportAndFarm()
                 -- Farm while chest exists
                 while AutoGoldenChest and chest.Parent do
                     game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "golden-chest")
-                    task.wait(0.5)
+                    task.wait(1)
                 end
             end
         end
-        task.wait(0.5)
+        task.wait(1)
     end
     disableNoClip()
 end
@@ -1343,7 +1342,7 @@ local function teleportAndClaimGift()
                 end
             end
         end
-        task.wait(0.5) -- Verifica a cada 1 segundo se o gift reapareceu
+        task.wait(1) -- Verifica a cada 1 segundo se o gift reapareceu
     end
     manageNoClip(false)
 end
@@ -1536,13 +1535,13 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                             pcall(function()
                                 RemoteEvent:FireServer("UsePotion", name, tier)
                             end)
-                            task.wait(0.2)
+                            task.wait(0.5)
                         else
                             warn("Potion invalid:", displayName)
                         end
                     end
 
-                    task.wait(0.3)
+                    task.wait(0.5)
                 end
             end)
         end
@@ -1623,7 +1622,7 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                             pcall(function()
                                 RemoteEvent:FireServer("CraftPotion", name, tier, false)
                             end)
-                            task.wait(0.2)
+                            task.wait(0.5)
                         else
                             warn("Potion invalid:", displayName)
                         end
@@ -1726,7 +1725,7 @@ CodeSection:AddButton({
             else
                 warn("Error redeeming code:", code, result)
             end
-            task.wait(1)
+            task.wait(2)
         end
     end
 })
