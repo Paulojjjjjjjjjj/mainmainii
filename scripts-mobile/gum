@@ -258,13 +258,17 @@ local function tryParseNumber(str)
     return num or 0 -- Retorna o número ou 0 se não for válido
 end
 
--- Auto Sell Loop com verificação de venda concluída
+-- Auto Sell Loop with teleport verification
 task.spawn(function()
     local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
     
+    -- Twilight Island target coordinates
+    local targetPosition = Vector3.new(-77.93646240234375, 6862.2060546875, 88.32815551757812)
+    local proximityThreshold = 20 -- How close the player needs to be to consider teleport successful
+    
     while true do
         if autoSellEnabled and player.Character then
-            -- Pausa outros processos temporariamente
+            -- Pause other processes temporarily
             local wasAutoHatchActive = AutoHatch
             if wasAutoHatchActive then
                 AutoHatch = false
@@ -280,93 +284,142 @@ task.spawn(function()
                 local amountStr = cleanedText:match("(%d+,?%d*)")
 
                 if amountStr then
-                    local initialBubbleAmount = tryParseNumber(amountStr) -- Usando a função para garantir uma conversão válida
+                    local initialBubbleAmount = tryParseNumber(amountStr)
 
                     if initialBubbleAmount >= selectedThreshold then
                         if shouldSavePosition and hrp then
                             savedPosition = hrp.Position
                         end
 
-                        -- Teleporta para vender
-                        remote:FireServer("Teleport", teleportLocations["Twilight Island"])
-                        task.wait(0.5) -- Tempo para o teleporte completar
-
-                        -- Função para verificar se o valor diminuiu
-                        local function checkBubbleReduced()
-                            local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
-                            local currentCleaned = currentText:gsub("<[^>]+>", "")
-                            local currentAmountStr = currentCleaned:match("(%d+,?%d*)")
-                            if currentAmountStr then
-                                local currentAmount = tryParseNumber(currentAmountStr) -- Usando a função para garantir uma conversão válida
-                                return currentAmount < initialBubbleAmount
-                            end
-                            return false
-                        end
-
-                        -- Loop de venda com verificação
-                        local sellAttempts = 0
-                        local maxAttempts = 10
-                        local saleConfirmed = false
-                        
-                        while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
-                            -- Verifica o valor atual antes de tentar vender
-                            if checkBubbleReduced() then
-                                saleConfirmed = true
-                                break
-                            end
+                        -- Teleport verification function
+                        local function verifyTeleport()
+                            local teleportAttempts = 0
+                            local maxTeleportAttempts = 5
+                            local teleportSuccess = false
                             
-                            -- Tenta vender
-                            local success, err = pcall(function()
-                                remote:FireServer("SellBubble")
-                            end)
-
-                            if success then
-                                -- Espera e verifica se o valor diminuiu
-                                task.wait(0.5)
-                                saleConfirmed = checkBubbleReduced()
+                            while teleportAttempts < maxTeleportAttempts and not teleportSuccess do
+                                -- Try to teleport
+                                remote:FireServer("Teleport", teleportLocations["Twilight Island"])
                                 
-                                if saleConfirmed then
-                                    Fluent:Notify({
-                                        Title = "Auto Sell",
-                                        Content = "Sale confirmed!",
-                                        Duration = 2
-                                    })
-                                else
-                                    warn("Sale not confirmed, trying again...")
+                                -- Wait for teleport to complete
+                                task.wait(1.5)
+                                
+                                -- Check player position
+                                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    local currentPosition = player.Character.HumanoidRootPart.Position
+                                    local distance = (currentPosition - targetPosition).Magnitude
+                                    
+                                    if distance <= proximityThreshold then
+                                        teleportSuccess = true
+                                        Fluent:Notify({
+                                            Title = "Teleport Successful",
+                                            Content = "Arrived at Twilight Island",
+                                            Duration = 2
+                                        })
+                                        break
+                                    else
+                                        warn("Teleport attempt "..(teleportAttempts+1).." failed. Distance: "..distance)
+                                    end
                                 end
-                            else
-                                warn("Error when trying to sell ( "..sellAttempts.."): ", err)
+                                
+                                teleportAttempts = teleportAttempts + 1
+                                task.wait(0.5)
                             end
                             
-                            sellAttempts = sellAttempts + 1
-                            task.wait(0.5)
+                            if not teleportSuccess then
+                                Fluent:Notify({
+                                    Title = "Teleport Failed",
+                                    Content = "Could not reach Twilight Island after "..maxTeleportAttempts.." attempts",
+                                    Duration = 5
+                                })
+                                return false
+                            end
+                            
+                            return true
                         end
 
-                        if not saleConfirmed then
-                            Fluent:Notify({
-                                Title = "Auto Sell Error",
-                                Content = "Failed to confirm sale after "..maxAttempts.." Attempts",
-                                Duration = 5
-                            })
-                        end
+                        -- Try to teleport and verify location
+                        local teleportSuccess = verifyTeleport()
+                        
+                        -- Only proceed with selling if teleport was successful
+                        if teleportSuccess then
+                            -- Function to check if the value decreased
+                            local function checkBubbleReduced()
+                                local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
+                                local currentCleaned = currentText:gsub("<[^>]+>", "")
+                                local currentAmountStr = currentCleaned:match("(%d+,?%d*)")
+                                if currentAmountStr then
+                                    local currentAmount = tryParseNumber(currentAmountStr)
+                                    return currentAmount < initialBubbleAmount
+                                end
+                                return false
+                            end
 
-                        task.wait(1) -- Tempo adicional após venda
+                            -- Sell loop with verification
+                            local sellAttempts = 0
+                            local maxAttempts = 10
+                            local saleConfirmed = false
+                            
+                            while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
+                                -- Check current value before trying to sell
+                                if checkBubbleReduced() then
+                                    saleConfirmed = true
+                                    break
+                                end
+                                
+                                -- Try to sell
+                                local success, err = pcall(function()
+                                    remote:FireServer("SellBubble")
+                                end)
 
-                        -- Volta se necessário
-                        if not noReturn and returnLocation then
-                            remote:FireServer("Teleport", returnLocation)
-                            task.wait(3)
-                        end
+                                if success then
+                                    -- Wait and check if the value decreased
+                                    task.wait(0.5)
+                                    saleConfirmed = checkBubbleReduced()
+                                    
+                                    if saleConfirmed then
+                                        Fluent:Notify({
+                                            Title = "Auto Sell",
+                                            Content = "Sale confirmed!",
+                                            Duration = 2
+                                        })
+                                    else
+                                        warn("Sale not confirmed, trying again...")
+                                    end
+                                else
+                                    warn("Error when trying to sell ("..sellAttempts.."): ", err)
+                                end
+                                
+                                sellAttempts = sellAttempts + 1
+                                task.wait(0.5)
+                            end
 
-                        if shouldSavePosition and savedPosition and hrp then
-                            returnToPosition(savedPosition)
-                            task.wait(1)
+                            if not saleConfirmed then
+                                Fluent:Notify({
+                                    Title = "Auto Sell Error",
+                                    Content = "Failed to confirm sale after "..maxAttempts.." attempts",
+                                    Duration = 5
+                                })
+                            end
+
+                            task.wait(1) -- Additional time after sale
+
+                            -- Return if necessary
+                            if not noReturn and returnLocation then
+                                remote:FireServer("Teleport", returnLocation)
+                                task.wait(3)
+                            end
+
+                            if shouldSavePosition and savedPosition and hrp then
+                                returnToPosition(savedPosition)
+                                task.wait(1)
+                            end
                         end
                     end
                 end
             end
             
-            -- Reativa outros processos se estavam ativos
+            -- Reactivate other processes if they were active
             if wasAutoHatchActive then
                 AutoHatch = true
                 EnableNoclip()
