@@ -231,18 +231,6 @@ BlowSection:AddToggle("AutoSellToggle", {
             noReturn = returnDropdown.Value == "None"
             shouldSavePosition = savePosDropdown.Value == "Yes"
             useTweenService = tweenBackDropdown.Value == "Tween"
-            
-            Fluent:Notify({
-                Title = "Auto Sell",
-                Content = "Auto Sell activated and state reset",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Sell",
-                Content = "Auto Sell deactivated",
-                Duration = 3
-            })
         end
     end
 })
@@ -473,28 +461,11 @@ CollectSection:AddToggle("AutoCollectToggle", {
                             
                             -- Only notify if items were actually collected
                             if #itemsToCollect > 0 then
-                                Fluent:Notify({
-                                    Title = "Items Collected",
-                                    Content = "Collected " .. #itemsToCollect .. " items",
-                                    Duration = 2
-                                })
                             end
                         end
                     end)
                 end
             end)
-
-            Fluent:Notify({
-                Title = "Auto Collect Enabled",
-                Content = "Batch collecting pickups every second",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Collect Disabled",
-                Content = "Auto Collect Off",
-                Duration = 3
-            })
         end
     end
 })
@@ -569,18 +540,6 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
                     task.wait(2) -- Espera 2 segundos
                 end
             end)
-            
-            Fluent:Notify({
-                Title = "Auto Equip Ativado",
-                Content = "Equipping better pets automatically",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Equip Desativado",
-                Content = "Stopped equipping pets automatically",
-                Duration = 3
-            })
         end
     end
 })
@@ -631,7 +590,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                     if not isChestReady(data.path) then
                         Fluent:Notify({
                             Title = "Cooldown",
-                            Content = chestName .. " está em cooldown!",
+                            Content = chestName .. " it's on cooldown!",
                             Duration = 4
                         })
                     end
@@ -670,7 +629,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                             RemoteEvent:FireServer("ClaimChest", chestName)
                             Fluent:Notify({
                                 Title = "Chest Claimed",
-                                Content = chestName .. " coletado com sucesso!",
+                                Content = chestName .. " successfully collected!",
                                 Duration = 3
                             })
                         end
@@ -685,7 +644,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
 
 UtilitiesSection:AddToggle("AutoClaimSeason", {
     Title = "Auto Claim Season",
-    Description = "Claim automático do Season Pass",
+    Description = "Automatic Season Pass claim",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimSeason = state
@@ -1094,11 +1053,6 @@ RiftEggDropdown:OnChanged(function(selectedTable)
             table.insert(SelectedRiftEggs, eggName)
         end
     end
-    Fluent:Notify({
-        Title = "Egg Selection",
-        Content = #SelectedRiftEggs > 0 and ("Selected: " .. table.concat(SelectedRiftEggs, ", ")) or "No eggs selected (will use all)",
-        Duration = 3
-    })
 end)
 
 local LuckMultiplierDropdown = EggRift:AddDropdown("LuckMultiplierDropdown", {
@@ -1116,11 +1070,6 @@ LuckMultiplierDropdown:OnChanged(function(selectedTable)
             table.insert(SelectedLuckMultipliers, multiplier)
         end
     end
-    Fluent:Notify({
-        Title = "Multiplier Selection",
-        Content = #SelectedLuckMultipliers > 0 and ("Selected: " .. table.concat(SelectedLuckMultipliers, ", ")) or "No multipliers selected (will use all)",
-        Duration = 3
-    })
 end)
 
 -- NoClip Functionality
@@ -1218,18 +1167,12 @@ end
 -- Main Toggle
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
-    Description = "Automatically teleport and hatch rift eggs (with NoClip)",
+    Description = "Automatically teleport and hatch rift eggs",
     Default = false,
     Callback = function(state)
         AutoRiftHatch = state
         if state then
             chooseNewTarget()
-            Fluent:Notify({ 
-                Title = "Auto Hatch", 
-                Content = "Started auto hatching with NoClip", 
-                Duration = 3 
-            })
-
             task.spawn(function()
                 while AutoRiftHatch do
                     local found = false
@@ -1285,11 +1228,6 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
             end)
         else
             cancelAllOperations()
-            Fluent:Notify({ 
-                Title = "Auto Hatch", 
-                Content = "Stopped auto hatching", 
-                Duration = 3 
-            })
         end
     end
 })
@@ -1352,18 +1290,7 @@ ChestHunt:AddToggle("AutoGoldenChestToggle", {
     Callback = function(state)
         AutoGoldenChest = state
         if state then
-            Fluent:Notify({
-                Title = "Golden Chest",
-                Content = "Started farming golden chest",
-                Duration = 3
-            })
             task.spawn(teleportAndFarm)
-        else
-            Fluent:Notify({
-                Title = "Golden Chest",
-                Content = "Stopped farming golden chest",
-                Duration = 3
-            })
         end
     end
 })
@@ -1429,18 +1356,7 @@ GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Callback = function(state)
         AutoGiftRift = state
         if state then
-            Fluent:Notify({
-                Title = "Gift Rift",
-                Content = "Starting automatic gifts collection",
-                Duration = 3
-            })
             task.spawn(teleportAndClaimGift)
-        else
-            Fluent:Notify({
-                Title = "Gift Rift",
-                Content = "Automatic collection deactivated",
-                Duration = 3
-            })
         end
     end
 })
@@ -1599,8 +1515,6 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
         getgenv().AutoPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Poções", Content = "Activated", Duration = 3})
-
             task.spawn(function()
                 while getgenv().AutoPotion do
                     -- Verifica se existem poções selecionadas
@@ -1631,8 +1545,6 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                     task.wait(0.3)
                 end
             end)
-        else
-            Fluent:Notify({Title = "Auto Potions", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1692,8 +1604,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
         getgenv().AutoCraftPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Craft", Content = "Activated", Duration = 3})
-
             task.spawn(function()
                 while getgenv().AutoCraftPotion do
                     if #SelectedPotions == 0 then
@@ -1722,8 +1632,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                     task.wait(1.5)
                 end
             end)
-        else
-            Fluent:Notify({Title = "Auto Craft", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1861,11 +1769,8 @@ local Toggle = Tabs.Misc:AddToggle("MyToggle", {
         if state then
             -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK ativado")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK desativado")
         end
     end
 })
@@ -1880,6 +1785,12 @@ InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/BubbleGumInfinity")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1) -- Seleciona a primeira aba ao abrir
+Fluent:Notify({
+    Title = "Bubble Gum Simulator INFINITY | DZ HUB",
+    Content = "Script loaded successfully!",
+    Duration = 5
+})
 
 local CoreGui = game:GetService("CoreGui")
 

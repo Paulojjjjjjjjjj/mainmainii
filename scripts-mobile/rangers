@@ -612,8 +612,12 @@ InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/animerangersx-script")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
-
-Window:SelectTab(1) -- Select first tab by default
+Window:SelectTab(1) -- Seleciona a primeira aba ao abrir
+Fluent:Notify({
+    Title = "Anime Rangers X | DZ HUB",
+    Content = "Script loaded successfully!",
+    Duration = 5
+})
 
 -- Minimize button
 local CoreGui = game:GetService("CoreGui")
