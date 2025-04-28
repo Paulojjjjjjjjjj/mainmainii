@@ -18,6 +18,10 @@ local Tabs = {
         Title = "Main",
         Icon = "rbxassetid://124620632231839"
     }),
+    AutoTask = Window:AddTab({ 
+        Title = "Auto Task",
+        Icon = "mail-question"
+    }),
     EggHunt = Window:AddTab({ 
         Title = "Egg / Hunt",
         Icon = "egg"
@@ -90,7 +94,7 @@ BlowSection:AddToggle("AutoBlow", {
                         end)
                         lastBlowTime = tick()
                     end
-                    task.wait(0.05)
+                    task.wait(0.5)
                 end
             end)
         end
@@ -231,18 +235,6 @@ BlowSection:AddToggle("AutoSellToggle", {
             noReturn = returnDropdown.Value == "None"
             shouldSavePosition = savePosDropdown.Value == "Yes"
             useTweenService = tweenBackDropdown.Value == "Tween"
-            
-            Fluent:Notify({
-                Title = "Auto Sell",
-                Content = "Auto Sell activated and state reset",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Sell",
-                Content = "Auto Sell deactivated",
-                Duration = 3
-            })
         end
     end
 })
@@ -258,13 +250,17 @@ local function tryParseNumber(str)
     return num or 0 -- Retorna o número ou 0 se não for válido
 end
 
--- Auto Sell Loop com verificação de venda concluída
+-- Auto Sell Loop with teleport verification
 task.spawn(function()
     local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
     
+    -- Twilight Island target coordinates
+    local targetPosition = Vector3.new(-77.93646240234375, 6862.2060546875, 88.32815551757812)
+    local proximityThreshold = 20 -- How close the player needs to be to consider teleport successful
+    
     while true do
         if autoSellEnabled and player.Character then
-            -- Pausa outros processos temporariamente
+            -- Pause other processes temporarily
             local wasAutoHatchActive = AutoHatch
             if wasAutoHatchActive then
                 AutoHatch = false
@@ -280,93 +276,142 @@ task.spawn(function()
                 local amountStr = cleanedText:match("(%d+,?%d*)")
 
                 if amountStr then
-                    local initialBubbleAmount = tryParseNumber(amountStr) -- Usando a função para garantir uma conversão válida
+                    local initialBubbleAmount = tryParseNumber(amountStr)
 
                     if initialBubbleAmount >= selectedThreshold then
                         if shouldSavePosition and hrp then
                             savedPosition = hrp.Position
                         end
 
-                        -- Teleporta para vender
-                        remote:FireServer("Teleport", teleportLocations["Twilight Island"])
-                        task.wait(0.5) -- Tempo para o teleporte completar
-
-                        -- Função para verificar se o valor diminuiu
-                        local function checkBubbleReduced()
-                            local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
-                            local currentCleaned = currentText:gsub("<[^>]+>", "")
-                            local currentAmountStr = currentCleaned:match("(%d+,?%d*)")
-                            if currentAmountStr then
-                                local currentAmount = tryParseNumber(currentAmountStr) -- Usando a função para garantir uma conversão válida
-                                return currentAmount < initialBubbleAmount
-                            end
-                            return false
-                        end
-
-                        -- Loop de venda com verificação
-                        local sellAttempts = 0
-                        local maxAttempts = 10
-                        local saleConfirmed = false
-                        
-                        while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
-                            -- Verifica o valor atual antes de tentar vender
-                            if checkBubbleReduced() then
-                                saleConfirmed = true
-                                break
-                            end
+                        -- Teleport verification function
+                        local function verifyTeleport()
+                            local teleportAttempts = 0
+                            local maxTeleportAttempts = 5
+                            local teleportSuccess = false
                             
-                            -- Tenta vender
-                            local success, err = pcall(function()
-                                remote:FireServer("SellBubble")
-                            end)
-
-                            if success then
-                                -- Espera e verifica se o valor diminuiu
-                                task.wait(0.5)
-                                saleConfirmed = checkBubbleReduced()
+                            while teleportAttempts < maxTeleportAttempts and not teleportSuccess do
+                                -- Try to teleport
+                                remote:FireServer("Teleport", teleportLocations["Twilight Island"])
                                 
-                                if saleConfirmed then
-                                    Fluent:Notify({
-                                        Title = "Auto Sell",
-                                        Content = "Sale confirmed!",
-                                        Duration = 2
-                                    })
-                                else
-                                    warn("Sale not confirmed, trying again...")
+                                -- Wait for teleport to complete
+                                task.wait(1.5)
+                                
+                                -- Check player position
+                                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    local currentPosition = player.Character.HumanoidRootPart.Position
+                                    local distance = (currentPosition - targetPosition).Magnitude
+                                    
+                                    if distance <= proximityThreshold then
+                                        teleportSuccess = true
+                                        Fluent:Notify({
+                                            Title = "Teleport Successful",
+                                            Content = "Arrived at Twilight Island",
+                                            Duration = 2
+                                        })
+                                        break
+                                    else
+                                        warn("Teleport attempt "..(teleportAttempts+1).." failed. Distance: "..distance)
+                                    end
                                 end
-                            else
-                                warn("Error when trying to sell ( "..sellAttempts.."): ", err)
+                                
+                                teleportAttempts = teleportAttempts + 1
+                                task.wait(0.5)
                             end
                             
-                            sellAttempts = sellAttempts + 1
-                            task.wait(0.5)
+                            if not teleportSuccess then
+                                Fluent:Notify({
+                                    Title = "Teleport Failed",
+                                    Content = "Could not reach Twilight Island after "..maxTeleportAttempts.." attempts",
+                                    Duration = 5
+                                })
+                                return false
+                            end
+                            
+                            return true
                         end
 
-                        if not saleConfirmed then
-                            Fluent:Notify({
-                                Title = "Auto Sell Error",
-                                Content = "Failed to confirm sale after "..maxAttempts.." Attempts",
-                                Duration = 5
-                            })
-                        end
+                        -- Try to teleport and verify location
+                        local teleportSuccess = verifyTeleport()
+                        
+                        -- Only proceed with selling if teleport was successful
+                        if teleportSuccess then
+                            -- Function to check if the value decreased
+                            local function checkBubbleReduced()
+                                local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
+                                local currentCleaned = currentText:gsub("<[^>]+>", "")
+                                local currentAmountStr = currentCleaned:match("(%d+,?%d*)")
+                                if currentAmountStr then
+                                    local currentAmount = tryParseNumber(currentAmountStr)
+                                    return currentAmount < initialBubbleAmount
+                                end
+                                return false
+                            end
 
-                        task.wait(1) -- Tempo adicional após venda
+                            -- Sell loop with verification
+                            local sellAttempts = 0
+                            local maxAttempts = 10
+                            local saleConfirmed = false
+                            
+                            while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
+                                -- Check current value before trying to sell
+                                if checkBubbleReduced() then
+                                    saleConfirmed = true
+                                    break
+                                end
+                                
+                                -- Try to sell
+                                local success, err = pcall(function()
+                                    remote:FireServer("SellBubble")
+                                end)
 
-                        -- Volta se necessário
-                        if not noReturn and returnLocation then
-                            remote:FireServer("Teleport", returnLocation)
-                            task.wait(3)
-                        end
+                                if success then
+                                    -- Wait and check if the value decreased
+                                    task.wait(0.5)
+                                    saleConfirmed = checkBubbleReduced()
+                                    
+                                    if saleConfirmed then
+                                        Fluent:Notify({
+                                            Title = "Auto Sell",
+                                            Content = "Sale confirmed!",
+                                            Duration = 2
+                                        })
+                                    else
+                                        warn("Sale not confirmed, trying again...")
+                                    end
+                                else
+                                    warn("Error when trying to sell ("..sellAttempts.."): ", err)
+                                end
+                                
+                                sellAttempts = sellAttempts + 1
+                                task.wait(0.5)
+                            end
 
-                        if shouldSavePosition and savedPosition and hrp then
-                            returnToPosition(savedPosition)
-                            task.wait(1)
+                            if not saleConfirmed then
+                                Fluent:Notify({
+                                    Title = "Auto Sell Error",
+                                    Content = "Failed to confirm sale after "..maxAttempts.." attempts",
+                                    Duration = 5
+                                })
+                            end
+
+                            task.wait(1) -- Additional time after sale
+
+                            -- Return if necessary
+                            if not noReturn and returnLocation then
+                                remote:FireServer("Teleport", returnLocation)
+                                task.wait(3)
+                            end
+
+                            if shouldSavePosition and savedPosition and hrp then
+                                returnToPosition(savedPosition)
+                                task.wait(1)
+                            end
                         end
                     end
                 end
             end
             
-            -- Reativa outros processos se estavam ativos
+            -- Reactivate other processes if they were active
             if wasAutoHatchActive then
                 AutoHatch = true
                 EnableNoclip()
@@ -389,37 +434,42 @@ CollectSection:AddToggle("AutoCollectToggle", {
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                       :WaitForChild("Pickups"):WaitForChild("CollectPickup")
 
-                while AutoCollect and task.wait(0.1) do
+                while AutoCollect and task.wait(1) do -- Longer wait time (1 second)
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
                         if rendered then
+                            -- Create a collection of items to pick up
+                            local itemsToCollect = {}
+                            
                             for _, folder in ipairs(rendered:GetChildren()) do
                                 if folder.Name == "Chunker" then
                                     for _, model in ipairs(folder:GetChildren()) do
+                                        -- Only collect items with name length >= 25
                                         if model:IsA("Model") and #model.Name >= 25 then
-                                            -- Coleta e destrói apenas se o nome for ≥ 25 caracteres
-                                            pickupRemote:FireServer(model.Name)
-                                            model:Destroy()
+                                            table.insert(itemsToCollect, model)
                                         end
                                     end
                                 end
+                            end
+                            
+                            -- Process the batch - collect everything at once then destroy
+                            for i, model in ipairs(itemsToCollect) do
+                                pickupRemote:FireServer(model.Name)
+                                model:Destroy()
+                                
+                                -- Small yield every 20 items to prevent overwhelming the server
+                                if i % 20 == 0 then
+                                    task.wait(0.5)
+                                end
+                            end
+                            
+                            -- Only notify if items were actually collected
+                            if #itemsToCollect > 0 then
                             end
                         end
                     end)
                 end
             end)
-
-            Fluent:Notify({
-                Title = "Auto Collect Enabled",
-                Content = "Collecting pickups with long names (25+)",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Collect Disabled",
-                Content = "Auto Collect Off",
-                Duration = 3
-            })
         end
     end
 })
@@ -453,14 +503,14 @@ CollectSection:AddToggle("AutoGiftGrabber", {
                                 -- Faz o claim
                                 RemoteEvent:FireServer("ClaimGift", obj.Name)
                                 
-                                task.delay(0.3, function()
+                                task.delay(0.5, function()
                                     if obj and obj.Parent then
                                         obj:Destroy()
                                     end
                                 end)
                             end
                         end
-                        task.wait(0.3)
+                        task.wait(0.5)
                     until os.clock() - startTime > 10 or not AutoGiftGrabber
 
                     task.wait(0.5)
@@ -494,18 +544,6 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
                     task.wait(2) -- Espera 2 segundos
                 end
             end)
-            
-            Fluent:Notify({
-                Title = "Auto Equip Ativado",
-                Content = "Equipping better pets automatically",
-                Duration = 3
-            })
-        else
-            Fluent:Notify({
-                Title = "Auto Equip Desativado",
-                Content = "Stopped equipping pets automatically",
-                Duration = 3
-            })
         end
     end
 })
@@ -556,7 +594,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                     if not isChestReady(data.path) then
                         Fluent:Notify({
                             Title = "Cooldown",
-                            Content = chestName .. " está em cooldown!",
+                            Content = chestName .. " it's on cooldown!",
                             Duration = 4
                         })
                     end
@@ -595,7 +633,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                             RemoteEvent:FireServer("ClaimChest", chestName)
                             Fluent:Notify({
                                 Title = "Chest Claimed",
-                                Content = chestName .. " coletado com sucesso!",
+                                Content = chestName .. " successfully collected!",
                                 Duration = 3
                             })
                         end
@@ -610,7 +648,7 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
 
 UtilitiesSection:AddToggle("AutoClaimSeason", {
     Title = "Auto Claim Season",
-    Description = "Claim automático do Season Pass",
+    Description = "Automatic Season Pass claim",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimSeason = state
@@ -659,7 +697,7 @@ UtilitiesSection:AddToggle("AutoClaimPlaytime", {
                     end)
                 end
 
-                task.wait(1) -- Espera 5 segundos antes de repetir tudo
+                task.wait(5) -- Espera 5 segundos antes de repetir tudo
             end
         end)
     end
@@ -684,7 +722,7 @@ UtilitiesSection:AddToggle("AutoStartGenieQuest", {
                 while getgenv().AutoGenieQuest do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("StartGenieQuest", i)
-                        task.wait(0.5)
+                        task.wait(1)
                     end
                     task.wait(1)
                 end
@@ -712,7 +750,7 @@ UtilitiesSection:AddToggle("AutoBuyAlienShop", {
                         task.wait(0.5) -- pequeno delay entre compras
                     end
 
-                    task.wait(0.5) -- espera 3s antes de comprar novamente
+                    task.wait(3) -- espera 3s antes de comprar novamente
                 end
             end)
         end
@@ -740,7 +778,7 @@ UtilitiesSection:AddToggle("AutoBuyShardShop", {
                         RemoteEvent:FireServer("BuyShopItem", "shard-shop", i)
                         task.wait(0.5)
                     end
-                    task.wait(5)
+                    task.wait(3)
                 end
             end)
         end
@@ -763,9 +801,9 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
                 while AutoDoggyJumpWin do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("DoggyJumpWin", i)
-                        task.wait(0.5)
+                        task.wait(1)
                     end
-                    task.wait(1) -- espera 3s antes de repetir
+                    task.wait(3) -- espera 3s antes de repetir
                 end
             end)
         end
@@ -803,6 +841,419 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
                     task.wait(1) -- Espera exatamente 1 segundo
                 end
             end)
+        end
+    end
+})
+
+-- Mapas de teleporte por ovo
+local EggTeleportMap = {
+    ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Pastel Egg"] = "Workspace.Event.Portal.Spawn",
+    ["Bunny Egg"] = "Workspace.Event.Portal.Spawn",
+    ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
+}
+
+-- Posições dos ovos
+local EggPositions = {
+    ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
+    ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
+    ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
+    ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
+    ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
+    ["Lunar Egg"] = Vector3.new(-57.51275634765625, 6862.583984375, 79.98605346679688),
+    ["Void Egg"] = Vector3.new(5.301668167114258, 10147.8046875, 188.5633087158203),
+    ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
+    ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
+    ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
+    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
+    ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
+    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469),
+    ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
+}
+
+-- Mapeamento de tarefas para ovos
+local TaskToEggMap = {
+    ["Shiny"] = "Common Egg",
+    ["Epic"] = "Spotted Egg",
+    ["Legendary"] = "Spikey Egg",
+    ["Common"] = "Common Egg"
+}
+
+-- Toggle para ativar/desativar o Auto Hatch
+Tabs.AutoTask:AddToggle("AutoHatch", {
+    Title = "Auto Tasks Competitive",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoHatch = state
+        
+        if state then
+            spawn(function()
+                -- Serviços
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local RunService = game:GetService("RunService")
+                
+                -- Configuração de rede
+                local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
+                local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
+                local Player = Players.LocalPlayer
+                
+                -- Variáveis de estado
+                local currentTask = nil
+                local playTimeTaskActive = false
+                local playTimeStart = 0
+                local playTimeRequired = 0
+                local noclipActive = false
+                local noclipConnection = nil
+
+                -- Função para ativar/desativar NoClip
+                local function setNoClip(state)
+                    if state == noclipActive then return end
+                    
+                    if state then
+                        noclipActive = true
+                        noclipConnection = RunService.Stepped:Connect(function()
+                            if Player.Character then
+                                for _, part in ipairs(Player.Character:GetDescendants()) do
+                                    if part:IsA("BasePart") then
+                                        part.CanCollide = false
+                                    end
+                                end
+                            end
+                        end)
+                        print("[NoClip] Ativado")
+                    else
+                        noclipActive = false
+                        if noclipConnection then
+                            noclipConnection:Disconnect()
+                            noclipConnection = nil
+                        end
+                        print("[NoClip] Desativado")
+                    end
+                end
+
+                -- Função melhorada para caminhar até uma posição
+                local function walkToPosition(position)
+                    if not Player.Character then 
+                        print("[ERRO] Personagem não encontrado ao tentar caminhar")
+                        return false 
+                    end
+                    
+                    local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+                    local rootPart = Player.Character:FindFirstChild("HumanoidRootPart")
+                    
+                    if not humanoid or not rootPart then 
+                        print("[ERRO] Humanoid ou RootPart não encontrado")
+                        return false 
+                    end
+                    
+                    -- Ativar NoClip para evitar colisões durante o caminho
+                    setNoClip(true)
+                    
+                    -- Aumentar velocidade de caminhada
+                    local originalWalkSpeed = humanoid.WalkSpeed
+                    humanoid.WalkSpeed = 24
+                    
+                    print("[INFO] Caminhando até a posição do ovo...")
+                    humanoid:MoveTo(position)
+                    
+                    local startTime = os.time()
+                    local distance = (rootPart.Position - position).Magnitude
+                    local lastDistance = distance
+                    local stuckCounter = 0
+                    
+                    -- Loop para verificar progresso e evitar travamentos
+                    while distance > 5 and os.time() - startTime < 30 do
+                        task.wait(0.5)
+                        
+                        -- Verificar se o movimento está estagnado
+                        distance = (rootPart.Position - position).Magnitude
+                        
+                        -- Se a distância não mudou significativamente, incrementar contador de "preso"
+                        if math.abs(distance - lastDistance) < 1 then
+                            stuckCounter = stuckCounter + 1
+                        else
+                            stuckCounter = 0
+                        end
+                        
+                        -- Se preso por muito tempo, tentar mover novamente
+                        if stuckCounter >= 3 then
+                            print("[AVISO] Parece que estamos presos, tentando mover novamente")
+                            humanoid:MoveTo(position)
+                            stuckCounter = 0
+                        end
+                        
+                        -- Atualizar última distância para comparação
+                        lastDistance = distance
+                        
+                        -- Log do progresso
+                        print(string.format("[INFO] Distância até o alvo: %.2f", distance))
+                    end
+                    
+                    -- Restaurar velocidade original
+                    humanoid.WalkSpeed = originalWalkSpeed
+                    
+                    -- Verificar se chegamos ao destino
+                    local success = (rootPart.Position - position).Magnitude <= 10
+                    
+                    -- Manter NoClip apenas se ainda não chegamos ao destino
+                    if success then
+                        print("[INFO] Chegamos com sucesso ao ovo!")
+                        -- Podemos desativar NoClip aqui se quisermos
+                        -- setNoClip(false)
+                    else
+                        print("[AVISO] Não conseguimos chegar ao ovo após 30 segundos")
+                    end
+                    
+                    return success
+                end
+
+                local function getCurrentTask()
+                    local TasksFrame = Player.PlayerGui.ScreenGui.Competitive.Frame.Content.Tasks
+                    
+                    local function checkForLabels(parent)
+                        for _, child in pairs(parent:GetChildren()) do
+                            if child:IsA("TextLabel") and child.Visible and child.Text then
+                                local text = child.Text
+                                print("[INFO] Verificando tarefa:", text)  -- Log para verificar o texto
+                                
+                                -- Verifica tarefas de hatch
+                                if text:match("Hatch") then
+                                    print("[INFO] Encontrada tarefa de hatch:", text)
+                                    
+                                    -- Ignora Mythic
+                                    if text:match("Mythic") then
+                                        print("[INFO] Ignorando tarefa Mythic")
+                                        return nil
+                                    end
+                                    
+                                    -- Verifica tipos específicos (usando o formato plural também)
+                                    for petType, eggName in pairs(TaskToEggMap) do
+                                        if text:match(petType) then
+                                            print("[INFO] Encontrado tipo de pet:", petType, "usando ovo:", eggName)
+                                            local amount = text:match("Hatch (%d+)")
+                                            if amount then
+                                                return {
+                                                    text = text,
+                                                    eggName = eggName,
+                                                    amount = tonumber(amount),
+                                                    type = "hatch"
+                                                }
+                                            end
+                                        end
+                                    end
+                                    
+                                    -- Tarefas comuns de hatch
+                                    if text:match("Common Pets") then
+                                        print("[INFO] Encontrada tarefa de Hatch de Common Pets")
+                                        local amount = text:match("Hatch (%d+)")
+                                        if amount then
+                                            return {
+                                                text = text,
+                                                eggName = "Common Egg",
+                                                amount = tonumber(amount),
+                                                type = "hatch"
+                                            }
+                                        end
+                                    end
+
+                                    -- Verificar nomes específicos de ovos
+                                    for eggName, _ in pairs(EggPositions) do
+                                        local shortName = eggName:gsub(" Egg", "")
+                                        if text:match(shortName) or text:match(eggName) then
+                                            print("[INFO] Encontrado ovo pelo nome:", eggName)
+                                            local amount = text:match("Hatch (%d+)")
+                                            if amount then
+                                                return {
+                                                    text = text,
+                                                    eggName = eggName,
+                                                    amount = tonumber(amount),
+                                                    type = "hatch"
+                                                }
+                                            end
+                                        end
+                                    end
+                                end
+                                
+                                -- Verifica tarefa de tempo de jogo
+                                if text:match("Play for") then
+                                    print("[INFO] Encontrada tarefa de tempo de jogo:", text)
+                                    local minutes = text:match("Play for (%d+) minutes")
+                                    if minutes then
+                                        return {
+                                            text = text,
+                                            type = "playtime",
+                                            requiredTime = tonumber(minutes) * 60
+                                        }
+                                    end
+                                end
+                            elseif child:IsA("GuiObject") then
+                                local result = checkForLabels(child)
+                                if result then return result end
+                            end
+                        end
+                        return nil
+                    end
+                    
+                    return checkForLabels(TasksFrame)
+                end
+
+                -- Função para teleportar para a ilha certa
+                local function teleportToIsland(eggName)
+                    local teleportPath = EggTeleportMap[eggName]
+                    if not teleportPath then
+                        print("[ERRO] Caminho de teleporte não encontrado para:", eggName)
+                        return false
+                    end
+                    
+                    print("[INFO] Teleportando para ilha:", teleportPath)
+                    
+                    -- Enviar comando de teleporte
+                    RemoteEvent:FireServer("Teleport", teleportPath)
+                    
+                    -- Esperar um pouco para o teleporte acontecer
+                    task.wait(3)
+                    
+                    return true
+                end
+
+                -- Função principal de hatch
+                local function hatchLoop(eggName, eggPosition)
+                    local attempts = 0
+                    local maxAttempts = 3
+                    local atPosition = false
+                    
+                    while getgenv().AutoHatch and attempts < maxAttempts do
+                        -- Verificar se a tarefa mudou
+                        local newTask = getCurrentTask()
+                        if not newTask or (newTask.type == "hatch" and newTask.eggName ~= eggName) then
+                            print("[INFO] Tarefa mudou ou foi completada")
+                            break
+                        end
+                        
+                        -- Verificar se estamos na posição correta
+                        if not atPosition and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                            local currentPos = Player.Character.HumanoidRootPart.Position
+                            if (currentPos - eggPosition).Magnitude > 10 then
+                                print("[INFO] Tentando ir até o ovo:", eggName)
+                                
+                                -- Primeiro teleportar para a ilha
+                                if teleportToIsland(eggName) then
+                                    task.wait(1.5)
+                                    
+                                    -- Depois caminhar até o ovo
+                                    print("[INFO] Caminhando até o ovo...")
+                                    if walkToPosition(eggPosition) then
+                                        print("[INFO] Chegamos ao ovo com sucesso!")
+                                        atPosition = true
+                                        attempts = 0  -- Resetar tentativas quando chegar com sucesso
+                                    else
+                                        print("[AVISO] Falha ao caminhar até o ovo, tentativa:", attempts + 1)
+                                        attempts = attempts + 1
+                                        task.wait(1)
+                                        continue
+                                    end
+                                else
+                                    print("[ERRO] Falha ao teleportar para ilha")
+                                    attempts = attempts + 1
+                                    task.wait(1.5)
+                                    continue
+                                end
+                            else
+                                atPosition = true  -- Já estamos na posição
+                            end
+                        end
+                        
+                        -- Se chegamos até o ovo, realizar hatch
+                        if atPosition then
+                            print("[INFO] Abrindo ovo:", eggName)
+                            RemoteEvent:FireServer("HatchEgg", eggName, 10)
+                            task.wait(0.5 + math.random() * 0.3)  -- Intervalo variável para parecer mais natural
+                        else
+                            print("[AVISO] Ainda não estamos na posição do ovo")
+                            atPosition = false  -- Resetar flag para tentar novamente
+                            task.wait(1)
+                        end
+                    end
+                    
+                    if attempts >= maxAttempts then
+                        print("[ERRO] Número máximo de tentativas atingido. Pausando auto-hatch.")
+                        getgenv().AutoHatch = false
+                    end
+                    
+                    -- Desativar NoClip quando terminar
+                    setNoClip(false)
+                end
+
+                -- Loop principal
+                while getgenv().AutoHatch do
+                    local task = getCurrentTask()
+                    
+                    -- Gerenciar tarefa de tempo de jogo
+                    if playTimeTaskActive then
+                        local elapsed = os.time() - playTimeStart
+                        if elapsed >= playTimeRequired then
+                            playTimeTaskActive = false
+                            print("[INFO] Tarefa de tempo completada!")
+                        else
+                            print(string.format("[INFO] Tempo de jogo: %d/%d segundos", elapsed, playTimeRequired))
+                        end
+                    end
+                    
+                    if task then
+                        if task.type == "playtime" and not playTimeTaskActive then
+                            -- Iniciar tarefa de tempo
+                            playTimeTaskActive = true
+                            playTimeStart = os.time()
+                            playTimeRequired = task.requiredTime
+                            print("[INFO] Iniciando tarefa de tempo: "..task.text)
+                        elseif task.type == "hatch" then
+                            if currentTask == nil or currentTask.text ~= task.text then
+                                -- Nova tarefa de hatch
+                                currentTask = task
+                                print("[INFO] Nova tarefa: " .. task.text)
+                            end
+                            
+                            -- Verificar se o ovo existe no mapa
+                            local eggPosition = EggPositions[task.eggName]
+                            if eggPosition then
+                                print("[INFO] Iniciando processo de hatch para:", task.eggName)
+                                hatchLoop(task.eggName, eggPosition)
+                            else
+                                print("[ERRO] Posição não encontrada para ovo:", task.eggName)
+                                task.wait(2)
+                            end
+                        end
+                    else
+                        print("[INFO] Nenhuma tarefa válida encontrada. Aguardando...")
+                        wait(2)
+                    end
+                    
+                    wait(1)
+                end
+                
+                -- Limpeza final
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
+                end
+            end)
+        else
+            -- Desativar NoClip ao desligar
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
         end
     end
 })
@@ -937,7 +1388,7 @@ Egg:AddToggle("AutoHatch", {
                     end)
 
                     while not reached and AutoHatch do
-                        task.wait(0.1)
+                        task.wait(0.5)
                     end
 
                     while AutoHatch do
@@ -1019,11 +1470,6 @@ RiftEggDropdown:OnChanged(function(selectedTable)
             table.insert(SelectedRiftEggs, eggName)
         end
     end
-    Fluent:Notify({
-        Title = "Egg Selection",
-        Content = #SelectedRiftEggs > 0 and ("Selected: " .. table.concat(SelectedRiftEggs, ", ")) or "No eggs selected (will use all)",
-        Duration = 3
-    })
 end)
 
 local LuckMultiplierDropdown = EggRift:AddDropdown("LuckMultiplierDropdown", {
@@ -1041,11 +1487,6 @@ LuckMultiplierDropdown:OnChanged(function(selectedTable)
             table.insert(SelectedLuckMultipliers, multiplier)
         end
     end
-    Fluent:Notify({
-        Title = "Multiplier Selection",
-        Content = #SelectedLuckMultipliers > 0 and ("Selected: " .. table.concat(SelectedLuckMultipliers, ", ")) or "No multipliers selected (will use all)",
-        Duration = 3
-    })
 end)
 
 -- NoClip Functionality
@@ -1098,7 +1539,6 @@ local function teleportToEgg(egg)
     tween:Play()
     local success = pcall(function() 
         tween.Completed:Wait()
-        -- Keep NoClip enabled during hatching
     end)
     
     ActiveTweens[hrp] = nil
@@ -1143,18 +1583,12 @@ end
 -- Main Toggle
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
-    Description = "Automatically teleport and hatch rift eggs (with NoClip)",
+    Description = "Automatically teleport and hatch rift eggs",
     Default = false,
     Callback = function(state)
         AutoRiftHatch = state
         if state then
             chooseNewTarget()
-            Fluent:Notify({ 
-                Title = "Auto Hatch", 
-                Content = "Started auto hatching with NoClip", 
-                Duration = 3 
-            })
-
             task.spawn(function()
                 while AutoRiftHatch do
                     local found = false
@@ -1173,7 +1607,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                     if teleportToEgg(egg) then
                                         while AutoRiftHatch and egg.Parent do
                                             hatchEgg(egg.Name)
-                                            task.wait(0.3) -- Loop contínuo só para hatch
+                                            task.wait(0.5) -- Loop contínuo só para hatch
                                         end
                                     end
                                     
@@ -1210,11 +1644,6 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
             end)
         else
             cancelAllOperations()
-            Fluent:Notify({ 
-                Title = "Auto Hatch", 
-                Content = "Stopped auto hatching", 
-                Duration = 3 
-            })
         end
     end
 })
@@ -1260,11 +1689,11 @@ local function teleportAndFarm()
                 -- Farm while chest exists
                 while AutoGoldenChest and chest.Parent do
                     game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "golden-chest")
-                    task.wait(0.5)
+                    task.wait(1)
                 end
             end
         end
-        task.wait(0.5)
+        task.wait(1)
     end
     disableNoClip()
 end
@@ -1277,18 +1706,7 @@ ChestHunt:AddToggle("AutoGoldenChestToggle", {
     Callback = function(state)
         AutoGoldenChest = state
         if state then
-            Fluent:Notify({
-                Title = "Golden Chest",
-                Content = "Started farming golden chest",
-                Duration = 3
-            })
             task.spawn(teleportAndFarm)
-        else
-            Fluent:Notify({
-                Title = "Golden Chest",
-                Content = "Stopped farming golden chest",
-                Duration = 3
-            })
         end
     end
 })
@@ -1341,7 +1759,7 @@ local function teleportAndClaimGift()
                 end
             end
         end
-        task.wait(0.5) -- Verifica a cada 1 segundo se o gift reapareceu
+        task.wait(1) -- Verifica a cada 1 segundo se o gift reapareceu
     end
     manageNoClip(false)
 end
@@ -1354,18 +1772,7 @@ GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Callback = function(state)
         AutoGiftRift = state
         if state then
-            Fluent:Notify({
-                Title = "Gift Rift",
-                Content = "Starting automatic gifts collection",
-                Duration = 3
-            })
             task.spawn(teleportAndClaimGift)
-        else
-            Fluent:Notify({
-                Title = "Gift Rift",
-                Content = "Automatic collection deactivated",
-                Duration = 3
-            })
         end
     end
 })
@@ -1524,8 +1931,6 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
         getgenv().AutoPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Poções", Content = "Activated", Duration = 3})
-
             task.spawn(function()
                 while getgenv().AutoPotion do
                     -- Verifica se existem poções selecionadas
@@ -1547,17 +1952,15 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                             pcall(function()
                                 RemoteEvent:FireServer("UsePotion", name, tier)
                             end)
-                            task.wait(0.2)
+                            task.wait(0.5)
                         else
                             warn("Potion invalid:", displayName)
                         end
                     end
 
-                    task.wait(0.3)
+                    task.wait(0.5)
                 end
             end)
-        else
-            Fluent:Notify({Title = "Auto Potions", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1617,8 +2020,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
         getgenv().AutoCraftPotion = state
 
         if state then
-            Fluent:Notify({Title = "Auto Craft", Content = "Activated", Duration = 3})
-
             task.spawn(function()
                 while getgenv().AutoCraftPotion do
                     if #SelectedPotions == 0 then
@@ -1638,7 +2039,7 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                             pcall(function()
                                 RemoteEvent:FireServer("CraftPotion", name, tier, false)
                             end)
-                            task.wait(0.2)
+                            task.wait(0.5)
                         else
                             warn("Potion invalid:", displayName)
                         end
@@ -1647,8 +2048,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                     task.wait(1.5)
                 end
             end)
-        else
-            Fluent:Notify({Title = "Auto Craft", Content = "Deactivated", Duration = 3})
         end
     end
 })
@@ -1743,7 +2142,7 @@ CodeSection:AddButton({
             else
                 warn("Error redeeming code:", code, result)
             end
-            task.wait(1)
+            task.wait(2)
         end
     end
 })
@@ -1786,11 +2185,8 @@ local Toggle = Tabs.Misc:AddToggle("MyToggle", {
         if state then
             -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK ativado")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK desativado")
         end
     end
 })
@@ -1805,3 +2201,9 @@ InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/BubbleGumInfinity")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1) -- Seleciona a primeira aba ao abrir
+Fluent:Notify({
+    Title = "Bubble Gum Simulator INFINITY | DZ HUB",
+    Content = "Script loaded successfully!",
+    Duration = 5
+})
