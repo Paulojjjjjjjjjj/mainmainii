@@ -849,6 +849,7 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
 local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
     ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
     ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
@@ -867,6 +868,7 @@ local EggTeleportMap = {
 local EggPositions = {
     ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
     ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
+    ["Iceshard Egg"] = Vector3.new(-8.188074111938477, 9.323458671569824, -60.25547790527344),
     ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
     ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
     ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
