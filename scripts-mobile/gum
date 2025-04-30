@@ -267,7 +267,7 @@ task.spawn(function()
 
                         local function verifyTeleport()
                             local teleportAttempts = 0
-                            local maxTeleportAttempts = 10
+                            local maxTeleportAttempts = 999
                             local teleportSuccess = false
                             
                             while teleportAttempts < maxTeleportAttempts and not teleportSuccess do
@@ -323,7 +323,7 @@ task.spawn(function()
                             end
 
                             local sellAttempts = 0
-                            local maxAttempts = 10
+                            local maxAttempts = 999
                             local saleConfirmed = false
                             
                             while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
