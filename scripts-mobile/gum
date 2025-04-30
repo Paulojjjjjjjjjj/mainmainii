@@ -1852,9 +1852,11 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
 })
 
 local AutoGoldenChest = false
+local AutoRoyalChest = false
 local ActiveTween
 local NoClipConnection
 
+-- Funções de NoClip (compartilhadas)
 local function enableNoClip()
     if NoClipConnection then return end
     NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
@@ -1875,16 +1877,20 @@ local function disableNoClip()
     end
 end
 
-local function teleportAndFarm()
+-- Sistema para Golden Chest
+local function teleportAndFarmGolden()
     while AutoGoldenChest do
         local chest = workspace.Rendered.Rifts:FindFirstChild("golden-chest")
         if chest then
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 enableNoClip()
-                local tween = TweenService:Create(hrp, TweenInfo.new(7), {
+                
+                -- Tween com tempo fixo de 7 segundos
+                local tween = TweenService:Create(hrp, TweenInfo.new(7, Enum.EasingStyle.Linear), {
                     CFrame = chest:GetPivot() * CFrame.new(0, 0, 0)
                 })
+                
                 tween:Play()
                 tween.Completed:Wait()
                 
@@ -1899,6 +1905,35 @@ local function teleportAndFarm()
     disableNoClip()
 end
 
+-- Sistema para Royal Chest
+local function teleportAndFarmRoyal()
+    while AutoRoyalChest do
+        local chest = workspace.Rendered.Rifts:FindFirstChild("royal-chest")
+        if chest then
+            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                enableNoClip()
+                
+                -- Tween com tempo fixo de 7 segundos
+                local tween = TweenService:Create(hrp, TweenInfo.new(7, Enum.EasingStyle.Linear), {
+                    CFrame = chest:GetPivot() * CFrame.new(0, 0, 0)
+                })
+                
+                tween:Play()
+                tween.Completed:Wait()
+                
+                while AutoRoyalChest and chest.Parent do
+                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "royal-chest")
+                    task.wait(1)
+                end
+            end
+        end
+        task.wait(1)
+    end
+    disableNoClip()
+end
+
+-- Toggles
 ChestHunt:AddToggle("AutoGoldenChestToggle", {
     Title = "Auto Golden Chest",
     Description = "Teleport and farm golden chest automatically",
@@ -1906,7 +1941,19 @@ ChestHunt:AddToggle("AutoGoldenChestToggle", {
     Callback = function(state)
         AutoGoldenChest = state
         if state then
-            task.spawn(teleportAndFarm)
+            task.spawn(teleportAndFarmGolden)
+        end
+    end
+})
+
+ChestHunt:AddToggle("AutoRoyalChestToggle", {
+    Title = "Auto Royal Chest",
+    Description = "Teleport and farm royal chest automatically",
+    Default = false,
+    Callback = function(state)
+        AutoRoyalChest = state
+        if state then
+            task.spawn(teleportAndFarmRoyal)
         end
     end
 })
