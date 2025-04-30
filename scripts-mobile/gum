@@ -419,8 +419,8 @@ local function stopAutoFarm()
 end
 
 Tabs.AutoFarm:AddDropdown("SellMethodDropdown", {
-    Title = "Método de Auto Sell",
-    Description = "Escolha quando vender as bolhas",
+    Title = "Auto Sell method",
+    Description = "Choose when to sell the bubbles",
     Values = { "Storage Full", "Timed" },
     Multi = false,
     Default = "Storage Full",
@@ -430,10 +430,10 @@ Tabs.AutoFarm:AddDropdown("SellMethodDropdown", {
 })
 
 Tabs.AutoFarm:AddInput("TimedIntervalInput", {
-    Title = "Intervalo de Venda (Segundos)",
-    Description = "Tempo entre vendas no modo Timed",
+    Title = "Sales Interval (Seconds)",
+    Description = "Time between sales in Timed mode",
     Default = "120",
-    Placeholder = "Insira o tempo em segundos",
+    Placeholder = "Enter the time in seconds",
     Numeric = true,
     Finished = false,
     Callback = function(Value)
@@ -443,8 +443,8 @@ Tabs.AutoFarm:AddInput("TimedIntervalInput", {
 
 -- INTERFACE - TAB MULTIPLICADORES
 local Dropdown = Tabs.AutoFarm:AddDropdown("MultiplierDropdown", {
-    Title = "Selecione o Multiplicador",
-    Description = "Escolha o multiplicador de sorte desejado",
+    Title = "Select the Multiplier",
+    Description = "Choose the desired luck multiplier",
     Values = {"2x", "5x", "250x"},
     Multi = false,
     Default = "2x",
@@ -456,8 +456,7 @@ end)
 
 -- INTERFACE - TAB AUTO FARM
 Tabs.AutoFarm:AddToggle("AutoFarmToggle", {
-    Title = "Ativar Auto Farm",
-    Description = "Liga/desliga o sistema de auto farm",
+    Title = "Auto Sell System",
     Default = false,
     Callback = function(Value)
         if Value then
