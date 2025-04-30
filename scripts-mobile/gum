@@ -267,7 +267,7 @@ task.spawn(function()
 
                         local function verifyTeleport()
                             local teleportAttempts = 0
-                            local maxTeleportAttempts = 5
+                            local maxTeleportAttempts = 10
                             local teleportSuccess = false
                             
                             while teleportAttempts < maxTeleportAttempts and not teleportSuccess do
