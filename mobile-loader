@@ -31,27 +31,13 @@ local function showUnsupportedMapMessage()
 end
 
 -- Verificação 1:
-local menuGui = playerGui:FindFirstChild("Menu")
-if menuGui and menuGui:FindFirstChild("Frame") then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/jji"))()
-    return
-end
-
--- Verificação 2:
 local hudGui = playerGui:FindFirstChild("Hud")
 if hudGui and hudGui:FindFirstChild("Hud") and hudGui.Hud:FindFirstChild("Dano") then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/arise"))()
     return
 end
 
--- Verificação 3:
-local pcHud = playerGui:FindFirstChild("HUD")
-if pcHud and pcHud:FindFirstChild("LeftFrame") and pcHud.LeftFrame:FindFirstChild("Top") then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Paulojjjjjjjjjj/mainmainii/refs/heads/main/scripts-mobile/bbl"))()
-    return
-end
-
--- Verificação 4:
+-- Verificação 2:
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -64,7 +50,7 @@ if pcLevel then
     return
 end
 
--- Verificação 5:
+-- Verificação 3:
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -76,7 +62,7 @@ if isMobile then
     return
 end
 
--- Verificação 6:
+-- Verificação 4:
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -87,7 +73,7 @@ if placeId == 17334984034 then
     return
 end
 
--- Verificação 7:
+-- Verificação 5:
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
