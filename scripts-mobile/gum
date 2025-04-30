@@ -1652,6 +1652,7 @@ local EggNameMap = {
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
+    ["event-3"] = "Throwback Egg",
     ["silly-egg"] = "Silly Egg"
 }
 
