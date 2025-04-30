@@ -11,7 +11,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
---// Abas
 local Tabs = {
     Main = Window:AddTab({ 
         Title = "Main", 
@@ -35,8 +34,6 @@ local Tabs = {
     })
 }
 
----------------------------------------------------
-----------------------SECTION----------------------
 local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local Action = Tabs.Main:AddSection("Action Options")
@@ -45,8 +42,6 @@ local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
 local Mounts = Tabs.Teleport:AddSection("Mounts")
 local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
 local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
-----------------------SECTION----------------------
----------------------------------------------------
 
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
@@ -58,7 +53,6 @@ local selectedEnemyName = nil
 local selectedScaleFilter = "Small"
 local autoTpEnabled = false
 
--- Função de teleporte igual ao Auto Dungeon
 local function forcedStepTeleport(destination)
     local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -69,7 +63,6 @@ local function forcedStepTeleport(destination)
     end
 end
 
--- Teleportar para o inimigo com offset
 local function teleportToEnemy(enemy)
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
@@ -79,7 +72,6 @@ local function teleportToEnemy(enemy)
     forcedStepTeleport(goalPosition)
 end
 
--- Encontrar próximo inimigo com nome igual, HP > 0 e filtro de Scale
 local function findNextEnemy()
     local bestEnemy = nil
     local highestHP = 0
@@ -122,7 +114,6 @@ local function findNextEnemy()
     return bestEnemy
 end
 
--- Dropdown de inimigos
 local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
     Title = "Choose your enemy",
     Values = {},
@@ -133,7 +124,6 @@ local enemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
     end
 })
 
--- Dropdown de filtro de tamanho (Scale)
 local scaleDropdown = FarmingOptions:AddDropdown("ScaleFilter", {
     Title = "Enemy Size",
     Values = {"Small", "Big", "All"},
@@ -143,7 +133,6 @@ local scaleDropdown = FarmingOptions:AddDropdown("ScaleFilter", {
     end
 })
 
--- Toggle de auto farm
 AutoFarm:AddToggle("AutoFarm Selected", {
     Title = "Auto Farm Selected",
     Default = false,
@@ -164,7 +153,6 @@ AutoFarm:AddToggle("AutoFarm Selected", {
     end
 })
 
--- Atualizar lista de inimigos no dropdown
 function updateDropdown()
     local names = {}
 
@@ -193,7 +181,6 @@ function updateDropdown()
     end
 end
 
--- Loop para atualizar dropdown constantemente
 task.spawn(function()
     while task.wait(2) do
         updateDropdown()
@@ -335,7 +322,6 @@ attackOptionDropdown:OnChanged(function(value)
 	attackOption = attackOptionMap[value]
 end)
 
--- Toggle para ativar/desativar o Auto Attack Shadow
 local Toggle = AutoFarm:AddToggle("AutoAttackNearestEnemy", {
     Title = "Auto Attack Nearest Enemy",
     Default = false,
@@ -358,19 +344,14 @@ local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
 local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
--- Create the toggle (assuming you're using a library like Rayfield)
 local Toggle = Action:AddToggle("AutoCapture", {Title = "Auto Capture", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
     if Value then
-        warn("Auto Capture Enabled")
-    else
-        warn("Auto Capture Disabled")
     end
 end)
 
--- Function to find the nearest enemy
 local function findNearestEnemy()
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
@@ -393,7 +374,6 @@ local function findNearestEnemy()
     return closestEnemy
 end
 
--- Main loop
 local connection
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
@@ -432,19 +412,14 @@ local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
 local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
--- Create the toggle (assuming you're using a library like Rayfield)
 local Toggle = Action:AddToggle("AutoDestroy", {Title = "Auto Destroy", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
     if Value then
-        warn("Auto Destroy Enabled")
-    else
-        warn("Auto Destroy Disabled")
     end
 end)
 
--- Function to find the nearest enemy
 local function findNearestEnemy()
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
@@ -467,7 +442,6 @@ local function findNearestEnemy()
     return closestEnemy
 end
 
--- Main loop
 local connection
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
@@ -506,19 +480,14 @@ local dataRemoteEvent = BridgeNet2:WaitForChild("dataRemoteEvent")
 local LocalPlayer = Players.LocalPlayer
 local ToggleValue = false
 
--- Create the toggle (assuming you're using a library like Rayfield)
 local Toggle = AutoFarm:AddToggle("AutoPunch", {Title = "Auto Punch (Kill Aura)", Default = false })
 
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
     if Value then
-        warn("Auto Punch (Kill Aura) Enabled")
-    else
-        warn("Auto Punch (Kill Aura) Disabled")
     end
 end)
 
--- Function to find the nearest enemy
 local function findNearestEnemy()
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
@@ -541,7 +510,6 @@ local function findNearestEnemy()
     return closestEnemy
 end
 
--- Main loop
 local connection
 Toggle:OnChanged(function(Value)
     ToggleValue = Value
@@ -586,11 +554,9 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
                     local equippedPets = player.leaderstats.Equips.Pets
                     local passes = player.leaderstats.Passes
 
-                    -- Definir quantidade máxima de pets com base na Game Pass
                     local maxPets = passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value and 7 or 4
 
                     if inventory then
-                        -- Criar uma tabela para armazenar os pets com seus ranks
                         local petsTable = {}
 
                         for _, pet in pairs(inventory:GetChildren()) do
@@ -598,18 +564,15 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
                             table.insert(petsTable, {Name = pet.Name, Rank = rank})
                         end
 
-                        -- Ordenar os pets do maior para o menor rank
                         table.sort(petsTable, function(a, b)
                             return a.Rank > b.Rank
                         end)
 
-                        -- Criar uma lista de pets que já estão equipados
                         local currentlyEquipped = {}
                         for _, petSlot in pairs(equippedPets:GetChildren()) do
                             table.insert(currentlyEquipped, petSlot.Value)
                         end
 
-                        -- Definir os melhores pets para equipar
                         local petsToEquip = {}
                         for i = 1, math.min(maxPets, #petsTable) do
                             local petName = petsTable[i].Name
@@ -618,7 +581,6 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
                             end
                         end
 
-                        -- Verifica se há pets novos para equipar
                         if #petsToEquip > 0 then
                             local args = {
                                 [1] = {
@@ -630,7 +592,6 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
                                 }
                             }
 
-                            -- Enviar a solicitação para equipar os novos pets
                             game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
                         end
                     end
@@ -642,17 +603,14 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
     end
 })
 
--- Services
 local isSearching = false
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local dataRemoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
 
--- Variables
 local localPlayer = Players.LocalPlayer
 
--- Config
 local searchEnabled = false
 local autoStartEnabled = false
 local selectedRanks = {}
@@ -668,7 +626,6 @@ local rankToNumber = {
     ["N+"] = 9,
 }
 
--- Reverse map: number → rank
 local numberToRank = {}
 for k, v in pairs(rankToNumber) do
     numberToRank[v] = k
@@ -717,7 +674,6 @@ local function teleportToPosition(position)
 end
 
 local function createAndStartDungeon()
-    -- Criar a dungeon
     local createArgs = {
         [1] = {
             [1] = {
@@ -732,7 +688,6 @@ local function createAndStartDungeon()
     
     task.wait(0.5)
     
-    -- Iniciar a dungeon (sem ID)
     local startArgs = {
         [1] = {
             [1] = {
@@ -766,13 +721,11 @@ local function isValidDungeon(model)
 end
 
 local function teleportToDungeonPortal(dungeon)
-    -- Primeiro tenta encontrar um portal ou parte visível da dungeon
     local portal = dungeon:FindFirstChild("Dungeon") or dungeon:FindFirstChildWhichIsA("BasePart")
     
     if portal then
         return teleportToPosition(portal.Position)
     else
-        -- Se não encontrar um portal específico, teleporta para a posição do modelo
         return teleportToPosition(dungeon:GetPivot().Position)
     end
 end
@@ -811,7 +764,6 @@ local function dungeonSearchLoop()
                     local rankName = numberToRank[dungeon:GetAttribute("DungeonRank")] or "?"
                     notify("Dungeon Found", "Found dungeon with rank: "..rankName)
                     
-                    -- Teleportar para o portal da dungeon
                     if teleportToDungeonPortal(dungeon) then
                         notify("Success", "Teleported to dungeon portal!")
                         
@@ -835,7 +787,6 @@ local function dungeonSearchLoop()
     end
 end
 
--- Create MultiDropdown for ranks
 local MultiDropdown = DungeonSearch:AddDropdown("DropdownDungeonRanks", {
     Title = "Prioritize Ranks",
     Description = "Select the ranks you want to prioritize",
@@ -852,22 +803,17 @@ MultiDropdown:OnChanged(function(Value)
         end
     end
     
-    -- Sort ranks by strength (higher number first)
     table.sort(selectedRanks, function(a, b)
         return rankToNumber[a] > rankToNumber[b]
     end)
-    
-    notify("Ranks Updated", "Searching for: " .. table.concat(selectedRanks, ", "))
 end)
 
--- Set default values
 MultiDropdown:SetValue({
     ["S"] = true,
     ["SS"] = true,
     ["G"] = true
 })
 
--- Toggle for search
 local ToggleSearch = DungeonSearch:AddToggle("ToggleDungeonSearch", {
     Title = "Search Dungeon",
     Description = "it will stop searching when it finds the valid dungeon",
@@ -883,14 +829,10 @@ local ToggleSearch = DungeonSearch:AddToggle("ToggleDungeonSearch", {
                     isSearching = false
                 end)
             end
-            notify("Search Started", "Looking for dungeons...")
-        else
-            notify("Search Stopped", "Dungeon search disabled")
         end
     end    
 })
 
--- Toggle for auto start
 local ToggleAutoStart = DungeonSearch:AddToggle("ToggleAutoStart", {
     Title = "Auto Create + Start Dungeon",
     Description = "Automatically create and start dungeon when found",
@@ -898,11 +840,8 @@ local ToggleAutoStart = DungeonSearch:AddToggle("ToggleAutoStart", {
     Callback = function(Value)
         autoStartEnabled = Value
         if Value then
-            notify("Auto Start", "Enabled - Will create and start dungeons automatically")
-        else
-            notify("Auto Start", "Disabled - Will only find dungeons")
-        end
-    end    
+     end
+  end    
 })
 
 local TweenService = game:GetService("TweenService")
@@ -965,7 +904,6 @@ local function isMyPetOnEnemy(enemyName)
         if enemy then
             local enemyPets = enemy:GetAttribute("Pets")
 
-            -- Verifica se o atributo existe e não está vazio
             if enemyPets and enemyPets ~= "" then
                 for _, petName in ipairs(getEquippedPets()) do
                     if enemyPets:find(petName) then
@@ -1059,7 +997,6 @@ local function autoDungeonLoop()
     end
 end
 
--- UI
 DungeonFarm:AddToggle("AutoDungeonToggle", {
     Title = "Auto Dungeon",
     Default = false,
@@ -1088,7 +1025,6 @@ local MountLocations = {
 
 local searchMountsEnabled = false
 
--- Teleporte instantâneo entre as ilhas
 local function forcedStepTeleport(destination)
     local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -1099,7 +1035,6 @@ local function forcedStepTeleport(destination)
     end
 end
 
--- Teleporte suave até a montaria com TweenService (4 segundos)
 local function smoothTeleportTo(position)
     local character = localPlayer.Character
     if not character then return end
@@ -1114,7 +1049,6 @@ local function smoothTeleportTo(position)
     tween.Completed:Wait()
 end
 
--- Simula o botão E
 local function simulateProximityPrompt(object)
     local prompt = object:FindFirstChildWhichIsA("ProximityPrompt", true)
     if prompt then
@@ -1122,24 +1056,20 @@ local function simulateProximityPrompt(object)
     end
 end
 
--- Loop de busca pelas montarias
 local function teleportToMountsLoop()
     task.spawn(function()
         while searchMountsEnabled do
             for _, location in ipairs(MountLocations) do
                 if not searchMountsEnabled then return end
 
-                -- TP instantâneo entre as ilhas
                 forcedStepTeleport(location)
                 task.wait(0.5)
 
-                -- Verifica se há montarias na área
                 for _, mount in pairs(workspace.__Extra.__Appear:GetChildren()) do
                     local model = mount:FindFirstChildWhichIsA("Model") or mount
                     local root = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
 
                     if root then
-                        -- TP suave até a montaria
                         smoothTeleportTo(root.Position)
                         task.wait(0.2)
                         simulateProximityPrompt(mount)
@@ -1153,7 +1083,6 @@ local function teleportToMountsLoop()
     end)
 end
 
--- Toggle na interface (adapte para sua UI)
 Mounts:AddToggle("SearchMounts", {
     Title = "Search Mounts",
     Default = false,
@@ -1170,7 +1099,6 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- Teleporte forçado em múltiplos steps
 local function forcedStepTeleport(destination)
     if not hrp then return end
     for i = 1, 10 do
@@ -1179,7 +1107,6 @@ local function forcedStepTeleport(destination)
     end
 end
 
--- Tabela de posições
 local teleportLocations = {
     ["World Teleport"] = {
         ["World 1"] = Vector3.new(430.431, 28.083, -6.193),
@@ -1219,7 +1146,6 @@ local teleportLocations = {
     }
 }
 
--- Criando os botões e dropdowns
 for category, locations in pairs(teleportLocations) do
     if category == "Special Locations" then
         for name, position in pairs(locations) do
@@ -1268,7 +1194,6 @@ Tabs.Misc:AddButton({
     end
 })
 
--- Anti AFK
 local AntiAfkConfig = {
     connection = nil
 }
@@ -1276,14 +1201,12 @@ local AntiAfkConfig = {
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
     if state then
-        -- Ativa o Anti AFK
         self.connection = player.Idled:Connect(function()
             local vu = game:GetService("VirtualUser")
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     else
-        -- Desativa o Anti AFK
         if self.connection then
             self.connection:Disconnect()
             self.connection = nil
@@ -1298,19 +1221,14 @@ function AntiAfkConfig:Unload()
     end
 end
 
--- Toggle para ligar/desligar o Anti AFK
 local Toggle = Tabs.Misc:AddToggle("MyToggle", {
     Title = "Anti AFK", 
     Default = false,
     Callback = function(state)
         if state then
-            -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK ativado")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK desativado")
         end
     end
 })
@@ -1332,7 +1250,6 @@ Fluent:Notify({
 
 local CoreGui = game:GetService("CoreGui")
 
--- Remover qualquer GUI persistente anterior com o mesmo nome
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
 if ExistingGui then
     ExistingGui:Destroy()
@@ -1340,7 +1257,6 @@ end
 
 local ScreenGuiToMinimize
 
--- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
@@ -1358,9 +1274,6 @@ if not ScreenGuiToMinimize then
     return
 end
 
-print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
-
--- Criar botão persistente
 local MinimizeGui = Instance.new("ScreenGui", CoreGui)
 MinimizeGui.Name = "MinimizeButtonGui"
 
@@ -1372,10 +1285,8 @@ MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.BorderSizePixel = 0
 MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
 
--- Adicionar UICorner ao botão para arredondar bordas
 local UICorner = Instance.new("UICorner", MinimizeButton)
 
--- Função para minimizar corretamente
 MinimizeButton.MouseButton1Click:Connect(function()
     if Window and Window.Minimize then
         Window:Minimize()
@@ -1384,7 +1295,6 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Adicionar funcionalidade de arrastar o botão
 local dragging = false
 local dragStart, startPos
 

@@ -2,7 +2,6 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Create main window
 local Window = Fluent:CreateWindow({
     Title = "Anime Rangers X | DZ HUB",
     TabWidth = 160,
@@ -12,7 +11,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Create tabs
 local Tabs = {
     Main = Window:AddTab({ 
         Title = "Main", 
@@ -32,18 +30,15 @@ local Tabs = {
     })
 }
 
--- Main Tab Sections
 local Misc = Tabs.Main:AddSection("Misc")
 local Story = Tabs.Main:AddSection("Story")
 local RenderStage = Tabs.Main:AddSection("Render Stage")
 local Automatic = Tabs.Game:AddSection("Automatic")
 local Upgrade = Tabs.Game:AddSection("Upgrade")
 
--- Remote references
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayRoomRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
 
--- Event Toggles
 local StartRoomToggle = Misc:AddToggle("StartRoomToggle", {
     Title = "Start Room Challenge",
     Description = "Activates the PlayRoom event",
@@ -52,7 +47,6 @@ local StartRoomToggle = Misc:AddToggle("StartRoomToggle", {
         if state then
             local success, err = pcall(function()
                 PlayRoomRemote:FireServer("Start")
-                print("Room challenge started")
             end)
             
             if not success then
@@ -60,7 +54,6 @@ local StartRoomToggle = Misc:AddToggle("StartRoomToggle", {
                 StartRoomToggle:SetValue(false)
             end
         else
-            print("Room challenge stopped")
         end
     end
 })
@@ -95,7 +88,6 @@ Misc:AddToggle("BossEventToggle", {
         if state then
             local success, err = pcall(function()
                 PlayRoomRemote:FireServer("Boss-Event")
-                print("Boss event started")
             end)
             
             if not success then
@@ -103,12 +95,10 @@ Misc:AddToggle("BossEventToggle", {
                 BossEventToggle:SetValue(false)
             end
         else
-            print("Boss event stopped")
         end
     end
 })
 
--- Auto Farm System
 local selectedWorld = "OPM"
 local selectedChapter = "OPM_Chapter1"
 local selectedDifficulty = "Normal"
@@ -118,7 +108,6 @@ local Worlds = { "OnePiece", "Namek", "DemonSlayer", "Naruto", "OPM" }
 local Chapters = {}
 local Difficulties = { "Normal", "Hard", "Nightmare" }
 
--- Populate chapters
 for _, world in ipairs(Worlds) do
     Chapters[world] = {}
     for i = 1, 10 do
@@ -126,7 +115,6 @@ for _, world in ipairs(Worlds) do
     end
 end
 
--- World Dropdown
 local WorldDropdown = Story:AddDropdown("WorldDropdown", {
     Title = "Select World",
     Description = "Choose a world",
@@ -134,7 +122,6 @@ local WorldDropdown = Story:AddDropdown("WorldDropdown", {
     Default = selectedWorld
 })
 
--- Chapter Dropdown
 local ChapterDropdown = Story:AddDropdown("ChapterDropdown", {
     Title = "Select Chapter",
     Description = "Choose a chapter",
@@ -142,7 +129,6 @@ local ChapterDropdown = Story:AddDropdown("ChapterDropdown", {
     Default = selectedChapter
 })
 
--- Difficulty Dropdown
 local DifficultyDropdown = Story:AddDropdown("DifficultyDropdown", {
     Title = "Select Difficulty",
     Description = "Choose a difficulty level",
@@ -150,7 +136,6 @@ local DifficultyDropdown = Story:AddDropdown("DifficultyDropdown", {
     Default = selectedDifficulty
 })
 
--- Start match function
 local function startMatch()
     if not autoPlayEnabled then return end
     
@@ -171,7 +156,6 @@ local function startMatch()
         return true
     end
 
-    -- Execute sequence
     if not fireRemote("Create") then return end
     if not fireRemote("Change-World", {World = selectedWorld}) then return end
     if not fireRemote("Change-Chapter", {Chapter = selectedChapter}) then return end
@@ -180,19 +164,16 @@ local function startMatch()
     if not fireRemote("Start") then return end
 end
 
--- Auto Play Toggle
 Story:AddToggle("AutoPlayToggle", {
     Title = "Auto Play",
     Description = "Execute automatically when activated",
     Default = false,
     Callback = function(state)
         autoPlayEnabled = state
-        print("Auto Play:", state and "Enabled" or "Disabled")
         if state then startMatch() end
     end
 })
 
--- Dropdown handlers
 WorldDropdown:OnChanged(function(value)
     selectedWorld = value
     selectedChapter = Chapters[value][1]
@@ -211,7 +192,6 @@ DifficultyDropdown:OnChanged(function(value)
     if autoPlayEnabled then startMatch() end
 end)
 
--- Ranger Stage System
 local selectedRangerWorld = "OnePiece"
 local selectedRangerStage = "OnePiece_RangerStage1"
 local RangerStages = {}
@@ -223,7 +203,6 @@ for _, world in ipairs(Worlds) do
     end
 end
 
--- Ranger World Dropdown
 local RangerWorldDropdown = RenderStage:AddDropdown("RangerWorld", {
     Title = "Select World (Ranger Stage)",
     Description = "Choose the world for Ranger mode",
@@ -231,7 +210,6 @@ local RangerWorldDropdown = RenderStage:AddDropdown("RangerWorld", {
     Default = selectedRangerWorld
 })
 
--- Ranger Stage Dropdown
 local RangerStageDropdown = RenderStage:AddDropdown("RangerStage", {
     Title = "Select Stage",
     Description = "Choose a stage (1 to 3)",
@@ -239,7 +217,6 @@ local RangerStageDropdown = RenderStage:AddDropdown("RangerStage", {
     Default = selectedRangerStage
 })
 
--- Ranger Mode Toggle
 RenderStage:AddToggle("RangerModeToggle", {
     Title = "Auto Ranger Stage",
     Description = "Automatically starts Ranger mode",
@@ -275,13 +252,11 @@ RenderStage:AddToggle("RangerModeToggle", {
     end
 })
 
--- Game Tab Features
 local LobbyPlaceId = 72829404259339
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Função que verifica se o AutoPlay está ativo com base nos UIGradients
 local function isAutoPlayEnabled()
     local autoPlayBack = LocalPlayer:WaitForChild("PlayerGui")
         :WaitForChild("HUD")
@@ -302,7 +277,6 @@ local function isAutoPlayEnabled()
     return false
 end
 
--- Toggle do AutoPlay com verificação constante
 Automatic:AddToggle("AutoPlay", {
     Title = "Auto Play",
     Default = false,
@@ -317,7 +291,6 @@ Automatic:AddToggle("AutoPlay", {
                                 :WaitForChild("Units")
                                 :WaitForChild("AutoPlay")
                                 :FireServer()
-                            print("AutoPlay is activated.")
                         end
                     end)
                     task.wait(1) -- checa a cada 1 segundo
@@ -327,7 +300,6 @@ Automatic:AddToggle("AutoPlay", {
     end
 })
 
--- Auto Next e Auto Retry com verificação de Showcase_Units
 local VotingStates = {}
 
 local function hideShowcaseUnits()
@@ -348,18 +320,15 @@ local function createVotingToggle(title, eventName, checkShowcase)
             VotingStates[eventName] = state
 
             if state then
-                -- Esconde caso já esteja na pasta
                 if checkShowcase then
                     hideShowcaseUnits()
                 end
 
-                -- Observa adições futuras
                 if checkShowcase then
                     local visual = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Visual")
                     visual.ChildAdded:Connect(function(child)
                         if child.Name == "Showcase_Units" and child:IsA("ScreenGui") then
                             child.Enabled = false
-                            print("Showcase_Units automatically hidden.")
                         end
                     end)
                 end
@@ -373,7 +342,6 @@ local function createVotingToggle(title, eventName, checkShowcase)
                                 :WaitForChild("Voting")
                                 :WaitForChild(eventName)
                                 :FireServer()
-                            print(title .. " voted!")
                         end)
                         task.wait(1)
                     end
@@ -387,7 +355,6 @@ createVotingToggle("Auto Next", "VoteNext", true)
 createVotingToggle("Auto Retry", "VoteRetry", true)
 createVotingToggle("Auto Start", "VotePlaying", false) -- esse não precisa da verificação
 
--- Auto Leave
 Automatic:AddToggle("AutoLeave", {
     Title = "Auto Leave",
     Default = false,
@@ -414,7 +381,6 @@ local LocalPlayer = Players.LocalPlayer
 local selectedUnit = nil
 local autoUpgradeSlots = false
 
--- Dropdown always visible, even if the folder doesn't exist yet
 local unitNames = {}
 local UnitDropdown = Upgrade:AddDropdown("UnitDropdown", {
     Title = "Select Unit",
@@ -424,11 +390,9 @@ local UnitDropdown = Upgrade:AddDropdown("UnitDropdown", {
 })
 
 UnitDropdown:OnChanged(function(value)
-    print("Selected unit:", value)
     selectedUnit = value
 end)
 
--- Updates the dropdown with units from the folder
 local function updateDropdown(UnitsFolder)
     unitNames = {}
     for _, unitFolder in pairs(UnitsFolder:GetChildren()) do
@@ -445,7 +409,6 @@ local function updateDropdown(UnitsFolder)
     end
 end
 
--- Monitors when UnitsFolder is added to LocalPlayer
 LocalPlayer.ChildAdded:Connect(function(child)
     if child.Name == "UnitsFolder" and child:IsA("Folder") then
         local UnitsFolder = child
@@ -461,7 +424,6 @@ LocalPlayer.ChildAdded:Connect(function(child)
     end
 end)
 
--- If UnitsFolder already exists (in case the player has everything loaded)
 local existing = LocalPlayer:FindFirstChild("UnitsFolder")
 if existing then
     updateDropdown(existing)
@@ -475,7 +437,6 @@ if existing then
     end)
 end
 
--- Toggle for auto upgrade
 Upgrade:AddToggle("AutoUpgradeSlots", {
     Title = "Auto Upgrade Slots",
     Description = "Automatically upgrades the selected unit",
@@ -500,7 +461,6 @@ Upgrade:AddToggle("AutoUpgradeSlots", {
     end
 })
 
--- Upgrade Systems
 local autoUpgradeYens = false
 Upgrade:AddToggle("AutoUpgradeYens", {
     Title = "Auto Upgrade Yens",
@@ -528,7 +488,6 @@ Upgrade:AddToggle("AutoUpgradeYens", {
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Lobby"):WaitForChild("Code")
 
--- Lista de códigos
 local codes = {
     "Sorry For Event Bug",
     "100K CCU",
@@ -556,7 +515,6 @@ Tabs.Misc:AddButton({
     end
 })
 
--- Anti AFK
 local AntiAfkConfig = {
     connection = nil
 }
@@ -564,14 +522,12 @@ local AntiAfkConfig = {
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
     if state then
-        -- Ativa o Anti AFK
         self.connection = player.Idled:Connect(function()
             local vu = game:GetService("VirtualUser")
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     else
-        -- Desativa o Anti AFK
         if self.connection then
             self.connection:Disconnect()
             self.connection = nil
@@ -586,24 +542,18 @@ function AntiAfkConfig:Unload()
     end
 end
 
--- Toggle para ligar/desligar o Anti AFK
 local Toggle = Tabs.Misc:AddToggle("MyToggle", {
     Title = "Anti AFK", 
     Default = false,
     Callback = function(state)
         if state then
-            -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK Active")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK Disabled")
         end
     end
 })
 
--- Initialize Save Manager
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
@@ -619,7 +569,6 @@ Fluent:Notify({
     Duration = 5
 })
 
--- Minimize button
 local CoreGui = game:GetService("CoreGui")
 
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")

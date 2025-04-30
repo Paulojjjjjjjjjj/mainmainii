@@ -11,7 +11,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
---// Abas
 local Tabs = {
     Main = Window:AddTab({ 
         Title = "Main",
@@ -33,13 +32,11 @@ local Dungeon = Tabs.Main:AddSection("Dungeon")
 local FarmingAutomatic = Tabs.Main:AddSection("Farming Automatic")
 local FarmingManual = Tabs.Main:AddSection("Farming Manual")
 
--- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- Local variables
 local LocalPlayer = Players.LocalPlayer
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local running = false
@@ -107,7 +104,6 @@ local DungeonConfigs = {
 
 local teleportPosition = Vector3.new(-2184.658447265625, 40.04765319824219, -537.9774780273438)
 
--- Create floating platform
 local function createFloatingPart()
     if floatingPart then floatingPart:Destroy() end
     
@@ -126,14 +122,12 @@ local function createFloatingPart()
     return part
 end
 
--- Check if in dungeon
 local function isInDungeon()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
     local screenGui = playerGui:FindFirstChild("ScreenGui")
     return screenGui and screenGui:FindFirstChild("Wave") and screenGui.Wave.Visible
 end
 
--- Insta-Kill system
 local function setupInstaKill()
     if instaKillConnection then
         instaKillConnection:Disconnect()
@@ -157,7 +151,6 @@ local function setupInstaKill()
     end)
 end
 
--- Teleport to farm spot
 local function teleportToFarmSpot()
     local character = LocalPlayer.Character
     if character then
@@ -183,7 +176,6 @@ local function teleportToFarmSpot()
     end
 end
 
--- Get dungeon config for level
 local function getConfigForLevel(level)
     for _, config in pairs(DungeonConfigs) do
         if level >= config.Min and level <= config.Max then
@@ -193,7 +185,6 @@ local function getConfigForLevel(level)
     return nil
 end
 
--- Main Auto Farm toggle
 FarmingAutomatic:AddToggle("AutoFarmOP", {
     Title = "Auto Farm OP",
     Default = false,
@@ -317,7 +308,6 @@ Dungeon:AddToggle("StartDungeonManual", {
     end
 })
 
--- Manual farming controls
 local killAuraActive = false
 local autoFarmActive = false
 local autoLeaveActive = false
@@ -328,7 +318,6 @@ local yDistance = 2
 local farmConnection = nil
 local auraConnection = nil
 
--- Find nearest mob
 local function findNearestMob()
     local character = LocalPlayer.Character
     if not character then return nil end
@@ -355,7 +344,6 @@ local function findNearestMob()
     return nearestMob
 end
 
--- Kill Aura
 local function startKillAura()
     if auraConnection then auraConnection:Disconnect() end
 
@@ -373,7 +361,6 @@ local function startKillAura()
     end)
 end
 
--- Auto Position
 local function startAutoFarm()
     if farmConnection then farmConnection:Disconnect() end
 
@@ -400,7 +387,6 @@ local function startAutoFarm()
     end)
 end
 
--- Auto Leave Dungeon
 local function checkAutoLeave()
     if not autoLeaveActive then return end
     pcall(function()
@@ -408,7 +394,6 @@ local function checkAutoLeave()
     end)
 end
 
--- Auto Replay Dungeon
 local function checkAutoReplay()
     if not autoReplayActive then return end
     pcall(function()
@@ -416,7 +401,6 @@ local function checkAutoReplay()
     end)
 end
 
--- Start Dungeon
 local function checkStartDungeon()
     if not startDungeonActive then return end
     pcall(function()
@@ -424,7 +408,6 @@ local function checkStartDungeon()
     end)
 end
 
--- Farming Manual UI
 FarmingManual:AddToggle("KillAuraToggle", {
     Title = "Kill Aura",
     Default = false,
@@ -522,7 +505,6 @@ FarmingManual:AddToggle("StartDungeonToggle", {
     end
 })
 
--- Anti AFK
 local AntiAfkConfig = {
     connection = nil
 }
@@ -530,14 +512,12 @@ local AntiAfkConfig = {
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
     if state then
-        -- Ativa o Anti AFK
         self.connection = player.Idled:Connect(function()
             local vu = game:GetService("VirtualUser")
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     else
-        -- Desativa o Anti AFK
         if self.connection then
             self.connection:Disconnect()
             self.connection = nil
@@ -552,24 +532,18 @@ function AntiAfkConfig:Unload()
     end
 end
 
--- Toggle para ligar/desligar o Anti AFK
 local Toggle = Tabs.Misc:AddToggle("MyToggle", {
     Title = "Anti AFK", 
     Default = false,
     Callback = function(state)
         if state then
-            -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK ativado")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK desativado")
         end
     end
 })
 
--- Save/Load system
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
@@ -585,7 +559,6 @@ Fluent:Notify({
     Duration = 5
 })
 
--- Minimize button
 local CoreGui = game:GetService("CoreGui")
 
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")

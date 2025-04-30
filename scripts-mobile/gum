@@ -2,7 +2,6 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
---// Janela principal
 local Window = Fluent:CreateWindow({
     Title = "Bubble Gum Simulator INFINITY | DZ HUB",
     TabWidth = 160,
@@ -12,7 +11,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
---// Abas
 local Tabs = {
     Main = Window:AddTab({ 
         Title = "Main",
@@ -48,14 +46,12 @@ local Tabs = {
     })
 }
 
---// Variáveis globais
 local AutoBlow = false
 local AutoSell = false
 local AutoHatch = false
 local SelectedEgg = "Iceshard Egg"
 local HatchAmount = 1
 
---// ======= [MAIN TAB SECTIONS] =======
 local SellOptions = Tabs.Main:AddSection("Sell Options")
 local BlowSection = Tabs.Main:AddSection("Bubble + Sell Automation")
 local CollectSection = Tabs.Main:AddSection("Auto Collect")
@@ -69,13 +65,11 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes") 
 
--- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- Auto Blow Feature
 local AutoBlow = false
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
@@ -101,7 +95,6 @@ BlowSection:AddToggle("AutoBlow", {
     end
 })
 
--- Auto Sell System
 local selectedThreshold = 10000
 local returnLocation = nil
 local shouldSavePosition = false
@@ -146,7 +139,6 @@ thresholdDropdown:OnChanged(function(val)
     selectedThreshold = sellAmountOptions[val] or 10000
 end)
 
--- Teleport Locations
 local teleportLocations = {
     ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
     ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
@@ -158,7 +150,6 @@ local teleportLocations = {
     ["None"] = nil -- Added "None" option
 }
 
--- Return Location Dropdown (updated with "None" option)
 local returnDropdown = SellOptions:AddDropdown("ReturnIsland", {
     Title = "Return Location After Sell",
     Description = "Choose where to return after selling (or None)",
@@ -171,7 +162,6 @@ returnDropdown:OnChanged(function(val)
     noReturn = val == "None" -- Set noReturn based on selection
 end)
 
--- Save Position Dropdown
 local savePosDropdown = SellOptions:AddDropdown("SavePos", {
     Title = "Save Position Before Selling?",
     Description = "Will walk back to original position after selling",
@@ -183,7 +173,6 @@ savePosDropdown:OnChanged(function(val)
     shouldSavePosition = val == "Yes"
 end)
 
--- Tween Service Option Dropdown
 local tweenBackDropdown = SellOptions:AddDropdown("TweenBack", {
     Title = "Return Method",
     Description = "Choose how to return to saved position",
@@ -195,7 +184,6 @@ tweenBackDropdown:OnChanged(function(val)
     useTweenService = val == "Tween"
 end)
 
--- Position Return Function
 local function returnToPosition(position)
     if not player.Character or not position then return end
     
@@ -221,7 +209,6 @@ local function returnToPosition(position)
     end
 end
 
--- Main Auto Sell Toggle
 BlowSection:AddToggle("AutoSellToggle", {
     Title = "Enable Auto Sell",
     Description = "Activates the complete auto sell system",
@@ -239,9 +226,7 @@ BlowSection:AddToggle("AutoSellToggle", {
     end
 })
 
--- Função para limpar e tentar converter a string para número
 local function tryParseNumber(str)
-    -- Remover quaisquer caracteres não numéricos e espaços
     local cleanedStr = str:gsub("[^0-9]", "")
     if cleanedStr == "" then
         return 0 -- Se não houver valor numérico, retorna 0
@@ -250,17 +235,14 @@ local function tryParseNumber(str)
     return num or 0 -- Retorna o número ou 0 se não for válido
 end
 
--- Auto Sell Loop with teleport verification
 task.spawn(function()
     local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
     
-    -- Twilight Island target coordinates
     local targetPosition = Vector3.new(-77.93646240234375, 6862.2060546875, 88.32815551757812)
     local proximityThreshold = 20 -- How close the player needs to be to consider teleport successful
     
     while true do
         if autoSellEnabled and player.Character then
-            -- Pause other processes temporarily
             local wasAutoHatchActive = AutoHatch
             if wasAutoHatchActive then
                 AutoHatch = false
@@ -283,20 +265,16 @@ task.spawn(function()
                             savedPosition = hrp.Position
                         end
 
-                        -- Teleport verification function
                         local function verifyTeleport()
                             local teleportAttempts = 0
                             local maxTeleportAttempts = 5
                             local teleportSuccess = false
                             
                             while teleportAttempts < maxTeleportAttempts and not teleportSuccess do
-                                -- Try to teleport
                                 remote:FireServer("Teleport", teleportLocations["Twilight Island"])
                                 
-                                -- Wait for teleport to complete
                                 task.wait(1.5)
                                 
-                                -- Check player position
                                 if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                                     local currentPosition = player.Character.HumanoidRootPart.Position
                                     local distance = (currentPosition - targetPosition).Magnitude
@@ -330,12 +308,9 @@ task.spawn(function()
                             return true
                         end
 
-                        -- Try to teleport and verify location
                         local teleportSuccess = verifyTeleport()
                         
-                        -- Only proceed with selling if teleport was successful
                         if teleportSuccess then
-                            -- Function to check if the value decreased
                             local function checkBubbleReduced()
                                 local currentText = player.PlayerGui.ScreenGui.HUD.Left.Currency.Bubble.Frame.Label.Text
                                 local currentCleaned = currentText:gsub("<[^>]+>", "")
@@ -347,25 +322,21 @@ task.spawn(function()
                                 return false
                             end
 
-                            -- Sell loop with verification
                             local sellAttempts = 0
                             local maxAttempts = 10
                             local saleConfirmed = false
                             
                             while sellAttempts < maxAttempts and autoSellEnabled and not saleConfirmed do
-                                -- Check current value before trying to sell
                                 if checkBubbleReduced() then
                                     saleConfirmed = true
                                     break
                                 end
                                 
-                                -- Try to sell
                                 local success, err = pcall(function()
                                     remote:FireServer("SellBubble")
                                 end)
 
                                 if success then
-                                    -- Wait and check if the value decreased
                                     task.wait(0.5)
                                     saleConfirmed = checkBubbleReduced()
                                     
@@ -396,7 +367,6 @@ task.spawn(function()
 
                             task.wait(1) -- Additional time after sale
 
-                            -- Return if necessary
                             if not noReturn and returnLocation then
                                 remote:FireServer("Teleport", returnLocation)
                                 task.wait(3)
@@ -411,7 +381,6 @@ task.spawn(function()
                 end
             end
             
-            -- Reactivate other processes if they were active
             if wasAutoHatchActive then
                 AutoHatch = true
                 EnableNoclip()
@@ -438,13 +407,11 @@ CollectSection:AddToggle("AutoCollectToggle", {
                     pcall(function()
                         local rendered = workspace:FindFirstChild("Rendered")
                         if rendered then
-                            -- Create a collection of items to pick up
                             local itemsToCollect = {}
                             
                             for _, folder in ipairs(rendered:GetChildren()) do
                                 if folder.Name == "Chunker" then
                                     for _, model in ipairs(folder:GetChildren()) do
-                                        -- Only collect items with name length >= 25
                                         if model:IsA("Model") and #model.Name >= 25 then
                                             table.insert(itemsToCollect, model)
                                         end
@@ -452,18 +419,15 @@ CollectSection:AddToggle("AutoCollectToggle", {
                                 end
                             end
                             
-                            -- Process the batch - collect everything at once then destroy
                             for i, model in ipairs(itemsToCollect) do
                                 pickupRemote:FireServer(model.Name)
                                 model:Destroy()
                                 
-                                -- Small yield every 20 items to prevent overwhelming the server
                                 if i % 20 == 0 then
                                     task.wait(0.5)
                                 end
                             end
                             
-                            -- Only notify if items were actually collected
                             if #itemsToCollect > 0 then
                             end
                         end
@@ -489,10 +453,8 @@ CollectSection:AddToggle("AutoGiftGrabber", {
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
 
                 while AutoGiftGrabber do
-                    -- 1. Usa 10 gifts de uma vez
                     RemoteEvent:FireServer("UseGift", "Mystery Box", 10)
 
-                    -- 2. Detecta e faz claim dos gifts
                     local startTime = os.clock()
                     local detectedGifts = {}
 
@@ -500,7 +462,6 @@ CollectSection:AddToggle("AutoGiftGrabber", {
                         for _, obj in pairs(RenderedGifts:GetChildren()) do
                             if obj:IsA("BasePart") and not detectedGifts[obj] then
                                 detectedGifts[obj] = true
-                                -- Faz o claim
                                 RemoteEvent:FireServer("ClaimGift", obj.Name)
                                 
                                 task.delay(0.5, function()
@@ -589,7 +550,6 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                     return genericChest and genericChest:FindFirstChild("Outer") ~= nil
                 end
 
-                -- Notifica imediatamente se os baús estão em cooldown
                 for chestName, data in pairs(chestData) do
                     if not isChestReady(data.path) then
                         Fluent:Notify({
@@ -600,7 +560,6 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                     end
                 end
 
-                -- Noclip loop
                 local noclipConnection
                 noclipConnection = RunService.Stepped:Connect(function()
                     if getgenv().AutoClaimChests then
@@ -828,12 +787,10 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
                     :WaitForChild("Remote"):WaitForChild("Function")
 
                 while getgenv().AutoWheelSpin do
-                    -- Roleta grátis
                     pcall(function()
                         Event:FireServer("ClaimFreeWheelSpin")
                     end)
                     
-                    -- Roleta paga
                     pcall(function()
                         Function:InvokeServer("WheelSpin")
                     end)
@@ -845,7 +802,6 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
     end
 })
 
--- Mapas de teleporte por ovo
 local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
@@ -864,7 +820,6 @@ local EggTeleportMap = {
     ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
 }
 
--- Posições dos ovos
 local EggPositions = {
     ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
     ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
@@ -883,7 +838,6 @@ local EggPositions = {
     ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
 }
 
--- Mapeamento de tarefas para ovos
 local TaskToEggMap = {
     ["Shiny"] = "Common Egg",
     ["Epic"] = "Spotted Egg",
@@ -891,7 +845,6 @@ local TaskToEggMap = {
     ["Common"] = "Common Egg"
 }
 
--- Toggle para ativar/desativar o Auto Hatch
 Tabs.AutoTask:AddToggle("AutoHatch", {
     Title = "Auto Task Competitive",
     Default = false,
@@ -900,17 +853,14 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
         
         if state then
             spawn(function()
-                -- Serviços
                 local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local Players = game:GetService("Players")
                 local RunService = game:GetService("RunService")
                 
-                -- Configuração de rede
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
                 local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local Player = Players.LocalPlayer
                 
-                -- Variáveis de estado
                 local currentTask = nil
                 local playTimeTaskActive = false
                 local playTimeStart = 0
@@ -918,7 +868,6 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                 local noclipActive = false
                 local noclipConnection = nil
 
-                -- Função para ativar/desativar NoClip
                 local function setNoClip(state)
                     if state == noclipActive then return end
                     
@@ -933,21 +882,17 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                 end
                             end
                         end)
-                        print("[NoClip] Ativado")
                     else
                         noclipActive = false
                         if noclipConnection then
                             noclipConnection:Disconnect()
                             noclipConnection = nil
                         end
-                        print("[NoClip] Desativado")
                     end
                 end
 
-                -- Função melhorada para caminhar até uma posição
                 local function walkToPosition(position)
                     if not Player.Character then 
-                        print("[ERRO] Personagem não encontrado ao tentar caminhar")
                         return false 
                     end
                     
@@ -955,18 +900,14 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     local rootPart = Player.Character:FindFirstChild("HumanoidRootPart")
                     
                     if not humanoid or not rootPart then 
-                        print("[ERRO] Humanoid ou RootPart não encontrado")
                         return false 
                     end
                     
-                    -- Ativar NoClip para evitar colisões durante o caminho
                     setNoClip(true)
                     
-                    -- Aumentar velocidade de caminhada
                     local originalWalkSpeed = humanoid.WalkSpeed
                     humanoid.WalkSpeed = 24
                     
-                    print("[INFO] Caminhando até a posição do ovo...")
                     humanoid:MoveTo(position)
                     
                     local startTime = os.time()
@@ -974,47 +915,32 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     local lastDistance = distance
                     local stuckCounter = 0
                     
-                    -- Loop para verificar progresso e evitar travamentos
                     while distance > 5 and os.time() - startTime < 30 do
                         task.wait(0.5)
                         
-                        -- Verificar se o movimento está estagnado
                         distance = (rootPart.Position - position).Magnitude
                         
-                        -- Se a distância não mudou significativamente, incrementar contador de "preso"
                         if math.abs(distance - lastDistance) < 1 then
                             stuckCounter = stuckCounter + 1
                         else
                             stuckCounter = 0
                         end
                         
-                        -- Se preso por muito tempo, tentar mover novamente
                         if stuckCounter >= 3 then
-                            print("[AVISO] Parece que estamos presos, tentando mover novamente")
                             humanoid:MoveTo(position)
                             stuckCounter = 0
                         end
                         
-                        -- Atualizar última distância para comparação
                         lastDistance = distance
                         
-                        -- Log do progresso
-                        print(string.format("[INFO] Distância até o alvo: %.2f", distance))
                     end
                     
-                    -- Restaurar velocidade original
                     humanoid.WalkSpeed = originalWalkSpeed
                     
-                    -- Verificar se chegamos ao destino
                     local success = (rootPart.Position - position).Magnitude <= 10
                     
-                    -- Manter NoClip apenas se ainda não chegamos ao destino
                     if success then
-                        print("[INFO] Chegamos com sucesso ao ovo!")
-                        -- Podemos desativar NoClip aqui se quisermos
-                        -- setNoClip(false)
                     else
-                        print("[AVISO] Não conseguimos chegar ao ovo após 30 segundos")
                     end
                     
                     return success
@@ -1027,22 +953,15 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                         for _, child in pairs(parent:GetChildren()) do
                             if child:IsA("TextLabel") and child.Visible and child.Text then
                                 local text = child.Text
-                                print("[INFO] Verificando tarefa:", text)  -- Log para verificar o texto
                                 
-                                -- Verifica tarefas de hatch
                                 if text:match("Hatch") then
-                                    print("[INFO] Encontrada tarefa de hatch:", text)
                                     
-                                    -- Ignora Mythic
                                     if text:match("Mythic") then
-                                        print("[INFO] Ignorando tarefa Mythic")
                                         return nil
                                     end
                                     
-                                    -- Verifica tipos específicos (usando o formato plural também)
                                     for petType, eggName in pairs(TaskToEggMap) do
                                         if text:match(petType) then
-                                            print("[INFO] Encontrado tipo de pet:", petType, "usando ovo:", eggName)
                                             local amount = text:match("Hatch (%d+)")
                                             if amount then
                                                 return {
@@ -1055,9 +974,7 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                         end
                                     end
                                     
-                                    -- Tarefas comuns de hatch
                                     if text:match("Common Pets") then
-                                        print("[INFO] Encontrada tarefa de Hatch de Common Pets")
                                         local amount = text:match("Hatch (%d+)")
                                         if amount then
                                             return {
@@ -1069,11 +986,9 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                         end
                                     end
 
-                                    -- Verificar nomes específicos de ovos
                                     for eggName, _ in pairs(EggPositions) do
                                         local shortName = eggName:gsub(" Egg", "")
                                         if text:match(shortName) or text:match(eggName) then
-                                            print("[INFO] Encontrado ovo pelo nome:", eggName)
                                             local amount = text:match("Hatch (%d+)")
                                             if amount then
                                                 return {
@@ -1087,9 +1002,7 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                     end
                                 end
                                 
-                                -- Verifica tarefa de tempo de jogo
                                 if text:match("Play for") then
-                                    print("[INFO] Encontrada tarefa de tempo de jogo:", text)
                                     local minutes = text:match("Play for (%d+) minutes")
                                     if minutes then
                                         return {
@@ -1110,63 +1023,47 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     return checkForLabels(TasksFrame)
                 end
 
-                -- Função para teleportar para a ilha certa
                 local function teleportToIsland(eggName)
                     local teleportPath = EggTeleportMap[eggName]
                     if not teleportPath then
-                        print("[ERRO] Caminho de teleporte não encontrado para:", eggName)
                         return false
                     end
                     
-                    print("[INFO] Teleportando para ilha:", teleportPath)
                     
-                    -- Enviar comando de teleporte
                     RemoteEvent:FireServer("Teleport", teleportPath)
                     
-                    -- Esperar um pouco para o teleporte acontecer
                     task.wait(3)
                     
                     return true
                 end
 
-                -- Função principal de hatch
                 local function hatchLoop(eggName, eggPosition)
                     local attempts = 0
                     local maxAttempts = 3
                     local atPosition = false
                     
                     while getgenv().AutoHatch and attempts < maxAttempts do
-                        -- Verificar se a tarefa mudou
                         local newTask = getCurrentTask()
                         if not newTask or (newTask.type == "hatch" and newTask.eggName ~= eggName) then
-                            print("[INFO] Tarefa mudou ou foi completada")
                             break
                         end
                         
-                        -- Verificar se estamos na posição correta
                         if not atPosition and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                             local currentPos = Player.Character.HumanoidRootPart.Position
                             if (currentPos - eggPosition).Magnitude > 10 then
-                                print("[INFO] Tentando ir até o ovo:", eggName)
                                 
-                                -- Primeiro teleportar para a ilha
                                 if teleportToIsland(eggName) then
                                     task.wait(1.5)
                                     
-                                    -- Depois caminhar até o ovo
-                                    print("[INFO] Caminhando até o ovo...")
                                     if walkToPosition(eggPosition) then
-                                        print("[INFO] Chegamos ao ovo com sucesso!")
                                         atPosition = true
                                         attempts = 0  -- Resetar tentativas quando chegar com sucesso
                                     else
-                                        print("[AVISO] Falha ao caminhar até o ovo, tentativa:", attempts + 1)
                                         attempts = attempts + 1
                                         task.wait(1)
                                         continue
                                     end
                                 else
-                                    print("[ERRO] Falha ao teleportar para ilha")
                                     attempts = attempts + 1
                                     task.wait(1.5)
                                     continue
@@ -1176,82 +1073,63 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                             end
                         end
                         
-                        -- Se chegamos até o ovo, realizar hatch
                         if atPosition then
-                            print("[INFO] Abrindo ovo:", eggName)
                             RemoteEvent:FireServer("HatchEgg", eggName, 10)
                             task.wait(0.5 + math.random() * 0.3)  -- Intervalo variável para parecer mais natural
                         else
-                            print("[AVISO] Ainda não estamos na posição do ovo")
                             atPosition = false  -- Resetar flag para tentar novamente
                             task.wait(1)
                         end
                     end
                     
                     if attempts >= maxAttempts then
-                        print("[ERRO] Número máximo de tentativas atingido. Pausando auto-hatch.")
                         getgenv().AutoHatch = false
                     end
                     
-                    -- Desativar NoClip quando terminar
                     setNoClip(false)
                 end
 
-                -- Loop principal
                 while getgenv().AutoHatch do
                     local task = getCurrentTask()
                     
-                    -- Gerenciar tarefa de tempo de jogo
                     if playTimeTaskActive then
                         local elapsed = os.time() - playTimeStart
                         if elapsed >= playTimeRequired then
                             playTimeTaskActive = false
-                            print("[INFO] Tarefa de tempo completada!")
                         else
-                            print(string.format("[INFO] Tempo de jogo: %d/%d segundos", elapsed, playTimeRequired))
                         end
                     end
                     
                     if task then
                         if task.type == "playtime" and not playTimeTaskActive then
-                            -- Iniciar tarefa de tempo
                             playTimeTaskActive = true
                             playTimeStart = os.time()
                             playTimeRequired = task.requiredTime
-                            print("[INFO] Iniciando tarefa de tempo: "..task.text)
                         elseif task.type == "hatch" then
                             if currentTask == nil or currentTask.text ~= task.text then
-                                -- Nova tarefa de hatch
                                 currentTask = task
-                                print("[INFO] Nova tarefa: " .. task.text)
                             end
                             
-                            -- Verificar se o ovo existe no mapa
                             local eggPosition = EggPositions[task.eggName]
                             if eggPosition then
-                                print("[INFO] Iniciando processo de hatch para:", task.eggName)
                                 hatchLoop(task.eggName, eggPosition)
                             else
-                                print("[ERRO] Posição não encontrada para ovo:", task.eggName)
                                 task.wait(2)
                             end
                         end
                     else
-                        print("[INFO] Nenhuma tarefa válida encontrada. Aguardando...")
                         wait(2)
                     end
                     
                     wait(1)
                 end
                 
-                -- Limpeza final
                 if noclipConnection then
                     noclipConnection:Disconnect()
                     noclipConnection = nil
                 end
             end)
         else
-            -- Desativar NoClip ao desligar
             if noclipConnection then
                 noclipConnection:Disconnect()
                 noclipConnection = nil
@@ -1260,7 +1138,6 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
     end
 })
 
--- Mapas de teleporte por ovo
 local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
@@ -1279,7 +1156,6 @@ local EggTeleportMap = {
     ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
 }
 
--- Posições dos ovos
 local EggPositions = {
     ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
     ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
@@ -1298,7 +1174,6 @@ local EggPositions = {
     ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
 }
 
--- Mapeamento de tarefas para ovos
 local TaskToEggMap = {
     ["Shiny"] = "Common Egg",
     ["Epic"] = "Spotted Egg",
@@ -1307,7 +1182,6 @@ local TaskToEggMap = {
     ["Rare"] = "Iceshard Egg"
 }
 
--- Toggle para ativar/desativar o Auto Hatch
 Tabs.AutoTask:AddToggle("AutoHatch", {
     Title = "Auto Task Challenge",
     Default = false,
@@ -1316,17 +1190,14 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
         
         if state then
             spawn(function()
-                -- Serviços
                 local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local Players = game:GetService("Players")
                 local RunService = game:GetService("RunService")
                 
-                -- Configuração de rede
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
                 local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local Player = Players.LocalPlayer
                 
-                -- Variáveis de estado
                 local currentTask = nil
                 local playTimeTaskActive = false
                 local playTimeStart = 0
@@ -1334,7 +1205,6 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                 local noclipActive = false
                 local noclipConnection = nil
 
-                -- Função para ativar/desativar NoClip
                 local function setNoClip(state)
                     if state == noclipActive then return end
                     
@@ -1349,21 +1219,17 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                 end
                             end
                         end)
-                        print("[NoClip] Ativado")
                     else
                         noclipActive = false
                         if noclipConnection then
                             noclipConnection:Disconnect()
                             noclipConnection = nil
                         end
-                        print("[NoClip] Desativado")
                     end
                 end
 
-                -- Função melhorada para caminhar até uma posição
                 local function walkToPosition(position)
                     if not Player.Character then 
-                        print("[ERRO] Personagem não encontrado ao tentar caminhar")
                         return false 
                     end
                     
@@ -1371,18 +1237,14 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     local rootPart = Player.Character:FindFirstChild("HumanoidRootPart")
                     
                     if not humanoid or not rootPart then 
-                        print("[ERRO] Humanoid ou RootPart não encontrado")
                         return false 
                     end
                     
-                    -- Ativar NoClip para evitar colisões durante o caminho
                     setNoClip(true)
                     
-                    -- Aumentar velocidade de caminhada
                     local originalWalkSpeed = humanoid.WalkSpeed
                     humanoid.WalkSpeed = 24
                     
-                    print("[INFO] Caminhando até a posição do ovo...")
                     humanoid:MoveTo(position)
                     
                     local startTime = os.time()
@@ -1390,47 +1252,32 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     local lastDistance = distance
                     local stuckCounter = 0
                     
-                    -- Loop para verificar progresso e evitar travamentos
                     while distance > 5 and os.time() - startTime < 30 do
                         task.wait(0.5)
                         
-                        -- Verificar se o movimento está estagnado
                         distance = (rootPart.Position - position).Magnitude
                         
-                        -- Se a distância não mudou significativamente, incrementar contador de "preso"
                         if math.abs(distance - lastDistance) < 1 then
                             stuckCounter = stuckCounter + 1
                         else
                             stuckCounter = 0
                         end
                         
-                        -- Se preso por muito tempo, tentar mover novamente
                         if stuckCounter >= 3 then
-                            print("[AVISO] Parece que estamos presos, tentando mover novamente")
                             humanoid:MoveTo(position)
                             stuckCounter = 0
                         end
                         
-                        -- Atualizar última distância para comparação
                         lastDistance = distance
                         
-                        -- Log do progresso
-                        print(string.format("[INFO] Distância até o alvo: %.2f", distance))
                     end
                     
-                    -- Restaurar velocidade original
                     humanoid.WalkSpeed = originalWalkSpeed
                     
-                    -- Verificar se chegamos ao destino
                     local success = (rootPart.Position - position).Magnitude <= 10
                     
-                    -- Manter NoClip apenas se ainda não chegamos ao destino
                     if success then
-                        print("[INFO] Chegamos com sucesso ao ovo!")
-                        -- Podemos desativar NoClip aqui se quisermos
-                        -- setNoClip(false)
                     else
-                        print("[AVISO] Não conseguimos chegar ao ovo após 30 segundos")
                     end
                     
                     return success
@@ -1444,22 +1291,15 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                         for _, child in pairs(parent:GetChildren()) do
                             if child:IsA("TextLabel") and child.Visible and child.Text then
                                 local text = child.Text
-                                print("[INFO] Verificando tarefa:", text)  -- Log para verificar o texto
                                 
-                                -- Verifica tarefas de hatch
                                 if text:match("Hatch") then
-                                    print("[INFO] Encontrada tarefa de hatch:", text)
                                     
-                                    -- Ignora Mythic
                                     if text:match("Mythic") then
-                                        print("[INFO] Ignorando tarefa Mythic")
                                         return nil
                                     end
                                     
-                                    -- Verifica tipos específicos
                                     for petType, eggName in pairs(TaskToEggMap) do
                                         if text:match(petType) then
-                                            print("[INFO] Encontrado tipo de pet:", petType, "usando ovo:", eggName)
                                             local amount = text:match("Hatch (%d+)")
                                             if amount then
                                                 return {
@@ -1472,9 +1312,7 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                         end
                                     end
                                     
-                                    -- Hatch de Common Pets
                                     if text:match("Common Pets") then
-                                        print("[INFO] Encontrada tarefa de Hatch de Common Pets")
                                         local amount = text:match("Hatch (%d+)")
                                         if amount then
                                             return {
@@ -1486,11 +1324,9 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                         end
                                     end
                 
-                                    -- Verificar nomes específicos de ovos
                                     for eggName, _ in pairs(EggPositions) do
                                         local shortName = eggName:gsub(" Egg", "")
                                         if text:match(shortName) or text:match(eggName) then
-                                            print("[INFO] Encontrado ovo pelo nome:", eggName)
                                             local amount = text:match("Hatch (%d+)")
                                             if amount then
                                                 return {
@@ -1504,9 +1340,7 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                                     end
                                 end
                 
-                                -- Verifica tarefa de tempo de jogo
                                 if text:match("Play for") then
-                                    print("[INFO] Encontrada tarefa de tempo de jogo:", text)
                                     local minutes = text:match("Play for (%d+) minutes")
                                     if minutes then
                                         return {
@@ -1524,7 +1358,6 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                         return nil
                     end
                 
-                    -- Verifica em ambas as listas de tarefas (Daily e Hourly)
                     for _, listName in ipairs({"Daily", "Hourly"}) do
                         local list = ChallengesFrame:FindFirstChild(listName)
                         if list and list:FindFirstChild("List") then
@@ -1536,63 +1369,47 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                     return nil
                 end                            
 
-                -- Função para teleportar para a ilha certa
                 local function teleportToIsland(eggName)
                     local teleportPath = EggTeleportMap[eggName]
                     if not teleportPath then
-                        print("[ERRO] Caminho de teleporte não encontrado para:", eggName)
                         return false
                     end
                     
-                    print("[INFO] Teleportando para ilha:", teleportPath)
                     
-                    -- Enviar comando de teleporte
                     RemoteEvent:FireServer("Teleport", teleportPath)
                     
-                    -- Esperar um pouco para o teleporte acontecer
                     task.wait(3)
                     
                     return true
                 end
 
-                -- Função principal de hatch
                 local function hatchLoop(eggName, eggPosition)
                     local attempts = 0
                     local maxAttempts = 3
                     local atPosition = false
                     
                     while getgenv().AutoHatch and attempts < maxAttempts do
-                        -- Verificar se a tarefa mudou
                         local newTask = getCurrentTask()
                         if not newTask or (newTask.type == "hatch" and newTask.eggName ~= eggName) then
-                            print("[INFO] Tarefa mudou ou foi completada")
                             break
                         end
                         
-                        -- Verificar se estamos na posição correta
                         if not atPosition and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                             local currentPos = Player.Character.HumanoidRootPart.Position
                             if (currentPos - eggPosition).Magnitude > 10 then
-                                print("[INFO] Tentando ir até o ovo:", eggName)
                                 
-                                -- Primeiro teleportar para a ilha
                                 if teleportToIsland(eggName) then
                                     task.wait(1.5)
                                     
-                                    -- Depois caminhar até o ovo
-                                    print("[INFO] Caminhando até o ovo...")
                                     if walkToPosition(eggPosition) then
-                                        print("[INFO] Chegamos ao ovo com sucesso!")
                                         atPosition = true
                                         attempts = 0  -- Resetar tentativas quando chegar com sucesso
                                     else
-                                        print("[AVISO] Falha ao caminhar até o ovo, tentativa:", attempts + 1)
                                         attempts = attempts + 1
                                         task.wait(1)
                                         continue
                                     end
                                 else
-                                    print("[ERRO] Falha ao teleportar para ilha")
                                     attempts = attempts + 1
                                     task.wait(1.5)
                                     continue
@@ -1602,82 +1419,63 @@ Tabs.AutoTask:AddToggle("AutoHatch", {
                             end
                         end
                         
-                        -- Se chegamos até o ovo, realizar hatch
                         if atPosition then
-                            print("[INFO] Abrindo ovo:", eggName)
                             RemoteEvent:FireServer("HatchEgg", eggName, 10)
                             task.wait(0.5 + math.random() * 0.3)  -- Intervalo variável para parecer mais natural
                         else
-                            print("[AVISO] Ainda não estamos na posição do ovo")
                             atPosition = false  -- Resetar flag para tentar novamente
                             task.wait(1)
                         end
                     end
                     
                     if attempts >= maxAttempts then
-                        print("[ERRO] Número máximo de tentativas atingido. Pausando auto-hatch.")
                         getgenv().AutoHatch = false
                     end
                     
-                    -- Desativar NoClip quando terminar
                     setNoClip(false)
                 end
 
-                -- Loop principal
                 while getgenv().AutoHatch do
                     local task = getCurrentTask()
                     
-                    -- Gerenciar tarefa de tempo de jogo
                     if playTimeTaskActive then
                         local elapsed = os.time() - playTimeStart
                         if elapsed >= playTimeRequired then
                             playTimeTaskActive = false
-                            print("[INFO] Tarefa de tempo completada!")
                         else
-                            print(string.format("[INFO] Tempo de jogo: %d/%d segundos", elapsed, playTimeRequired))
                         end
                     end
                     
                     if task then
                         if task.type == "playtime" and not playTimeTaskActive then
-                            -- Iniciar tarefa de tempo
                             playTimeTaskActive = true
                             playTimeStart = os.time()
                             playTimeRequired = task.requiredTime
-                            print("[INFO] Iniciando tarefa de tempo: "..task.text)
                         elseif task.type == "hatch" then
                             if currentTask == nil or currentTask.text ~= task.text then
-                                -- Nova tarefa de hatch
                                 currentTask = task
-                                print("[INFO] Nova tarefa: " .. task.text)
                             end
                             
-                            -- Verificar se o ovo existe no mapa
                             local eggPosition = EggPositions[task.eggName]
                             if eggPosition then
-                                print("[INFO] Iniciando processo de hatch para:", task.eggName)
                                 hatchLoop(task.eggName, eggPosition)
                             else
-                                print("[ERRO] Posição não encontrada para ovo:", task.eggName)
                                 task.wait(2)
                             end
                         end
                     else
-                        print("[INFO] Nenhuma tarefa válida encontrada. Aguardando...")
                         wait(2)
                     end
                     
                     wait(1)
                 end
                 
-                -- Limpeza final
                 if noclipConnection then
                     noclipConnection:Disconnect()
                     noclipConnection = nil
                 end
             end)
         else
-            -- Desativar NoClip ao desligar
             if noclipConnection then
                 noclipConnection:Disconnect()
                 noclipConnection = nil
@@ -1698,7 +1496,6 @@ local AutoHatch = false
 local Noclip = false
 local NoclipConnection = nil
 
--- Mapas de teleporte por ovo
 local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
@@ -1724,7 +1521,6 @@ local EggTeleportMap = {
     ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
 }
 
--- Posições atualizadas dos ovos
 local EggPositions = {
     ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
     ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
@@ -1785,7 +1581,6 @@ EggDropdown:OnChanged(function(val)
     SelectedEgg = val
 end)
 
--- Auto Hatch Toggle
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
     Description = "Automatically opens eggs after walking to them",
@@ -1838,7 +1633,6 @@ EggRift:AddParagraph({
     Content = "Note:\n- 'event-1' refers to the Bunny Egg\n- 'event-2' refers to the Pastel Egg\n- 'event-3' refers to the Throwback Egg"
 })
 
--- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1846,7 +1640,6 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
 
--- Variables
 local AutoRiftHatch = false
 local SelectedRiftEggs = {}
 local SelectedLuckMultipliers = {}
@@ -1856,7 +1649,6 @@ local CurrentTargetMultiplier = nil
 local NoClipEnabled = false
 local NoClipConnection = nil
 
--- Egg Name Mapping
 local EggNameMap = {
     ["spotted-egg"] = "Spotted Egg",
     ["iceshard-egg"] = "Iceshard Egg",
@@ -1874,10 +1666,8 @@ local EggNameMap = {
     ["event-3"] = "Throwback Egg"
 }
 
--- RemoteEvent
 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
 
--- Dropdown Egg Names
 local RiftEggNames = {}
 for k in pairs(EggNameMap) do
     table.insert(RiftEggNames, k)
@@ -1917,7 +1707,6 @@ LuckMultiplierDropdown:OnChanged(function(selectedTable)
     end
 end)
 
--- NoClip Functionality
 local function enableNoClip()
     if NoClipConnection then return end
     
@@ -1947,17 +1736,14 @@ local function disableNoClip()
     end
 end
 
--- Utility Functions
 local function teleportToEgg(egg)
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
     
-    -- Cancel any existing tween
     if ActiveTweens[hrp] then 
         ActiveTweens[hrp]:Cancel() 
     end
     
-    -- Enable NoClip during teleport
     enableNoClip()
     
     local targetCFrame = CFrame.new(egg:GetPivot().Position + Vector3.new(0, 3, 0))
@@ -2008,7 +1794,6 @@ local function chooseNewTarget()
     end
 end
 
--- Main Toggle
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
     Description = "Automatically teleport and hatch rift eggs",
@@ -2104,7 +1889,6 @@ local function teleportAndFarm()
     while AutoGoldenChest do
         local chest = workspace.Rendered.Rifts:FindFirstChild("golden-chest")
         if chest then
-            -- Teleport with TweenService (6 seconds)
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 enableNoClip()
@@ -2114,7 +1898,6 @@ local function teleportAndFarm()
                 tween:Play()
                 tween.Completed:Wait()
                 
-                -- Farm while chest exists
                 while AutoGoldenChest and chest.Parent do
                     game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "golden-chest")
                     task.wait(1)
@@ -2126,7 +1909,6 @@ local function teleportAndFarm()
     disableNoClip()
 end
 
--- Add this to your existing Fluent UI
 ChestHunt:AddToggle("AutoGoldenChestToggle", {
     Title = "Auto Golden Chest",
     Description = "Teleport and farm golden chest automatically",
@@ -2143,7 +1925,6 @@ local AutoGiftRift = false
 local ActiveTween
 local NoClipConnection
 
--- Função NoClip (reutilizável)
 local function manageNoClip(enable)
     if enable then
         if not NoClipConnection then
@@ -2165,12 +1946,10 @@ local function manageNoClip(enable)
     end
 end
 
--- Função principal para o Gift Rift
 local function teleportAndClaimGift()
     while AutoGiftRift do
         local gift = workspace.Rendered.Rifts:FindFirstChild("gift-rift")
         if gift then
-            -- Teleporte com TweenService (6 segundos)
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 manageNoClip(true)
@@ -2180,7 +1959,6 @@ local function teleportAndClaimGift()
                 tween:Play()
                 tween.Completed:Wait()
                 
-                -- Fica reivindicando enquanto o gift existir
                 while AutoGiftRift and gift.Parent do
                     game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("ClaimRiftGift", "gift-rift")
                     task.wait(0.5) -- Intervalo entre claims
@@ -2192,7 +1970,6 @@ local function teleportAndClaimGift()
     manageNoClip(false)
 end
 
--- Adicione esta toggle à sua interface Fluent
 GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Title = "Auto Gift Rift",
     Description = "Automatically teleports and collects gifts",
@@ -2225,13 +2002,11 @@ Tabs.Upgrades:AddToggle("AutoUpgrade", {
                         [2] = "Buffs"
                     }
 
-                    -- Envia a requisição ao servidor
                     RemoteEvent:FireServer(unpack(args))
                     task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
                 end
             end)
         else
-            -- Se a toggle for desativada, o loop será interrompido
             getgenv().AutoUpgrade = false
         end
     end
@@ -2257,13 +2032,11 @@ Tabs.Upgrades:AddToggle("AutoUpgradePets", {
                         [2] = "Pets"  -- Aqui está o "Pets" que você mencionou
                     }
 
-                    -- Envia a requisição ao servidor
                     RemoteEvent:FireServer(unpack(args))
                     task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
                 end
             end)
         else
-            -- Se a toggle for desativada, o loop será interrompido
             getgenv().AutoUpgradePets = false
         end
     end
@@ -2289,19 +2062,16 @@ Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
                         [2] = "Shops"  -- Aqui está o "Shops" que você mencionou
                     }
 
-                    -- Envia a requisição ao servidor
                     RemoteEvent:FireServer(unpack(args))
                     task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
                 end
             end)
         else
-            -- Se a toggle for desativada, o loop será interrompido
             getgenv().AutoUpgradeShops = false
         end
     end
 })
 
--- Tabela com poções válidas
 local potionList = {}
 local dropdownOptions = {}
 
@@ -2309,7 +2079,6 @@ local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
 local tiers = {1, 2, 3, 4, 5,}
 local roman = {"I", "II", "III", "IV", "V"}
 
--- Cria mapeamento: "Lucky I" → {"Lucky", 1}
 for _, potion in ipairs(potionNames) do
     for i, tier in ipairs(tiers) do
         local displayName = potion .. " " .. roman[i]
@@ -2318,7 +2087,6 @@ for _, potion in ipairs(potionNames) do
     end
 end
 
--- Criando o Dropdown com seleção múltipla
 local MultiDropdown = AutoPotionSection:AddDropdown("Poções", {
     Title = "Selecting Potions",
     Description = "Choose the potions to use",
@@ -2327,22 +2095,16 @@ local MultiDropdown = AutoPotionSection:AddDropdown("Poções", {
     Default = {},  -- Predefinir poções selecionadas
 })
 
--- A variável SelectedPotions vai ser atualizada quando o usuário fizer alterações
 local SelectedPotions = {}
 
--- Função para capturar as seleções após mudança
 MultiDropdown:OnChanged(function(Value)
-    -- Atualiza a lista de poções selecionadas
     SelectedPotions = {}
     for potion, _ in pairs(Value) do
         table.insert(SelectedPotions, potion)
     end
 
-    -- Exibe as poções selecionadas no console
-    print("Selected potions:", table.concat(SelectedPotions, ", "))
 end)
 
--- RemoteEvent
 local RemoteEvent = game:GetService("ReplicatedStorage")
     :WaitForChild("Shared")
     :WaitForChild("Framework")
@@ -2350,7 +2112,6 @@ local RemoteEvent = game:GetService("ReplicatedStorage")
     :WaitForChild("Remote")
     :WaitForChild("Event")
 
--- Toggle Auto Potion
 AutoPotionSection:AddToggle("Auto Usar Poções", {
     Title = "Auto Use Potion",
     Description = "Enables automatic use of selected potions",
@@ -2361,7 +2122,6 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
         if state then
             task.spawn(function()
                 while getgenv().AutoPotion do
-                    -- Verifica se existem poções selecionadas
                     if #SelectedPotions == 0 then
                         Fluent:Notify({
                             Title = "Warn",
@@ -2371,12 +2131,10 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
                         break
                     end
 
-                    -- Envia as poções selecionadas para o servidor
                     for _, displayName in ipairs(SelectedPotions) do
                         local data = potionList[displayName]
                         if data then
                             local name, tier = unpack(data)
-                            print("Sending:", name, tier)
                             pcall(function()
                                 RemoteEvent:FireServer("UsePotion", name, tier)
                             end)
@@ -2393,7 +2151,6 @@ AutoPotionSection:AddToggle("Auto Usar Poções", {
     end
 })
 
--- Tabela com poções válidas
 local potionList = {}
 local dropdownOptions = {}
 
@@ -2401,7 +2158,6 @@ local potionNames = {"Coins", "Lucky", "Speed", "Mythic"}
 local tiers = {2, 3, 4, 5}
 local roman = {"II", "III", "IV", "V"}
 
--- Cria mapeamento: "Lucky I" → {"Lucky", 1}
 for _, potion in ipairs(potionNames) do
     for i, tier in ipairs(tiers) do
         local displayName = potion .. " " .. roman[i]
@@ -2410,7 +2166,6 @@ for _, potion in ipairs(potionNames) do
     end
 end
 
--- Criando o Dropdown com seleção múltipla
 local MultiDropdown = AutoCraftPotionSection:AddDropdown("Poções", {
     Title = "Selecting Potions to Craft",
     Description = "Choose the potions and tiers you want to craft",
@@ -2419,19 +2174,15 @@ local MultiDropdown = AutoCraftPotionSection:AddDropdown("Poções", {
     Default = {},
 })
 
--- Lista com as poções selecionadas
 local SelectedPotions = {}
 
--- Atualiza quando o usuário seleciona
 MultiDropdown:OnChanged(function(Value)
     SelectedPotions = {}
     for potion, _ in pairs(Value) do
         table.insert(SelectedPotions, potion)
     end
-    print("Poções para craft:", table.concat(SelectedPotions, ", "))
 end)
 
--- RemoteEvent
 local RemoteEvent = game:GetService("ReplicatedStorage")
     :WaitForChild("Shared")
     :WaitForChild("Framework")
@@ -2439,7 +2190,6 @@ local RemoteEvent = game:GetService("ReplicatedStorage")
     :WaitForChild("Remote")
     :WaitForChild("Event")
 
--- Toggle Auto Craft
 AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
     Title = "Auto Craft Potion",
     Description = "Automatically brews selected potions",
@@ -2463,7 +2213,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                         local data = potionList[displayName]
                         if data then
                             local name, tier = unpack(data)
-                            print("Craftando:", name, tier)
                             pcall(function()
                                 RemoteEvent:FireServer("CraftPotion", name, tier, false)
                             end)
@@ -2480,7 +2229,6 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
     end
 })
 
--- Toggle para teleportar com TweenService
 local AutoTween = false
 
 TeleportSection:AddToggle("TweenTeleport", {
@@ -2517,7 +2265,6 @@ TeleportSection:AddToggle("TweenTeleport", {
     end
 })
 
--- Tabela com locais de teleporte
 local teleportLocations = {
     ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
     ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
@@ -2529,7 +2276,6 @@ local teleportLocations = {
     
 }
 
--- Loop para criar os botões de teleporte
 for name, path in pairs(teleportLocations) do
     Tabs.Teleport:AddButton({
         Title = name,
@@ -2553,7 +2299,6 @@ for name, path in pairs(teleportLocations) do
     })
 end
 
---// Botão de resgatar códigos
 CodeSection:AddButton({
     Title = "Redeem Codes",
     Description = "Redeem all available codes",
@@ -2566,7 +2311,6 @@ CodeSection:AddButton({
                     :InvokeServer("RedeemCode", code)
             end)
             if success then
-                print("Code redeemed:", code)
             else
                 warn("Error redeeming code:", code, result)
             end
@@ -2575,7 +2319,6 @@ CodeSection:AddButton({
     end
 })
 
--- Anti AFK
 local AntiAfkConfig = {
     connection = nil
 }
@@ -2583,14 +2326,12 @@ local AntiAfkConfig = {
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
     if state then
-        -- Ativa o Anti AFK
         self.connection = player.Idled:Connect(function()
             local vu = game:GetService("VirtualUser")
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     else
-        -- Desativa o Anti AFK
         if self.connection then
             self.connection:Disconnect()
             self.connection = nil
@@ -2605,13 +2346,11 @@ function AntiAfkConfig:Unload()
     end
 end
 
--- Toggle para ligar/desligar o Anti AFK
 local Toggle = Tabs.Misc:AddToggle("MyToggle", {
     Title = "Anti AFK", 
     Default = false,
     Callback = function(state)
         if state then
-            -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
         else
             AntiAfkConfig:Toggle(false)
@@ -2619,7 +2358,6 @@ local Toggle = Tabs.Misc:AddToggle("MyToggle", {
     end
 })
 
---// ======= [SETTINGS] =======
 
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
@@ -2638,7 +2376,6 @@ Fluent:Notify({
 
 local CoreGui = game:GetService("CoreGui")
 
--- Remover qualquer GUI persistente anterior com o mesmo nome
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
 if ExistingGui then
     ExistingGui:Destroy()
@@ -2646,7 +2383,6 @@ end
 
 local ScreenGuiToMinimize
 
--- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
@@ -2664,9 +2400,7 @@ if not ScreenGuiToMinimize then
     return
 end
 
-print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
 
--- Criar botão persistente
 local MinimizeGui = Instance.new("ScreenGui", CoreGui)
 MinimizeGui.Name = "MinimizeButtonGui"
 
@@ -2678,10 +2412,8 @@ MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.BorderSizePixel = 0
 MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
 
--- Adicionar UICorner ao botão para arredondar bordas
 local UICorner = Instance.new("UICorner", MinimizeButton)
 
--- Função para minimizar corretamente
 MinimizeButton.MouseButton1Click:Connect(function()
     if Window and Window.Minimize then
         Window:Minimize()
@@ -2690,7 +2422,6 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Adicionar funcionalidade de arrastar o botão
 local dragging = false
 local dragStart, startPos
 

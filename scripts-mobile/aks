@@ -38,24 +38,18 @@ local Tabs = {
     })
 }
 
----------------------------------------------------
-----------------------SECTION----------------------
 local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local AFK = Tabs.Misc:AddSection("AFK")
-----------------------SECTION----------------------
----------------------------------------------------
 
 local player = game.Players.LocalPlayer
 
--- 🔎 Coletar IDs únicos dos inimigos nas subpastas
 local enemyIds = {}
 
 for _, folder in pairs(workspace._ENEMIES.Server:GetChildren()) do
     for _, enemy in pairs(folder:GetChildren()) do
         if (enemy:IsA("Model") or enemy:IsA("BasePart")) and enemy:GetAttribute("Id") then
             local id = enemy:GetAttribute("Id")
-            -- Ignorar o ID "TestDummy"
             if id ~= "TestDummy" and not table.find(enemyIds, id) then
                 table.insert(enemyIds, id)
             end
@@ -65,7 +59,6 @@ end
 
 table.sort(enemyIds) -- organiza os nomes no dropdown
 
--- 🐾 MultiDropdown: Seleção de inimigos
 local selectedEnemies = {}
 
 local EnemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
@@ -83,7 +76,6 @@ EnemyDropdown:OnChanged(function(value)
             table.insert(selectedEnemies, enemyId)
         end
     end
-    print("Inimigos selecionados:", table.concat(selectedEnemies, ", "))
 end)
 
 FarmingOptions:AddButton({
@@ -105,15 +97,11 @@ FarmingOptions:AddButton({
 
         table.sort(enemyIds)
 
-        -- Atualiza os valores do Dropdown
         EnemyDropdown:SetValues(enemyIds)
         EnemyDropdown:SetValue({}) -- opcional: limpa seleção anterior
-
-        print("Updated enemy dropdown!")
     end
 })
 
--- 🎯 Prioridade de farm
 local prioridadeSelecionada = "Nearest"
 
 local PrioridadeDropdown = FarmingOptions:AddDropdown("PrioridadeDropdown", {
@@ -125,10 +113,8 @@ local PrioridadeDropdown = FarmingOptions:AddDropdown("PrioridadeDropdown", {
 
 PrioridadeDropdown:OnChanged(function(value)
     prioridadeSelecionada = value
-    print("Selected priority:", prioridadeSelecionada)
 end)
 
--- 🧠 Lógica de prioridade
 local function getPrioritizedEnemy()
     local closestEnemy, lowestHPEnemy, highestHPEnemy
     local closestDist = math.huge
@@ -144,7 +130,6 @@ local function getPrioritizedEnemy()
                 local id = enemyPart:GetAttribute("Id")
                 local hp = enemyPart:GetAttribute("HP")
 
-                -- Ignorar inimigo com ID "TestDummy"
                 if id and id ~= "TestDummy" and hp and table.find(selectedEnemies, id) and hp > 0 then
                     local pos = enemyPart:IsA("Model") and (enemyPart:FindFirstChild("HumanoidRootPart") or enemyPart.PrimaryPart) or enemyPart
                     if pos then
@@ -181,9 +166,7 @@ end
 
 local localPlayer = game.Players.LocalPlayer
 
--- 🧭 Função de teleporte forçado para uma parte
 local function forcedStepTeleport(destination)
-    -- Esperar o personagem ser carregado
     if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
         localPlayer.CharacterAdded:Wait() -- Aguarda o personagem ser adicionado
     end
@@ -191,11 +174,9 @@ local function forcedStepTeleport(destination)
     local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    -- Teleporta uma vez
     root.CFrame = CFrame.new(destination.Position + Vector3.new(0, 0, 0))
 end
 
--- ⬇ Atualiza a Callback da Toggle Auto Farm
 local AutoFarmToggle = AutoFarm:AddToggle("AutoFarmToggle", {
     Title = "Auto Farm",
     Description = "Activates automatic farm on selected enemies.",
@@ -207,16 +188,13 @@ local AutoFarmToggle = AutoFarm:AddToggle("AutoFarmToggle", {
                 while autoFarm do
                     local enemy = getPrioritizedEnemy()
                     if enemy then
-                        -- Teleporta até o inimigo uma vez
                         forcedStepTeleport(enemy)
 
-                        -- Espera até que a vida do inimigo chegue a 0
                         while enemy and enemy:GetAttribute("HP") > 0 do
                             task.wait(0.5)
                         end
                     end
 
-                    -- Após o inimigo morrer, teleporta para o próximo inimigo
                     task.wait(1) -- Aguarda 1 segundo antes de ir para o próximo inimigo
                 end
             end)
@@ -232,7 +210,6 @@ local userId = player.UserId
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
 
--- 🐾 Pega os nomes dos pets do jogador
 local function getMyPetNames()
     local petNames = {}
     if petsFolder then
@@ -243,7 +220,6 @@ local function getMyPetNames()
     return petNames
 end
 
--- 🔍 Pega todos os inimigos que são Partes diretas nas subpastas
 local function getAllEnemies()
     local enemies = {}
     for _, folder in pairs(workspace._ENEMIES.Server:GetChildren()) do
@@ -256,7 +232,6 @@ local function getAllEnemies()
     return enemies
 end
 
--- 🧠 Verifica qual inimigo não está sendo atacado por seus pets dentro de 20 studs
 local function getEnemyNotAttackedByMe()
     local myPets = getMyPetNames()
     local allEnemies = getAllEnemies()
@@ -269,26 +244,17 @@ local function getEnemyNotAttackedByMe()
         local petsAttr = enemyPart:GetAttribute("Pets") or ""
         local isBeingAttacked = false
 
-        -- Verifica se o atributo Pets existe e se não está vazio
-        print("Attribute Pets of " .. enemyPart.Name .. ": " .. petsAttr)
-        
-        -- Verifica se algum dos pets está atacando o inimigo
         for _, myPet in ipairs(myPets) do
             if petsAttr:find(myPet) then
-                print("Pet " .. myPet .. " is attacking " .. enemyPart.Name)
                 isBeingAttacked = true
                 break
             end
         end
 
-        -- Verifica a distância até o inimigo
         local dist = (enemyPart.Position - myPosition).Magnitude
         if dist <= closestDistance then
-            print("Distance to " .. enemyPart.Name .. ": " .. dist)
 
-            -- Se o atributo Pets estiver vazio ou o inimigo não estiver sendo atacado, podemos atacar
             if (petsAttr == "" or not isBeingAttacked) then
-                -- Verifica se o HP do inimigo é maior que 0
                 local enemyHP = enemyPart:GetAttribute("HP") or 0
                 if enemyHP > 0 then
                     closestEnemy = enemyPart
@@ -299,36 +265,26 @@ local function getEnemyNotAttackedByMe()
     end
 
     if closestEnemy then
-        print("Nearest enemy found: " .. closestEnemy.Name)
-    else
-        print("No enemy found to attack within 20 studs.")
     end
 
     return closestEnemy
 end
 
 
--- ⚔️ Função para atacar inimigo (usando nome da Part)
 local function attackEnemy(enemyPart)
     local petsAttr = enemyPart:GetAttribute("Pets") or ""
 
-    -- Certifique-se de que o pet não foi adicionado ao atributo múltiplas vezes
     local newPetsAttr = petsAttr
     for _, myPet in ipairs(getMyPetNames()) do
         if not newPetsAttr:find(myPet) then
             newPetsAttr = newPetsAttr .. myPet .. ","
-            print("Adding a pet " .. myPet .. " the enemy " .. enemyPart.Name)
         end
     end
 
-    -- Atualiza o atributo Pets do inimigo se necessário
     if newPetsAttr ~= petsAttr then
         enemyPart:SetAttribute("Pets", newPetsAttr)
-        print("Pets attribute updated to: " .. newPetsAttr)
     end
 
-    -- Realiza o ataque
-    print("Attacking enemy: " .. enemyPart.Name)
     local args = {
         {
             {
@@ -344,7 +300,6 @@ local function attackEnemy(enemyPart)
     remote:FireServer(unpack(args))
 end
 
--- 🔄 Loop de auto attack
 local attacking = false
 
 AutoFarm:AddToggle("Auto Attack", {
@@ -357,12 +312,9 @@ AutoFarm:AddToggle("Auto Attack", {
             while attacking do
                 local target = getEnemyNotAttackedByMe()
                 if target then
-                    -- Verifica se a vida do inimigo chegou a 0
                     local enemyHP = target:GetAttribute("HP") or 0
                     if enemyHP > 0 then
                         attackEnemy(target)
-                    else
-                        print("enemy " .. target.Name .. " died. Waiting for respawn...")
                     end
                 end
                 task.wait(0.5)
@@ -371,7 +323,6 @@ AutoFarm:AddToggle("Auto Attack", {
     end
 })
 
--- 🐶 Auto Equip Best Pets
 local autoEquipBest = false
 
 AutoFarm:AddToggle("Auto Equip Best", {
@@ -400,17 +351,14 @@ AutoFarm:AddToggle("Auto Equip Best", {
     end
 })
 
--- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 
--- Raid System
 local raidActive = false
 local raidCooldown = 5 -- Intervalo de 5 segundos entre raides
 local lastRaidTime = 0
 local raidConnection
 
--- World selection dropdown
 local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5"}
 local selectedWorld = worldOptions[1]
 
@@ -424,14 +372,8 @@ local Dropdown = Tabs.AutoRaid:AddDropdown("WorldDropdown", {
 
 Dropdown:OnChanged(function(Value)
     selectedWorld = Value
-    Fluent:Notify({
-        Title = "World Selected",
-        Content = "Raid will use: "..Value,
-        Duration = 3
-    })
 end)
 
--- Funções de Raid
 local function createRaid()
     local args = {
         [1] = {
@@ -477,23 +419,19 @@ local function startRaid()
 end
 
 local function executeRaid()
-    -- Verifica se o cooldown de raid foi respeitado
     if os.time() - lastRaidTime < raidCooldown then
         return
     end
 
-    -- Processamento das etapas da raid
     createRaid()
     task.wait(5)  -- Aguarda 3 segundos antes de selecionar o mapa
     selectMap()
     task.wait(5)  -- Aguarda 3 segundos antes de iniciar a raid
     startRaid()
     
-    -- Atualiza o tempo da última raid
     lastRaidTime = os.time()
 end
 
--- Auto Raid Toggle
 Tabs.AutoRaid:AddToggle("AutoRaidToggle", {
     Title = "Auto Raid",
     Description = "Automatically runs raids",
@@ -501,28 +439,15 @@ Tabs.AutoRaid:AddToggle("AutoRaidToggle", {
     Callback = function(state)
         raidActive = state
         if state then
-            -- Verifica o intervalo de tempo e ativa a conexão para o Heartbeat
             raidConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                -- Limita as chamadas de raid com base no cooldown
                 if os.time() - lastRaidTime >= raidCooldown then
                     executeRaid()  -- Executa a raid se o cooldown for atingido
                 end
             end)
-            Fluent:Notify({
-                Title = "Auto Raid",
-                Content = "Enabled - Running every "..raidCooldown.." seconds",
-                Duration = 5
-            })
         else
-            -- Desativa a conexão do Heartbeat
             if raidConnection then
                 raidConnection:Disconnect()
             end
-            Fluent:Notify({
-                Title = "Auto Raid",
-                Content = "Disabled",
-                Duration = 3
-            })
         end
     end
 })
@@ -535,7 +460,6 @@ local userId = player.UserId
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
 
--- 🐾 Pega os nomes dos pets do jogador
 local function getMyPetNames()
     local petNames = {}
     if petsFolder then
@@ -546,7 +470,6 @@ local function getMyPetNames()
     return petNames
 end
 
--- 🧭 Teleporte forçado para uma parte
 local function forcedStepTeleport(destination)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         player.CharacterAdded:Wait()
@@ -558,7 +481,6 @@ local function forcedStepTeleport(destination)
     root.CFrame = CFrame.new(destination.Position + Vector3.new(0, 0, 0))
 end
 
--- 🔍 Pega todos os inimigos da Raid
 local function getRaidEnemies()
     local raidFolder = workspace._ENEMIES.Server:FindFirstChild("Raid")
     if not raidFolder then return {} end
@@ -575,7 +497,6 @@ local function getRaidEnemies()
     return enemies
 end
 
--- 🧠 Encontra o inimigo mais próximo que ainda não está sendo atacado por seus pets
 local function getRaidEnemyNotAttacked()
     local myPets = getMyPetNames()
     local allEnemies = getRaidEnemies()
@@ -608,12 +529,10 @@ local function getRaidEnemyNotAttacked()
     return closestEnemy
 end
 
--- ⚔️ Função para atacar inimigo da Raid (sem alterar atributo)
 local function attackRaidEnemy(enemyPart)
     local petsAttr = enemyPart:GetAttribute("Pets")
     local myPets = getMyPetNames()
 
-    -- Se o inimigo já está sendo atacado por seus pets, não faz nada
     if petsAttr and typeof(petsAttr) == "string" then
         for _, myPet in ipairs(myPets) do
             if petsAttr:find(myPet) then
@@ -622,13 +541,11 @@ local function attackRaidEnemy(enemyPart)
         end
     end
 
-    -- Verifica se o HP do inimigo é maior que 0 antes de atacar
     local enemyHP = enemyPart:GetAttribute("HP") or 0
     if enemyHP <= 0 then
         return -- não ataca se o HP do inimigo for 0 ou negativo
     end
 
-    -- Envia ataque
     local args = {
         {
             {
@@ -645,7 +562,6 @@ local function attackRaidEnemy(enemyPart)
 end
 
 
--- 🔄 Loop de auto attack na Raid (teleporta só 1 vez por inimigo)
 local autoRaidAttack = false
 local targetAtual = nil
 
@@ -657,7 +573,6 @@ Tabs.AutoRaid:AddToggle("Auto Attack (Raid)", {
         autoRaidAttack = state
         task.spawn(function()
             while autoRaidAttack do
-                -- Se não temos alvo ou o alvo morreu, procurar novo
                 if not targetAtual or (targetAtual:GetAttribute("HP") or 0) <= 0 then
                     targetAtual = getRaidEnemyNotAttacked()
                     if targetAtual then
@@ -665,7 +580,6 @@ Tabs.AutoRaid:AddToggle("Auto Attack (Raid)", {
                     end
                 end
 
-                -- Ataca o inimigo atual, se a vida for maior que 0
                 if targetAtual and (targetAtual:GetAttribute("HP") or 0) > 0 then
                     attackRaidEnemy(targetAtual)
                 end
@@ -678,17 +592,14 @@ Tabs.AutoRaid:AddToggle("Auto Attack (Raid)", {
     end
 })
 
--- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 
--- Dungeon System Variables
 local dungeonActive = false
 local dungeonCooldown = 30 -- seconds between dungeons
 local lastDungeonTime = 0
 local dungeonConnection
 
--- Dungeon Options
 local dungeonMaps = {
     "RuinedPrison"
 }
@@ -702,12 +613,9 @@ local difficultyOptions = {
     "Impossible"
 }
 
--- Default Selections
 local selectedMap = dungeonMaps[1]
 local selectedDifficulty = difficultyOptions[1]
 
--- UI Elements
--- Map Selection Dropdown
 local MapDropdown = Tabs.Dungeon:AddDropdown("MapDropdown", {
     Title = "Select Dungeon Map",
     Description = "Choose the dungeon map",
@@ -718,14 +626,8 @@ local MapDropdown = Tabs.Dungeon:AddDropdown("MapDropdown", {
 
 MapDropdown:OnChanged(function(Value)
     selectedMap = Value
-    Fluent:Notify({
-        Title = "Map Selected",
-        Content = "Selected: "..Value,
-        Duration = 3
-    })
 end)
 
--- Difficulty Selection Dropdown
 local DifficultyDropdown = Tabs.Dungeon:AddDropdown("DifficultyDropdown", {
     Title = "Select Difficulty",
     Description = "Choose the dungeon difficulty",
@@ -736,14 +638,8 @@ local DifficultyDropdown = Tabs.Dungeon:AddDropdown("DifficultyDropdown", {
 
 DifficultyDropdown:OnChanged(function(Value)
     selectedDifficulty = Value
-    Fluent:Notify({
-        Title = "Difficulty Selected",
-        Content = "Selected: "..Value,
-        Duration = 3
-    })
 end)
 
--- Dungeon Functions
 local function createDungeon()
     local args = {
         [1] = {
@@ -805,7 +701,6 @@ end
 local function executeDungeon()
     if os.time() - lastDungeonTime < dungeonCooldown then return end -- Verifica se o cooldown foi atingido
 
-    -- Previne spam
     lastDungeonTime = os.time()
 
     createDungeon()
@@ -815,15 +710,9 @@ local function executeDungeon()
     selectDifficulty()
     task.wait(0.5)
     startDungeon()
-    
-    Fluent:Notify({
-        Title = "Dungeon Started",
-        Content = string.format("Running %s on %s difficulty", selectedMap, selectedDifficulty),
-        Duration = 5
-    })
+
 end
 
--- Auto Dungeon Toggle
 Tabs.Dungeon:AddToggle("AutoDungeonToggle", {
     Title = "Auto Dungeon",
     Description = "Automatically runs dungeons",
@@ -832,25 +721,14 @@ Tabs.Dungeon:AddToggle("AutoDungeonToggle", {
         dungeonActive = state
         if state then
             dungeonConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                -- Verifica se o cooldown foi cumprido antes de chamar executeDungeon
                 if os.time() - lastDungeonTime >= dungeonCooldown then
                     executeDungeon()
                 end
             end)
-            Fluent:Notify({
-                Title = "Auto Dungeon",
-                Content = "Enabled - Running every "..dungeonCooldown.." seconds",
-                Duration = 5
-            })
         else
             if dungeonConnection then
                 dungeonConnection:Disconnect()
             end
-            Fluent:Notify({
-                Title = "Auto Dungeon",
-                Content = "Disabled",
-                Duration = 3
-            })
         end
     end
 })
@@ -863,7 +741,6 @@ local userId = player.UserId
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
 
--- 🐾 Pega os nomes dos pets do jogador
 local function getMyPetNames()
     local petNames = {}
     if petsFolder then
@@ -874,7 +751,6 @@ local function getMyPetNames()
     return petNames
 end
 
--- 🧭 Teleporte forçado para uma parte
 local function forcedStepTeleport(destination)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         player.CharacterAdded:Wait()
@@ -886,7 +762,6 @@ local function forcedStepTeleport(destination)
     root.CFrame = CFrame.new(destination.Position + Vector3.new(0, 0, 0))
 end
 
--- 🔍 Pega todos os inimigos da Dungeon
 local function getDungeonEnemies()
     local dungeonFolder = workspace._ENEMIES.Server:FindFirstChild("Dungeon")
     if not dungeonFolder then return {} end
@@ -903,7 +778,6 @@ local function getDungeonEnemies()
     return enemies
 end
 
--- 🧠 Encontra o inimigo mais próximo que ainda não está sendo atacado por seus pets
 local function getDungeonEnemyNotAttacked()
     local myPets = getMyPetNames()
     local allEnemies = getDungeonEnemies()
@@ -936,12 +810,10 @@ local function getDungeonEnemyNotAttacked()
     return closestEnemy
 end
 
--- ⚔️ Função para atacar inimigo da Dungeon (sem alterar atributo)
 local function attackDungeonEnemy(enemyPart)
     local petsAttr = enemyPart:GetAttribute("Pets")
     local myPets = getMyPetNames()
 
-    -- Se o inimigo já está sendo atacado por seus pets, não faz nada
     if petsAttr and typeof(petsAttr) == "string" then
         for _, myPet in ipairs(myPets) do
             if petsAttr:find(myPet) then
@@ -950,13 +822,11 @@ local function attackDungeonEnemy(enemyPart)
         end
     end
 
-    -- Verifica se o HP do inimigo é maior que 0 antes de atacar
     local enemyHP = enemyPart:GetAttribute("HP") or 0
     if enemyHP <= 0 then
         return -- não ataca se o HP do inimigo for 0 ou negativo
     end
 
-    -- Envia ataque
     local args = {
         {
             {
@@ -972,7 +842,6 @@ local function attackDungeonEnemy(enemyPart)
     remote:FireServer(unpack(args))
 end
 
--- 🔄 Loop de auto ataque na Dungeon (teleporta só 1 vez por inimigo)
 local autoDungeonAttack = false
 local targetAtual = nil
 
@@ -984,7 +853,6 @@ Tabs.Dungeon:AddToggle("Auto Attack Dungeon", {
         autoDungeonAttack = state
         task.spawn(function()
             while autoDungeonAttack do
-                -- Se não temos alvo ou o alvo morreu, procurar novo
                 if not targetAtual or (targetAtual:GetAttribute("HP") or 0) <= 0 then
                     targetAtual = getDungeonEnemyNotAttacked()
                     if targetAtual then
@@ -992,7 +860,6 @@ Tabs.Dungeon:AddToggle("Auto Attack Dungeon", {
                     end
                 end
 
-                -- Ataca o inimigo atual, se a vida for maior que 0
                 if targetAtual and (targetAtual:GetAttribute("HP") or 0) > 0 then
                     attackDungeonEnemy(targetAtual)
                 end
@@ -1016,7 +883,6 @@ local selectedEgg = nil
 local hatchMode = "One"
 local autoHatchEnabled = false
 
--- CFrame de cada egg
 local EggPositions = {
     ["Slayer Star"] = CFrame.new(2453.99, 103.38, -249.34),
     ["Punch Star"] = CFrame.new(2726.92, 184.99, -5146.72),
@@ -1026,7 +892,6 @@ local EggPositions = {
     ["Pirate Star"] = CFrame.new(5055.65, 156.99, -130.66),
 }
 
--- Dropdown: Nome do Ovo
 local EggList = {}
 for name, _ in pairs(EggPositions) do
     table.insert(EggList, name)
@@ -1041,10 +906,8 @@ local EggDropdown = Tabs.Egg:AddDropdown("EggNameDropdown", {
 
 EggDropdown:OnChanged(function(value)
     selectedEgg = value
-    print("Selected egg: ", selectedEgg)
 end)
 
--- Dropdown: Modo (Single ou Multi)
 local HatchModeDropdown = Tabs.Egg:AddDropdown("HatchModeDropdown", {
     Title = "Hatch mode",
     Values = {"One", "All"},
@@ -1053,10 +916,8 @@ local HatchModeDropdown = Tabs.Egg:AddDropdown("HatchModeDropdown", {
 
 HatchModeDropdown:OnChanged(function(value)
     hatchMode = value
-    print("Hatch mode:", hatchMode)
 end)
 
--- Toggle: Auto Hatch com teleporte
 Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
     Title = "Auto Hatch (Remote)",
     Description = "Activates Auto Hatch with teleport.",
@@ -1068,7 +929,6 @@ Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
             task.spawn(function()
                 while autoHatchEnabled do
                     if selectedEgg and hatchMode and EggPositions[selectedEgg] then
-                        -- Teleporta antes de abrir o ovo
                         pcall(function()
                             hrp.CFrame = EggPositions[selectedEgg]
                         end)
@@ -1089,7 +949,6 @@ Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
                         }
 
                         remote:FireServer(unpack(args))
-                        print("Teleported and opened::", selectedEgg, "| Mode:", hatchMode)
                     end
 
                     task.wait(2)
@@ -1102,22 +961,17 @@ Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
--- Definir atributo VIP como true
 localPlayer:SetAttribute("VIP", true)
-print("VIP attribute set to true.")
 
--- Adicionando botão com a descrição
 Tabs.Misc:AddButton({
     Title = "Free VIP",
     Callback = function()
-        print("VIP FREE!!!!")
     end
 })
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 
--- Função para enviar código
 local function sendCode(code)
     local args = {
         [1] = {
@@ -1132,10 +986,8 @@ local function sendCode(code)
     }
 
     remote:FireServer(unpack(args))
-    print("Code sent:", code)
 end
 
--- Exemplo de códigos para enviar
 local codes = {
     "Update2AKS",  -- 5 Armament Tokens and 1x All Potions Tier 1 (NEW)
     "thebest100klikes", -- 25 Crystals (NEW)
@@ -1153,23 +1005,19 @@ local codes = {
     "Release" -- 1x All Potions Tier 2
 }
 
--- Chama a função sendCode para cada código
 for _, code in ipairs(codes) do
     sendCode(code)
 end
 
--- Adiciona o botão na interface
 Tabs.Misc:AddButton({
     Title = "Redeem Codes",
     Callback = function()
         for _, code in ipairs(codes) do
             sendCode(code)
         end
-        print("All the codes have been sent.")
     end
 })
 
--- Anti AFK
 local AntiAfkConfig = {
     connection = nil
 }
@@ -1177,14 +1025,12 @@ local AntiAfkConfig = {
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
     if state then
-        -- Ativa o Anti AFK
         self.connection = player.Idled:Connect(function()
             local vu = game:GetService("VirtualUser")
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     else
-        -- Desativa o Anti AFK
         if self.connection then
             self.connection:Disconnect()
             self.connection = nil
@@ -1199,19 +1045,14 @@ function AntiAfkConfig:Unload()
     end
 end
 
--- Toggle para ligar/desligar o Anti AFK
 local Toggle = AFK:AddToggle("MyToggle", {
     Title = "Anti AFK", 
     Default = false,
     Callback = function(state)
         if state then
-            -- Ativa o Anti AFK
             AntiAfkConfig:Toggle(true)
-            print("Anti AFK enabled")
         else
-            -- Desativa o Anti AFK
             AntiAfkConfig:Toggle(false)
-            print("Anti AFK disabled")
         end
     end
 })
@@ -1234,7 +1075,6 @@ Fluent:Notify({
 
 local CoreGui = game:GetService("CoreGui")
 
--- Remover qualquer GUI persistente anterior com o mesmo nome
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
 if ExistingGui then
     ExistingGui:Destroy()
@@ -1242,7 +1082,6 @@ end
 
 local ScreenGuiToMinimize
 
--- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
@@ -1260,9 +1099,6 @@ if not ScreenGuiToMinimize then
     return
 end
 
-print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
-
--- Criar botão persistente
 local MinimizeGui = Instance.new("ScreenGui", CoreGui)
 MinimizeGui.Name = "MinimizeButtonGui"
 
@@ -1274,10 +1110,8 @@ MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.BorderSizePixel = 0
 MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
 
--- Adicionar UICorner ao botão para arredondar bordas
 local UICorner = Instance.new("UICorner", MinimizeButton)
 
--- Função para minimizar corretamente
 MinimizeButton.MouseButton1Click:Connect(function()
     if Window and Window.Minimize then
         Window:Minimize()
@@ -1286,7 +1120,6 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Adicionar funcionalidade de arrastar o botão
 local dragging = false
 local dragStart, startPos
 
