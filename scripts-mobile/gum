@@ -1500,25 +1500,17 @@ local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-
     ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-
     ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
     ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-
     ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
-
     ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-
     ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-
     ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-
-    ["Pastel Egg"] = "Workspace.Event.Portal.Spawn",
-    ["Bunny Egg"] = "Workspace.Event.Portal.Spawn",
-    ["Throwback Egg"] = "Workspace.Event.Portal.Spawn"
+    ["Throwback Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["100M Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn"
 }
 
 local EggPositions = {
@@ -1534,9 +1526,8 @@ local EggPositions = {
     ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
     ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
     ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
-    ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
-    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469),
-    ["Throwback Egg"] = Vector3.new(-389.16912841796875, 12012.0830078125, -56.94336700439453)
+    ["Throwback Egg"] = Vector3.new(-128.9759979248047, 9.840131759643555, -59.31684875488281),
+    ["100M Egg"] = Vector3.new(15.931231498718262, 9.25584602355957, -4.832009315490723)
 }
 
 local function EnableNoclip()
@@ -1630,7 +1621,7 @@ Egg:AddToggle("AutoHatch", {
 
 EggRift:AddParagraph({
     Title = "Warning",
-    Content = "Note:\n- 'event-1' refers to the Bunny Egg\n- 'event-2' refers to the Pastel Egg\n- 'event-3' refers to the Throwback Egg"
+    Content = "Note:\n- 'event-3' refers to the Throwback Egg"
 })
 
 local TweenService = game:GetService("TweenService")
@@ -1661,9 +1652,7 @@ local EggNameMap = {
     ["nightmare-egg"] = "Nightmare Egg",
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
-    ["event-1"] = "Bunny Egg",
-    ["event-2"] = "Pastel Egg",
-    ["event-3"] = "Throwback Egg"
+    ["silly-egg"] = "Silly Egg"
 }
 
 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
