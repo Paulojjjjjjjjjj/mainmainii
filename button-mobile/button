@@ -68,8 +68,10 @@ end)
 
 -- Função de minimizar
 MinimizeButton.MouseButton1Click:Connect(function()
-    if ScreenGuiToMinimize then
-        ScreenGuiToMinimize.Enabled = not ScreenGuiToMinimize.Enabled
+    if Window and Window.Minimize then
+        Window:Minimize()
+    else
+        warn("Minimize function not available")
     end
 end)
 

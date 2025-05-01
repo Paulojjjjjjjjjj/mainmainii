@@ -581,7 +581,7 @@ local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Bubble Gum Simulator INFINITY | DZ HUB" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Anime Rangers X | DZ HUB" then
                 ScreenGuiToMinimize = gui
                 break
             end
@@ -639,8 +639,10 @@ end)
 
 -- Função de minimizar
 MinimizeButton.MouseButton1Click:Connect(function()
-    if ScreenGuiToMinimize then
-        ScreenGuiToMinimize.Enabled = not ScreenGuiToMinimize.Enabled
+    if Window and Window.Minimize then
+        Window:Minimize()
+    else
+        warn("Minimize function not available")
     end
 end)
 
