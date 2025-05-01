@@ -1,18 +1,16 @@
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
--- Remover qualquer GUI persistente anterior com o mesmo nome
+-- Remove instância anterior
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
-if ExistingGui then
-    ExistingGui:Destroy()
-end
+if ExistingGui then ExistingGui:Destroy() end
 
+-- Procura a GUI principal
 local ScreenGuiToMinimize
-
--- Itera por todos os ScreenGuis no CoreGui para encontrar o correto
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
         for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("TextLabel") and descendant.Text == "Blade Ball | DZHUB" then
+            if descendant:IsA("TextLabel") and descendant.Text == "Bubble Gum Simulator INFINITY | DZ HUB" then
                 ScreenGuiToMinimize = gui
                 break
             end
@@ -26,33 +24,56 @@ if not ScreenGuiToMinimize then
     return
 end
 
-print("ScreenGui encontrado:", ScreenGuiToMinimize.Name)
-
--- Criar botão persistente
+-- Cria GUI do botão
 local MinimizeGui = Instance.new("ScreenGui", CoreGui)
 MinimizeGui.Name = "MinimizeButtonGui"
 
 local MinimizeButton = Instance.new("ImageButton", MinimizeGui)
 MinimizeButton.Name = "MinimizeButton"
-MinimizeButton.Size = UDim2.new(0, 44, 0, 45)
+MinimizeButton.Size = UDim2.new(0, 50, 0, 50)
 MinimizeButton.Position = UDim2.new(0.1, 0, 0.1, 0)
 MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.BorderSizePixel = 0
-MinimizeButton.Image = "rbxassetid://101109248169642" -- Substitua pelo ID da imagem desejado
+MinimizeButton.ImageRectSize = Vector2.new(256, 256)
 
--- Adicionar UICorner ao botão para arredondar bordas
 local UICorner = Instance.new("UICorner", MinimizeButton)
 
--- Função para minimizar corretamente
-MinimizeButton.MouseButton1Click:Connect(function()
-    if Window and Window.Minimize then
-        Window:Minimize()
-    else
-        warn("Função Window:Minimize não está disponível.")
+-- Animação do botão com múltiplas spritesheets
+local spritesheets = {
+    "rbxassetid://90726870075493",
+    "rbxassetid://85859195506939",
+    "rbxassetid://140138471003989",
+    "rbxassetid://92694094525674"
+}
+
+local frameWidth, frameHeight = 256, 256
+local framesPerSheet = 4
+local totalFrames = #spritesheets * framesPerSheet
+local currentFrame = 0
+
+MinimizeButton.Image = spritesheets[1]
+
+task.spawn(function()
+    while true do
+        currentFrame = (currentFrame + 1) % totalFrames
+        local sheetIndex = math.floor(currentFrame / framesPerSheet) + 1
+        local frameIndex = currentFrame % framesPerSheet
+
+        MinimizeButton.Image = spritesheets[sheetIndex]
+        MinimizeButton.ImageRectOffset = Vector2.new(frameIndex * frameWidth, 0)
+
+        task.wait(0.01) -- ajuste de velocidade
     end
 end)
 
--- Adicionar funcionalidade de arrastar o botão
+-- Função de minimizar
+MinimizeButton.MouseButton1Click:Connect(function()
+    if ScreenGuiToMinimize then
+        ScreenGuiToMinimize.Enabled = not ScreenGuiToMinimize.Enabled
+    end
+end)
+
+-- Movimento do botão
 local dragging = false
 local dragStart, startPos
 
@@ -86,7 +107,7 @@ MinimizeButton.InputChanged:Connect(function(input)
     end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         update(input)
     end
