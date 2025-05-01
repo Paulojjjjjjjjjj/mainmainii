@@ -125,7 +125,7 @@ local Multipliers = {
 -- Variáveis de controle
 local platform = nil
 local selectedMultiplier = "2x"
-local moveSpeed = 19
+local moveSpeed = 18
 local dropAltitude = -100
 local sellMethod = "Storage Full"
 local timedInterval = 120
