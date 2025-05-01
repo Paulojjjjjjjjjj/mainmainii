@@ -38,7 +38,7 @@ local Tabs = {
     }),
     ServerHop = Window:AddTab({ 
         Title = "Server Hop",
-        Icon = ""
+        Icon = "server"
     }),
     Misc = Window:AddTab({ 
         Title = "Misc",
@@ -551,7 +551,7 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
 
 UtilitiesSection:AddToggle("AutoClaimChests", {
     Title = "Auto Claim Chests",
-    Description = "Teleports and claims Giant and Void Chests using Remote Event + Noclip",
+    Description = "Teleports and claims Giant and Void Chests using Remote Event",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimChests = state
@@ -787,7 +787,7 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
 })
 
 UtilitiesSection:AddToggle("AutoSeasonEgg", {
-    Title = "Auto Hatch Season 1 Egg (x1)",
+    Title = "Auto Hatch Season 1 Egg",
     Default = false,
     Callback = function(state)
         getgenv().AutoSeasonEgg = state
