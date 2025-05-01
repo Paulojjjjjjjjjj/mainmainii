@@ -456,7 +456,7 @@ end)
 
 -- INTERFACE - TAB AUTO FARM
 BlowSection:AddToggle("AutoFarmToggle", {
-    Title = "Auto Sell System",
+    Title = "Auto Sell + Auto Blow",
     Default = false,
     Callback = function(Value)
         if Value then
