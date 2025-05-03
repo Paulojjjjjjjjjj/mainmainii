@@ -1649,6 +1649,10 @@ local HatchAmount = 10
 local AutoHatch = false
 local Noclip = false
 local NoclipConnection = nil
+local AutoRiftHatch = false
+local IsProcessingNormalHatch = false -- Flag to track if normal hatching is in progress
+local SelectedRiftEggs = {} -- Initialize this variable at the top level
+local SelectedLuckMultipliers = {} -- Initialize this variable at the top level
 
 local EggTeleportMap = {
     ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
@@ -1684,6 +1688,7 @@ local EggPositions = {
     ["100M Egg"] = Vector3.new(15.931231498718262, 9.25584602355957, -4.832009315490723)
 }
 
+-- Shared noclip function to avoid duplication
 local function EnableNoclip()
     if NoclipConnection then NoclipConnection:Disconnect() end
     Noclip = true
@@ -1726,49 +1731,123 @@ EggDropdown:OnChanged(function(val)
     SelectedEgg = val
 end)
 
+-- Function to check if any valid rift eggs exist
+local function CheckForValidRiftEggs()
+    if not AutoRiftHatch then return false end
+    
+    -- Check if SelectedRiftEggs is nil and handle it safely
+    if SelectedRiftEggs == nil then
+        SelectedRiftEggs = {}
+        return false
+    end
+    
+    if #SelectedRiftEggs == 0 then return false end
+    
+    local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
+    for _, egg in pairs(Rifts:GetChildren()) do
+        if egg:IsA("Model") and egg:FindFirstChild("Display") then
+            local isSelectedEgg = false
+            for _, selectedEgg in pairs(SelectedRiftEggs) do
+                if egg.Name == selectedEgg then
+                    isSelectedEgg = true
+                    break
+                end
+            end
+            
+            if isSelectedEgg then
+                local display = egg.Display
+                local gui = display and display:FindFirstChildWhichIsA("SurfaceGui")
+                local icon = gui and gui:FindFirstChild("Icon")
+                local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
+                
+                -- Check if SelectedLuckMultipliers is nil and handle it safely
+                if SelectedLuckMultipliers == nil then
+                    SelectedLuckMultipliers = {}
+                end
+                
+                local validMultiplier = #SelectedLuckMultipliers == 0
+                if luck and luck.Text then
+                    for _, multi in pairs(SelectedLuckMultipliers) do
+                        if luck.Text == multi then
+                            validMultiplier = true
+                            break
+                        end
+                    end
+                end
+                
+                if validMultiplier then
+                    return true
+                end
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Start normal hatching process
+local function StartNormalHatching()
+    if IsProcessingNormalHatch then return end
+    IsProcessingNormalHatch = true
+    
+    task.spawn(function()
+        local remote = ReplicatedStorage.Shared.Framework.Network.Remote.Event
+        local teleportPath = EggTeleportMap[SelectedEgg]
+        if teleportPath then
+            remote:FireServer("Teleport", teleportPath)
+        end
+
+        local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+        local Humanoid = Character:WaitForChild("Humanoid")
+
+        task.wait(1)
+
+        local target = EggPositions[SelectedEgg]
+        if target then
+            Humanoid:MoveTo(target)
+            local reached = false
+            Humanoid.MoveToFinished:Connect(function(success)
+                if success then reached = true end
+            end)
+
+            -- Wait until we've reached the egg or conditions change
+            while not reached and AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
+                task.wait(0.5)
+            end
+
+            -- Start hatching if we've reached and conditions are still valid
+            while AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
+                pcall(function()
+                    remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
+                end)
+                task.wait(0.5)
+            end
+        end
+        
+        IsProcessingNormalHatch = false
+    end)
+end
+
+-- Modified regular Auto Hatch to work with the hybrid approach
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
     Description = "Automatically opens eggs after walking to them",
     Default = false,
     Callback = function(state)
         AutoHatch = state
+        
         if state then
             EnableNoclip()
-            task.spawn(function()
-                local remote = ReplicatedStorage.Shared.Framework.Network.Remote.Event
-                local teleportPath = EggTeleportMap[SelectedEgg]
-                if teleportPath then
-                    remote:FireServer("Teleport", teleportPath)
-                end
-
-                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-                local Humanoid = Character:WaitForChild("Humanoid")
-
-                task.wait(1)
-
-                local target = EggPositions[SelectedEgg]
-                if target then
-                    Humanoid:MoveTo(target)
-                    local reached = false
-                    Humanoid.MoveToFinished:Connect(function(success)
-                        if success then reached = true end
-                    end)
-
-                    while not reached and AutoHatch do
-                        task.wait(0.5)
-                    end
-
-                    while AutoHatch do
-                        pcall(function()
-                            remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
-                        end)
-                        task.wait(0.5)
-                    end
-                end
-            end)
-        else
-            DisableNoclip()
+            
+            -- Only start normal hatching if there are no valid rift eggs
+            if not (AutoRiftHatch and CheckForValidRiftEggs()) then
+                StartNormalHatching()
+            end
+        elseif not state then
+            if not AutoRiftHatch then
+                DisableNoclip() -- Only disable noclip if Rift isn't running
+            end
         end
     end
 })
@@ -1778,21 +1857,21 @@ EggRift:AddParagraph({
     Content = "Note:\n- 'event-3' refers to the Throwback Egg"
 })
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+-- Rift Auto Hatch Section
 local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
 
-local AutoRiftHatch = false
-local SelectedRiftEggs = {}
-local SelectedLuckMultipliers = {}
+-- SelectedRiftEggs and SelectedLuckMultipliers are now defined at the top of the script
 local ActiveTweens = {}
 local CurrentTargetEgg = nil
 local CurrentTargetMultiplier = nil
+local IsHandlingRiftEgg = false
 local NoClipEnabled = false
 local NoClipConnection = nil
+local dropAltitude = -100  -- Altura abaixo do chão
+local moveSpeed = 18       -- Velocidade do movimento horizontal
+local originalGravity = workspace.Gravity
+local PlayerImmobilized = false
+local ImmobilizeConnection = nil
 
 local EggNameMap = {
     ["spotted-egg"] = "Spotted Egg",
@@ -1852,6 +1931,103 @@ LuckMultiplierDropdown:OnChanged(function(selectedTable)
     end
 end)
 
+-- Helper function to make the player immobile
+local function immobilizePlayer()
+    if PlayerImmobilized then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    -- Store original properties
+    local originalWalkSpeed = humanoid.WalkSpeed
+    local originalJumpPower = humanoid.JumpPower
+    local originalAutoRotate = humanoid.AutoRotate
+    
+    -- Make character immobile
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.AutoRotate = false
+    
+    -- Freeze the character in place with RunService
+    if ImmobilizeConnection then
+        ImmobilizeConnection:Disconnect()
+    end
+    
+    ImmobilizeConnection = RunService.Heartbeat:Connect(function()
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            -- Cancel any movement
+            character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+            character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
+            
+            -- Cancel animations that might move the character
+            if humanoid then
+                local animator = humanoid:FindFirstChildOfClass("Animator")
+                if animator then
+                    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                        if track.Name:lower():match("walk") or track.Name:lower():match("run") or track.Name:lower():match("jump") then
+                            track:Stop()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    PlayerImmobilized = true
+end
+
+-- Helper function to restore player mobility
+local function restorePlayerMobility()
+    if not PlayerImmobilized then return end
+    
+    -- Disconnect the immobilize heartbeat
+    if ImmobilizeConnection then
+        ImmobilizeConnection:Disconnect()
+        ImmobilizeConnection = nil
+    end
+    
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            -- Restore mobility
+            humanoid.WalkSpeed = 16 -- Default walk speed
+            humanoid.JumpPower = 50 -- Default jump power
+            humanoid.AutoRotate = true
+        end
+    end
+    
+    PlayerImmobilized = false
+end
+
+-- Função auxiliar para controlar física
+local function setPhysicsEnabled(enabled)
+  if not LocalPlayer.Character then return end
+  
+  for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+      if part:IsA("BasePart") then
+          part.CanCollide = enabled
+          part.AssemblyLinearVelocity = Vector3.new()
+          part.AssemblyAngularVelocity = Vector3.new()
+      end
+  end
+  
+  local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+  if humanoid then
+      humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, enabled)
+  end
+  
+  -- Also immobilize or restore mobility based on the enabled parameter
+  if not enabled then
+      immobilizePlayer()
+  else
+      restorePlayerMobility()
+  end
+end
+
 local function enableNoClip()
     if NoClipConnection then return end
     
@@ -1864,6 +2040,9 @@ local function enableNoClip()
             end
         end
     end)
+    
+    -- Also immobilize the player when enabling noclip
+    immobilizePlayer()
 end
 
 local function disableNoClip()
@@ -1879,29 +2058,41 @@ local function disableNoClip()
             end
         end
     end
+    
+    -- Restore player mobility when disabling noclip
+    restorePlayerMobility()
 end
 
 local function teleportToEgg(egg)
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    if ActiveTweens[hrp] then 
-        ActiveTweens[hrp]:Cancel() 
-    end
-    
-    enableNoClip()
-    
-    local targetCFrame = CFrame.new(egg:GetPivot().Position + Vector3.new(0, 3, 0))
-    local tween = TweenService:Create(hrp, TweenInfo.new(6, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    ActiveTweens[hrp] = tween
-    
-    tween:Play()
-    local success = pcall(function() 
-        tween.Completed:Wait()
-    end)
-    
-    ActiveTweens[hrp] = nil
-    return success
+  local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+  if not hrp then return false end
+  
+  -- Make sure player is immobilized before teleporting
+  immobilizePlayer()
+  
+  -- 1. Armazena posição original
+  local originalPos = hrp.Position
+  
+  -- 2. Desce para abaixo do chão (-100 no Y)
+  setPhysicsEnabled(false)
+  hrp.CFrame = CFrame.new(originalPos.X, dropAltitude, originalPos.Z)
+  
+  -- 3. Move horizontalmente até abaixo do egg (mantém Y = -100)
+  local eggPos = egg:GetPivot().Position
+  local targetXZ = Vector3.new(eggPos.X, dropAltitude, eggPos.Z)
+  local distance = (targetXZ - hrp.Position).Magnitude
+  local duration = distance / moveSpeed
+  
+  local info = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+  local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(targetXZ)})
+  
+  tween:Play()
+  tween.Completed:Wait()
+  
+  -- 4. Sobe para posição correta (+3 no Y)
+  hrp.CFrame = CFrame.new(eggPos.X, eggPos.Y + 3, eggPos.Z)
+  
+  return true
 end
 
 local function hatchEgg(eggName)
@@ -1921,9 +2112,15 @@ local function cancelAllOperations()
     end
     ActiveTweens = {}
     disableNoClip()
+    restorePlayerMobility()
 end
 
 local function chooseNewTarget()
+    -- Ensure SelectedRiftEggs is initialized
+    if SelectedRiftEggs == nil then
+        SelectedRiftEggs = {}
+    end
+    
     if #SelectedRiftEggs > 0 then
         CurrentTargetEgg = SelectedRiftEggs[math.random(1, #SelectedRiftEggs)]
     else
@@ -1932,6 +2129,11 @@ local function chooseNewTarget()
         CurrentTargetEgg = eggs[math.random(1, #eggs)]
     end
 
+    -- Ensure SelectedLuckMultipliers is initialized
+    if SelectedLuckMultipliers == nil then
+        SelectedLuckMultipliers = {}
+    end
+    
     if #SelectedLuckMultipliers > 0 then
         CurrentTargetMultiplier = SelectedLuckMultipliers[math.random(1, #SelectedLuckMultipliers)]
     else
@@ -1939,69 +2141,135 @@ local function chooseNewTarget()
     end
 end
 
+-- Function to enable noclip with proper name (used in the code)
+local function EnableNoclip()
+    enableNoClip()
+    immobilizePlayer()  -- Make sure player is immobilized when noclip is enabled
+    NoClipEnabled = true
+end
+
+-- Function to disable noclip with proper name (used in the code)
+local function DisableNoclip()
+    disableNoClip()
+    restorePlayerMobility()  -- Restore player mobility when noclip is disabled
+    NoClipEnabled = false
+end
+
+-- Modified Rift Auto Hatch with dynamic switching to normal hatch
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
-    Description = "Automatically teleport and hatch rift eggs",
+    Description = "Automatically teleport and hatch rift eggs when available",
     Default = false,
     Callback = function(state)
         AutoRiftHatch = state
+        
         if state then
+            EnableNoclip() -- Make sure noclip is on for any type of hatching
+            immobilizePlayer() -- Make sure player is immobilized
+            
             chooseNewTarget()
             task.spawn(function()
                 while AutoRiftHatch do
-                    local found = false
+                    IsHandlingRiftEgg = false
+                    local foundValidEgg = false
+                    
+                    -- Check if there are any valid Rift eggs to process
                     for _, egg in pairs(Rifts:GetChildren()) do
                         if not AutoRiftHatch then break end
-                        if egg:IsA("Model") and egg:FindFirstChild("Display") and egg.Name == CurrentTargetEgg then
-                            local display = egg.Display
-                            local gui = display:FindFirstChildWhichIsA("SurfaceGui")
-                            local icon = gui and gui:FindFirstChild("Icon")
-                            local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
-                            if luck and luck.Text then
-                                local validMultiplier = not CurrentTargetMultiplier or luck.Text == CurrentTargetMultiplier
-                                if validMultiplier then
-                                    found = true
-                                    task.wait(2) -- Aguarda antes de teleportar
-                                    if teleportToEgg(egg) then
-                                        while AutoRiftHatch and egg.Parent do
-                                            hatchEgg(egg.Name)
-                                            task.wait(0.5) -- Loop contínuo só para hatch
-                                        end
-                                    end
-                                    
-                                end
-                            end
-                        end
-                    end
-
-                    if not found then
-                        local stillExists = false
-                        for _, egg in pairs(Rifts:GetChildren()) do
-                            if egg:IsA("Model") and egg.Name == CurrentTargetEgg then
-                                local display = egg:FindFirstChild("Display")
-                                local gui = display and display:FindFirstChildWhichIsA("SurfaceGui")
-                                local icon = gui and gui:FindFirstChild("Icon")
-                                local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
-                                local validMultiplier = not CurrentTargetMultiplier or (luck and luck.Text == CurrentTargetMultiplier)
-                                
-                                if validMultiplier then
-                                    stillExists = true
+                        
+                        local isSelectedEgg = false
+                        -- Ensure SelectedRiftEggs is initialized
+                        if SelectedRiftEggs ~= nil then
+                            for _, selectedEgg in pairs(SelectedRiftEggs) do
+                                if egg.Name == selectedEgg then
+                                    isSelectedEgg = true
                                     break
                                 end
                             end
                         end
-                    
-                        if not stillExists then
-                            chooseNewTarget()
+                        
+                        if isSelectedEgg and egg:IsA("Model") and egg:FindFirstChild("Display") then
+                            local display = egg.Display
+                            local gui = display and display:FindFirstChildWhichIsA("SurfaceGui")
+                            local icon = gui and gui:FindFirstChild("Icon")
+                            local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
+                            
+                            -- Ensure SelectedLuckMultipliers is initialized
+                            if SelectedLuckMultipliers == nil then
+                                SelectedLuckMultipliers = {}
+                            end
+                            
+                            local validMultiplier = #SelectedLuckMultipliers == 0
+                            if luck and luck.Text then
+                                for _, multi in pairs(SelectedLuckMultipliers) do
+                                    if luck.Text == multi then
+                                        validMultiplier = true
+                                        break
+                                    end
+                                end
+                            end
+                            
+                            if validMultiplier then
+                                foundValidEgg = true
+                                IsHandlingRiftEgg = true
+                                
+                                task.wait(0.5) -- Brief pause before teleporting
+                                if teleportToEgg(egg) then
+                                    -- Keep hatching this egg until it disappears or settings change
+                                    while AutoRiftHatch and egg.Parent do
+                                        immobilizePlayer() -- Ensure player stays immobile
+                                        hatchEgg(egg.Name)
+                                        task.wait(0.5)
+                                    end
+                                end
+                                
+                                break -- We've processed one egg, exit the loop
+                            end
                         end
-                    end                    
-
-                    task.wait(0.5)
+                    end
+                    
+                    -- If no valid rift eggs were found and normal hatch is enabled, start that process
+                    if not foundValidEgg and AutoHatch and not IsProcessingNormalHatch then
+                        StartNormalHatching()
+                    end
+                    
+                    -- If we didn't find any valid rift egg, choose a new target for next check
+                    if not foundValidEgg then
+                        chooseNewTarget()
+                    end
+                    
+                    task.wait(2) -- Wait before checking again
                 end
-                disableNoClip() -- Ensure NoClip is disabled when loop ends
+                
+                -- When Rift Auto Hatch is turned off
+                if AutoHatch then
+                    -- Make sure normal hatching is active
+                    if not IsProcessingNormalHatch then
+                        StartNormalHatching()
+                    end
+                else
+                    DisableNoclip() -- Only disable if both auto hatches are off
+                    restorePlayerMobility() -- Restore player mobility
+                end
             end)
         else
-            cancelAllOperations()
+            IsHandlingRiftEgg = false
+            
+            -- Cancel any active rift operations
+            for hrp, tween in pairs(ActiveTweens) do
+                if tween then tween:Cancel() end
+            end
+            ActiveTweens = {}
+            
+            -- If regular Auto Hatch is still on, let it run
+            if AutoHatch then
+                if not IsProcessingNormalHatch then
+                    StartNormalHatching()
+                end
+            else
+                DisableNoclip() -- Only disable if both auto hatches are off
+                restorePlayerMobility() -- Restore player mobility
+            end
         end
     end
 })
