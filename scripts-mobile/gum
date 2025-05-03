@@ -468,7 +468,22 @@ BlowSection:AddToggle("AutoFarmToggle", {
 })
 
 local AutoCollect = false
+local CollectDistance = 40 -- valor inicial padrão
 
+-- Slider para ajustar a distância de coleta
+CollectSection:AddSlider("CollectDistanceSlider", {
+    Title = "Distância de Coleta",
+    Description = "Ajusta a distância (studs) para coletar moedas/gemas/caixas",
+    Default = 40,
+    Min = 10,
+    Max = 200,
+    Rounding = 0,
+    Callback = function(value)
+        CollectDistance = value
+    end
+})
+
+-- Toggle de AutoCollect
 CollectSection:AddToggle("AutoCollectToggle", {
     Title = "Auto Collect Coins/Gems/Crates",
     Default = false,
@@ -496,7 +511,7 @@ CollectSection:AddToggle("AutoCollectToggle", {
                                             local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
                                             if primaryPart and Character and Character:FindFirstChild("HumanoidRootPart") then
                                                 local distance = (primaryPart.Position - Character.HumanoidRootPart.Position).Magnitude
-                                                if distance <= 40 then
+                                                if distance <= CollectDistance then
                                                     table.insert(itemsToCollect, model)
                                                 end
                                             end
@@ -922,340 +937,6 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
                     task.wait(1) -- Espera exatamente 1 segundo
                 end
             end)
-        end
-    end
-})
-
-local EggTeleportMap = {
-    ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-    ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
-    ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Pastel Egg"] = "Workspace.Event.Portal.Spawn",
-    ["Bunny Egg"] = "Workspace.Event.Portal.Spawn"
-}
-
-local EggPositions = {
-    ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
-    ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
-    ["Iceshard Egg"] = Vector3.new(-8.188074111938477, 9.323458671569824, -60.25547790527344),
-    ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
-    ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
-    ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
-    ["Lunar Egg"] = Vector3.new(-57.51275634765625, 6862.583984375, 79.98605346679688),
-    ["Void Egg"] = Vector3.new(5.301668167114258, 10147.8046875, 188.5633087158203),
-    ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
-    ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
-    ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
-    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
-    ["Pastel Egg"] = Vector3.new(-393.0823669433594, 12012.0830078125, -60.60501480102539),
-    ["Bunny Egg"] = Vector3.new(-402.5804443359375, 12012.0830078125, -59.37004089355469)
-}
-
-local TaskToEggMap = {
-    ["Shiny"] = "Common Egg",
-    ["Epic"] = "Spotted Egg",
-    ["Legendary"] = "Spikey Egg",
-    ["Common"] = "Common Egg"
-}
-
-Tabs.AutoTask:AddToggle("AutoHatch", {
-    Title = "Auto Task Competitive",
-    Default = false,
-    Callback = function(state)
-        getgenv().AutoHatch = state
-        
-        if state then
-            spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local Players = game:GetService("Players")
-                local RunService = game:GetService("RunService")
-                
-                local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
-                local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
-                local Player = Players.LocalPlayer
-                
-                local currentTask = nil
-                local playTimeTaskActive = false
-                local playTimeStart = 0
-                local playTimeRequired = 0
-                local noclipActive = false
-                local noclipConnection = nil
-
-                local function setNoClip(state)
-                    if state == noclipActive then return end
-                    
-                    if state then
-                        noclipActive = true
-                        noclipConnection = RunService.Stepped:Connect(function()
-                            if Player.Character then
-                                for _, part in ipairs(Player.Character:GetDescendants()) do
-                                    if part:IsA("BasePart") then
-                                        part.CanCollide = false
-                                    end
-                                end
-                            end
-                        end)
-                    else
-                        noclipActive = false
-                        if noclipConnection then
-                            noclipConnection:Disconnect()
-                            noclipConnection = nil
-                        end
-                    end
-                end
-
-                local function walkToPosition(position)
-                    if not Player.Character then 
-                        return false 
-                    end
-                    
-                    local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
-                    local rootPart = Player.Character:FindFirstChild("HumanoidRootPart")
-                    
-                    if not humanoid or not rootPart then 
-                        return false 
-                    end
-                    
-                    setNoClip(true)
-                    
-                    local originalWalkSpeed = humanoid.WalkSpeed
-                    humanoid.WalkSpeed = 24
-                    
-                    humanoid:MoveTo(position)
-                    
-                    local startTime = os.time()
-                    local distance = (rootPart.Position - position).Magnitude
-                    local lastDistance = distance
-                    local stuckCounter = 0
-                    
-                    while distance > 5 and os.time() - startTime < 30 do
-                        task.wait(0.5)
-                        
-                        distance = (rootPart.Position - position).Magnitude
-                        
-                        if math.abs(distance - lastDistance) < 1 then
-                            stuckCounter = stuckCounter + 1
-                        else
-                            stuckCounter = 0
-                        end
-                        
-                        if stuckCounter >= 3 then
-                            humanoid:MoveTo(position)
-                            stuckCounter = 0
-                        end
-                        
-                        lastDistance = distance
-                        
-                    end
-                    
-                    humanoid.WalkSpeed = originalWalkSpeed
-                    
-                    local success = (rootPart.Position - position).Magnitude <= 10
-                    
-                    if success then
-                    else
-                    end
-                    
-                    return success
-                end
-
-                local function getCurrentTask()
-                    local TasksFrame = Player.PlayerGui.ScreenGui.Competitive.Frame.Content.Tasks
-                    
-                    local function checkForLabels(parent)
-                        for _, child in pairs(parent:GetChildren()) do
-                            if child:IsA("TextLabel") and child.Visible and child.Text then
-                                local text = child.Text
-                                
-                                if text:match("Hatch") then
-                                    
-                                    if text:match("Mythic") then
-                                        return nil
-                                    end
-                                    
-                                    for petType, eggName in pairs(TaskToEggMap) do
-                                        if text:match(petType) then
-                                            local amount = text:match("Hatch (%d+)")
-                                            if amount then
-                                                return {
-                                                    text = text,
-                                                    eggName = eggName,
-                                                    amount = tonumber(amount),
-                                                    type = "hatch"
-                                                }
-                                            end
-                                        end
-                                    end
-                                    
-                                    if text:match("Common Pets") then
-                                        local amount = text:match("Hatch (%d+)")
-                                        if amount then
-                                            return {
-                                                text = text,
-                                                eggName = "Common Egg",
-                                                amount = tonumber(amount),
-                                                type = "hatch"
-                                            }
-                                        end
-                                    end
-
-                                    for eggName, _ in pairs(EggPositions) do
-                                        local shortName = eggName:gsub(" Egg", "")
-                                        if text:match(shortName) or text:match(eggName) then
-                                            local amount = text:match("Hatch (%d+)")
-                                            if amount then
-                                                return {
-                                                    text = text,
-                                                    eggName = eggName,
-                                                    amount = tonumber(amount),
-                                                    type = "hatch"
-                                                }
-                                            end
-                                        end
-                                    end
-                                end
-                                
-                                if text:match("Play for") then
-                                    local minutes = text:match("Play for (%d+) minutes")
-                                    if minutes then
-                                        return {
-                                            text = text,
-                                            type = "playtime",
-                                            requiredTime = tonumber(minutes) * 60
-                                        }
-                                    end
-                                end
-                            elseif child:IsA("GuiObject") then
-                                local result = checkForLabels(child)
-                                if result then return result end
-                            end
-                        end
-                        return nil
-                    end
-                    
-                    return checkForLabels(TasksFrame)
-                end
-
-                local function teleportToIsland(eggName)
-                    local teleportPath = EggTeleportMap[eggName]
-                    if not teleportPath then
-                        return false
-                    end
-                    
-                    
-                    RemoteEvent:FireServer("Teleport", teleportPath)
-                    
-                    task.wait(3)
-                    
-                    return true
-                end
-
-                local function hatchLoop(eggName, eggPosition)
-                    local attempts = 0
-                    local maxAttempts = 3
-                    local atPosition = false
-                    
-                    while getgenv().AutoHatch and attempts < maxAttempts do
-                        local newTask = getCurrentTask()
-                        if not newTask or (newTask.type == "hatch" and newTask.eggName ~= eggName) then
-                            break
-                        end
-                        
-                        if not atPosition and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                            local currentPos = Player.Character.HumanoidRootPart.Position
-                            if (currentPos - eggPosition).Magnitude > 10 then
-                                
-                                if teleportToIsland(eggName) then
-                                    task.wait(1.5)
-                                    
-                                    if walkToPosition(eggPosition) then
-                                        atPosition = true
-                                        attempts = 0  -- Resetar tentativas quando chegar com sucesso
-                                    else
-                                        attempts = attempts + 1
-                                        task.wait(1)
-                                        continue
-                                    end
-                                else
-                                    attempts = attempts + 1
-                                    task.wait(1.5)
-                                    continue
-                                end
-                            else
-                                atPosition = true  -- Já estamos na posição
-                            end
-                        end
-                        
-                        if atPosition then
-                            RemoteEvent:FireServer("HatchEgg", eggName, 10)
-                            task.wait(0.5 + math.random() * 0.3)  -- Intervalo variável para parecer mais natural
-                        else
-                            atPosition = false  -- Resetar flag para tentar novamente
-                            task.wait(1)
-                        end
-                    end
-                    
-                    if attempts >= maxAttempts then
-                        getgenv().AutoHatch = false
-                    end
-                    
-                    setNoClip(false)
-                end
-
-                while getgenv().AutoHatch do
-                    local task = getCurrentTask()
-                    
-                    if playTimeTaskActive then
-                        local elapsed = os.time() - playTimeStart
-                        if elapsed >= playTimeRequired then
-                            playTimeTaskActive = false
-                        else
-                        end
-                    end
-                    
-                    if task then
-                        if task.type == "playtime" and not playTimeTaskActive then
-                            playTimeTaskActive = true
-                            playTimeStart = os.time()
-                            playTimeRequired = task.requiredTime
-                        elseif task.type == "hatch" then
-                            if currentTask == nil or currentTask.text ~= task.text then
-                                currentTask = task
-                            end
-                            
-                            local eggPosition = EggPositions[task.eggName]
-                            if eggPosition then
-                                hatchLoop(task.eggName, eggPosition)
-                            else
-                                task.wait(2)
-                            end
-                        end
-                    else
-                        wait(2)
-                    end
-                    
-                    wait(1)
-                end
-                
-                if noclipConnection then
-                    noclipConnection:Disconnect()
-                    noclipConnection = nil
-                end
-            end)
-        else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
         end
     end
 })
