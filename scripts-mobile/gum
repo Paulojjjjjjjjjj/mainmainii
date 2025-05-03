@@ -786,36 +786,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
     end
 })
 
-UtilitiesSection:AddToggle("AutoSeasonEgg", {
-    Title = "Auto Hatch Season 1 Egg",
-    Default = false,
-    Callback = function(state)
-        getgenv().AutoSeasonEgg = state
-
-        if state then
-            spawn(function()
-                local RemoteEvent = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Shared")
-                    :WaitForChild("Framework")
-                    :WaitForChild("Network")
-                    :WaitForChild("Remote")
-                    :WaitForChild("Event")
-
-                while AutoSeasonEgg do
-                    local args = {
-                        [1] = "HatchPowerupEgg",
-                        [2] = "Season 1 Egg",
-                        [3] = 10
-                    }
-
-                    RemoteEvent:FireServer(unpack(args))
-                    task.wait(1) -- Aguarda 1 segundo entre hatchs para evitar flood
-                end
-            end)
-        end
-    end
-})
-
 UtilitiesSection:AddToggle("AutoStartGenieQuest", {
     Title = "Auto Start Genie Quest",
     Description = "Automatically starts random Genius quests",
