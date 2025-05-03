@@ -2020,16 +2020,43 @@ ChestHunt:AddToggle("AutoRoyalChestToggle", {
     end
 })
 
-local AutoGiftRift = false
-local ActiveTween
-local NoClipConnection
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
 
-local function manageNoClip(enable)
-    if enable then
-        if not NoClipConnection then
-            NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
-                if game.Players.LocalPlayer.Character then
-                    for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+-- Remote Event reference
+local remoteEvent = ReplicatedStorage:WaitForChild("Shared")
+    :WaitForChild("Framework")
+    :WaitForChild("Network")
+    :WaitForChild("Remote")
+    :WaitForChild("Event")
+
+-- Configuration variables
+local dropAltitude = -100 -- Vertical position below ground
+local claimAltitude = 3 -- Final vertical position for claiming
+local moveSpeed = 18 -- Horizontal movement speed
+local autoGiftRiftEnabled = false
+local noClipConnection = nil
+local claimAttemptDelay = 0.5 -- Time between claim attempts
+local maxClaimAttempts = 10 -- Maximum claim attempts
+local searchInterval = 1 -- How often to search for a new gift rift
+
+-- Helper function to get humanoid root part
+local function getHRP()
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+-- Function to enable/disable character collision
+local function setNoClip(enabled)
+    if enabled then
+        if not noClipConnection then
+            noClipConnection = RunService.Stepped:Connect(function()
+                if player.Character then
+                    for _, part in ipairs(player.Character:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                         end
@@ -2038,46 +2065,131 @@ local function manageNoClip(enable)
             end)
         end
     else
-        if NoClipConnection then
-            NoClipConnection:Disconnect()
-            NoClipConnection = nil
+        if noClipConnection then
+            noClipConnection:Disconnect()
+            noClipConnection = nil
         end
     end
 end
 
-local function teleportAndClaimGift()
-    while AutoGiftRift do
-        local gift = workspace.Rendered.Rifts:FindFirstChild("gift-rift")
+-- Find gift rift function with multiple strategies
+local function findGiftRift()
+    -- Strategy 1: Direct path
+    local gift = Workspace:FindFirstChild("Rendered", true) and 
+                Workspace.Rendered:FindFirstChild("Rifts") and 
+                Workspace.Rendered.Rifts:FindFirstChild("gift-rift")
+    
+    if gift then return gift end
+    
+    -- Strategy 2: Search in all Rifts folders
+    for _, child in pairs(Workspace:GetDescendants()) do
+        if child.Name == "Rifts" then
+            gift = child:FindFirstChild("gift-rift")
+            if gift then return gift end
+        end
+    end
+    
+    -- Strategy 3: Search for any object with "gift" and "rift" in name
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if (obj.Name:lower():find("gift") and obj.Name:lower():find("rift")) or 
+           obj.Name:lower() == "gift-rift" then
+            return obj
+        end
+    end
+    
+    return nil
+end
+
+-- Direct teleport function (simpler approach)
+local function teleportTo(position)
+    local hrp = getHRP()
+    hrp.CFrame = CFrame.new(position)
+end
+
+-- Function to find and claim gift rift
+local function giftRiftLoop()
+    while autoGiftRiftEnabled do
+        local gift = findGiftRift()
+        
         if gift then
-            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                manageNoClip(true)
-                local tween = TweenService:Create(hrp, TweenInfo.new(6), {
-                    CFrame = gift:GetPivot() * CFrame.new(0, 0, -3)
-                })
-                tween:Play()
-                tween.Completed:Wait()
+            local giftPosition = gift:GetPivot().Position
+            local hrp = getHRP()
+            local originalPosition = hrp.Position
+            
+            -- Enable noclip for smooth movement
+            setNoClip(true)
+            
+            -- Step 1: Go below ground
+            teleportTo(Vector3.new(originalPosition.X, dropAltitude, originalPosition.Z))
+            task.wait(0.1)
+            
+            -- Step 2: Move to gift position horizontally (keeping -100 Y)
+            teleportTo(Vector3.new(giftPosition.X, dropAltitude, giftPosition.Z))
+            task.wait(0.1)
+            
+            -- Step 3: Move up to claim position
+            teleportTo(Vector3.new(giftPosition.X, claimAltitude, giftPosition.Z))
+            
+            -- Claim attempts
+            local attempts = 0
+            while autoGiftRiftEnabled and gift.Parent and attempts < maxClaimAttempts do
+                attempts = attempts + 1
                 
-                while AutoGiftRift and gift.Parent do
-                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("ClaimRiftGift", "gift-rift")
-                    task.wait(0.5) -- Intervalo entre claims
+                -- Fire server to claim gift
+                remoteEvent:FireServer("ClaimRiftGift", "gift-rift")
+                
+                -- Try to remove the gift object
+                if gift:FindFirstChild("Gift") then
+                    gift.Gift:Destroy()
+                end
+                
+                -- Remove the entire gift-rift object
+                if gift and gift.Parent then
+                    gift:Destroy()
+                end
+                
+                task.wait(claimAttemptDelay)
+                
+                -- Check if gift still exists
+                if not gift.Parent then
+                    break
                 end
             end
+            
+            -- Return to original position (same 3-step process)
+            teleportTo(Vector3.new(giftPosition.X, dropAltitude, giftPosition.Z))
+            task.wait(0.1)
+            teleportTo(Vector3.new(originalPosition.X, dropAltitude, originalPosition.Z))
+            task.wait(0.1)
+            teleportTo(Vector3.new(originalPosition.X, originalPosition.Y, originalPosition.Z))
+            
+            -- Disable noclip
+            setNoClip(false)
         end
-        task.wait(1) -- Verifica a cada 1 segundo se o gift reapareceu
+        
+        -- Wait before searching again
+        task.wait(searchInterval)
     end
-    manageNoClip(false)
 end
 
+-- Toggle function for UI
+local function toggleAutoGiftRift(enabled)
+    autoGiftRiftEnabled = enabled
+    
+    if enabled then
+        task.spawn(giftRiftLoop)
+    else
+        setNoClip(false)
+    end
+end
+
+-- Add just the toggle to UI
 GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Title = "Auto Gift Rift",
-    Description = "Automatically teleports and collects gifts",
+    Description = "Automatically claims gift rifts",
     Default = false,
-    Callback = function(state)
-        AutoGiftRift = state
-        if state then
-            task.spawn(teleportAndClaimGift)
-        end
+    Callback = function(Value)
+        toggleAutoGiftRift(Value)
     end
 })
 
