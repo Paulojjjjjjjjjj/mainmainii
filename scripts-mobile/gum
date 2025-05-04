@@ -59,6 +59,7 @@ local HatchAmount = 1
 local SellOptions = Tabs.Main:AddSection("Sell Options")
 local BlowSection = Tabs.Main:AddSection("Bubble + Sell Automation")
 local CollectSection = Tabs.Main:AddSection("Auto Collect")
+local MinigameSection = Tabs.Main:AddSection("MiniGame")
 local UtilitiesSection = Tabs.Main:AddSection("Utilities")
 local Egg = Tabs.EggHunt:AddSection("Egg")
 local EggRift = Tabs.EggHunt:AddSection("Egg Rift")
@@ -539,6 +540,60 @@ CollectSection:AddToggle("AutoCollectToggle", {
                     end)
                 end
             end)
+        end
+    end
+})
+
+local difficulties = {
+    ["Easy"] = "Easy",
+    ["Medium"] = "Medium",
+    ["Hard"] = "Hard",
+    ["Insane"] = "Insane"
+}
+
+local selectedDifficulty = "Easy"
+
+local Dropdown = MinigameSection:AddDropdown("MinigameDifficulty", {
+    Title = "Difficulty",
+    Description = "Choose the minigame difficulty",
+    Values = {"Easy", "Medium", "Hard", "Insane"},
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:OnChanged(function(Value)
+    selectedDifficulty = Value
+end)
+
+local Toggle = MinigameSection:AddToggle("StartMinigameToggle", {
+    Title = "Auto Minigame",
+    Default = false,
+    Callback = function(state)
+        if state then
+            -- Inicia o minigame
+            local args = {
+                [1] = "StartMinigame",
+                [2] = "Pet Match",
+                [3] = selectedDifficulty
+            }
+
+            game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+                :WaitForChild("Framework"):WaitForChild("Network")
+                :WaitForChild("Remote"):WaitForChild("Event")
+                :FireServer(unpack(args))
+
+            -- Aguarda alguns segundos como se estivesse jogando
+            task.wait(0.1) -- pode ajustar esse tempo
+
+            -- Finaliza o minigame
+            local finishArgs = {
+                [1] = "FinishMinigame"
+            }
+
+            game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+                :WaitForChild("Framework"):WaitForChild("Network")
+                :WaitForChild("Remote"):WaitForChild("Event")
+                :FireServer(unpack(finishArgs))
         end
     end
 })
