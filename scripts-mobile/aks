@@ -991,20 +991,13 @@ local function sendCode(code)
 end
 
 local codes = {
-    "Update2AKS",  -- 5 Armament Tokens and 1x All Potions Tier 1 (NEW)
-    "thebest100klikes", -- 25 Crystals (NEW)
-    "gracias90klikes", -- 25 Enchantment Tokens and 25 Passive Tokens (NEW)
-    "tyfor80klikes", -- 2x All Potions Tier 2 (NEW)
-    "SHUTDOWN", -- Reset Raid and Dungeon Cooldown (NEW)
-    "TyFor50K", -- 25 Crystals
-    "Nice60kLikes", -- 2x All Potions Tier 1
-    "OMG70kLikes", -- 2x All Potions Tier 2
-    "Update1", -- 5 Enchantment Tokens, 25 Crystals
-    "40kOMG", -- 2x All Potions Tier 1
-    "THXFOR30K", -- 1x All Potions Tier 1
-    "20klikes", -- 1x All Potions Tier 1
-    "10KLIKES", -- 1x All Potions Tier 1
-    "Release" -- 1x All Potions Tier 2
+    "CometsUPD4",           -- 25 Crystals and 5 Easter boxes (NEW)
+    "EasterPart2",          -- 4 All Potions Tier 2 and 25 Crystals (NEW)
+    "YEAH130KLIKES",        -- 4 All Potions Tier 2 and 25 Crystals (NEW)
+    "JOJOUPD3",             -- 5 Golden Arrows, 1 Custom Ticket, and 25 Crystals
+    "WOW120KLIKES",         -- 4 All Potions Tier 2 and 25 Crystals
+    "SHUTDOWN",             -- Reset Raid and Dungeon Cooldown
+    "Release"               -- 1x All Potions Tier 2
 }
 
 for _, code in ipairs(codes) do
