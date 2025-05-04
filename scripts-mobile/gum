@@ -2729,7 +2729,7 @@ Tabs.ServerHop:AddToggle("AutoRiftHatchToggle", {
 local portalLocations = {
     ["Twilight Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
     ["Outer Space | World 1"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Spawn (Overworld) | World 1"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Overworld Spawn | World 1"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["The Void | World 1"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Floating Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
     ["Zen | World 1"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
