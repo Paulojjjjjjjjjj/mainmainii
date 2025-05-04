@@ -489,17 +489,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Lobby"):WaitForChild("Code")
 
 local codes = {
-    "Sorry For Event Bug",
-    "100K CCU",
-    "Easter Egg 2025!",
-    "99% Gift Fixed",
-    "20K Favorite",
-    "Real Last Shutdown",
-    "55K CCU",
-    "50K CCU",
-    "40K Likes!",
-    "45K CCU",
-    "10K Favorites"
+    "SorryForIssues",        -- 1000 Gems and 50 Rerolls (NEW)
+    "Im Back",               -- 1000 Gems and 25 Rerolls (NEW)
+    "125M Visits",           -- 1000 Gems, 500 Eggs and 10 Rerolls
+    "100K CCU",              -- 1000 Gems, 500 Eggs and 15 Rerolls
+    "Easter Egg 2025!"       -- 2000 Gems, 500 Eggs and 15 Rerolls
 }
 
 Tabs.Misc:AddButton({

@@ -2750,7 +2750,12 @@ CodeSection:AddButton({
     Title = "Redeem Codes",
     Description = "Redeem all available codes",
     Callback = function()
-        local codes = { "Release", "Thanks", "Lucky" }
+        local codes = {
+            "update2",   -- 5 Mystery Gifts (NEW)
+            "Easter",    -- 4 Mystery Gifts
+            "Release",   -- 1 Mystery Gift
+            "Lucky"      -- 1 Luck Potion V
+        }        
         for _, code in ipairs(codes) do
             local success, result = pcall(function()
                 return game:GetService("ReplicatedStorage")
