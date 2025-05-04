@@ -1321,7 +1321,10 @@ local EggTeleportMap = {
     ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn"
+    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Showman Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Mining Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Cyber Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn"
 }
 
 local EggPositions = {
@@ -1336,7 +1339,10 @@ local EggPositions = {
     ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
     ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
     ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
-    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188)
+    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
+    ["Showman Egg"] = Vector3.new(9941.394, 26.922, 210.422),
+    ["Mining Egg"] = Vector3.new(9935.720, 26.922, 218.636),
+    ["Cyber Egg"] = Vector3.new(9927.065, 26.922, 226.716)
 }
 
 -- Shared noclip function to avoid duplication
