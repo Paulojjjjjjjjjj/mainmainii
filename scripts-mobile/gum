@@ -548,7 +548,6 @@ local equipBestRunning = false -- Variável de controle GLOBAL
 
 UtilitiesSection:AddToggle("EquipBestToggle", {
     Title = "Auto Equip Best Pets",
-    Description = "Automatically equips the best pets",
     Default = false,
     Callback = function(state)
         equipBestRunning = state
@@ -576,7 +575,6 @@ local buyDiceLoop = false
 
 UtilitiesSection:AddToggle("AutoBuyDice", {
     Title = "Auto Buy Dice",
-    Description = "Compra itens da dice-shop (1 a 3) em loop",
     Default = false,
     Callback = function(state)
         buyDiceLoop = state
@@ -707,7 +705,6 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
 
 UtilitiesSection:AddToggle("AutoClaimSeason", {
     Title = "Auto Claim Season",
-    Description = "Automatic Season Pass claim",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimSeason = state
@@ -732,7 +729,6 @@ UtilitiesSection:AddToggle("AutoClaimSeason", {
 
 UtilitiesSection:AddToggle("AutoClaimPlaytime", {
     Title = "Auto Claim Playtime Rewards",
-    Description = "Automatically claims playtime rewards (1 to 9)",
     Default = false,
     Callback = function(state)
         AutoClaimPlaytime = state
@@ -848,7 +844,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
 
 UtilitiesSection:AddToggle("AutoStartGenieQuest", {
     Title = "Auto Start Genie Quest",
-    Description = "Automatically starts random Genius quests",
     Default = false,
     Callback = function(state)
         getgenv().AutoGenieQuest = state
@@ -876,7 +871,6 @@ UtilitiesSection:AddToggle("AutoStartGenieQuest", {
 
 UtilitiesSection:AddToggle("AutoBuyAlienShop", {
     Title = "Auto Buy Alien Shop Items",
-    Description = "Automatically buys items from alien-shop",
     Default = false,
     Callback = function(state)
         getgenv().AutoBuyAlienShop = state
@@ -902,7 +896,6 @@ UtilitiesSection:AddToggle("AutoBuyAlienShop", {
 
 UtilitiesSection:AddToggle("AutoBuyShardShop", {
     Title = "Auto Buy Black Market Shop Items",
-    Description = "Automatically buys items from shard shop",
     Default = false,
     Callback = function(state)
         getgenv().AutoBuyShardShop = state
@@ -930,7 +923,6 @@ UtilitiesSection:AddToggle("AutoBuyShardShop", {
 
 UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
     Title = "Auto Win Doggy",
-    Description = "Simulates victory in the Doggy Jump minigame (Rewards 1 to 3)",
     Default = false,
     Callback = function(state)
         getgenv().AutoDoggyJumpWin = state
@@ -955,7 +947,6 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
 
 UtilitiesSection:AddToggle("AutoWheelSpin", {
     Title = "Auto Wheel Spin",
-    Description = "Automatically spins both roulette wheels (free and paid)",
     Default = false,
     Callback = function(state)
         getgenv().AutoWheelSpin = state
