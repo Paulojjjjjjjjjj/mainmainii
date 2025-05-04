@@ -2763,24 +2763,25 @@ TeleportSection:AddToggle("TweenTeleport", {
 
 -- Locais de teleportes diretos via caminho no Workspace (Portals)
 local portalLocations = {
-    ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
-    ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Spawn (Overworld)"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-    ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn"
-}
+    ["Twilight Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Outer Space | World 1"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Spawn (Overworld) | World 1"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["The Void | World 1"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Floating Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Zen | World 1"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
 
--- Mundos que usam a chamada "WorldTeleport"
-local worldLocations = {
-    "Minigame Paradise"
+    -- Minigame Paradise e suas ilhas
+    ["Minigame Paradise Spawn | World 2"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Dice Island | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Dice Island.Island.Portal.Spawn",
+    ["Minecart Forest | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Minecart Forest.Island.Portal.Spawn",
+    ["Robot Factory | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Robot Factory.Island.Portal.Spawn"
 }
 
 -- Botões para teleportes via path (portais)
 for name, path in pairs(portalLocations) do
     Tabs.Teleport:AddButton({
-        Title = "[Portal] " .. name,
-        Description = "Teleport to portal: " .. name,
+        Title = name,
+        Description = "Teleport to: " .. name,
         Callback = function()
             local RemoteEvent = game:GetService("ReplicatedStorage")
                 :WaitForChild("Shared")
@@ -2793,37 +2794,12 @@ for name, path in pairs(portalLocations) do
 
             Fluent:Notify({
                 Title = "Teleport",
-                Content = "Teleported to portal: " .. name,
+                Content = "Teleported to: " .. name,
                 Duration = 3
             })
         end
     })
 end
-
--- Botões para teleportes entre mundos
-for _, worldName in ipairs(worldLocations) do
-    Tabs.Teleport:AddButton({
-        Title = "[World] " .. worldName,
-        Description = "Teleport to world: " .. worldName,
-        Callback = function()
-            local RemoteEvent = game:GetService("ReplicatedStorage")
-                :WaitForChild("Shared")
-                :WaitForChild("Framework")
-                :WaitForChild("Network")
-                :WaitForChild("Remote")
-                :WaitForChild("Event")
-
-            RemoteEvent:FireServer("WorldTeleport", worldName)
-
-            Fluent:Notify({
-                Title = "Teleport",
-                Content = "Teleported to world: " .. worldName,
-                Duration = 3
-            })
-        end
-    })
-end
-
 
 CodeSection:AddButton({
     Title = "Redeem Codes",
