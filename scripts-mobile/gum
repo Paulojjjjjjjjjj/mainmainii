@@ -472,8 +472,8 @@ local CollectDistance = 40 -- valor inicial padrão
 
 -- Slider para ajustar a distância de coleta
 CollectSection:AddSlider("CollectDistanceSlider", {
-    Title = "Distância de Coleta",
-    Description = "Ajusta a distância (studs) para coletar moedas/gemas/caixas",
+    Title = "Pick-up distance",
+    Description = "Adjusts the distance (studs) to collect coins/gems/boxes",
     Default = 40,
     Min = 10,
     Max = 200,
