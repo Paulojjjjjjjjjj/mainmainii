@@ -608,7 +608,6 @@ UtilitiesSection:AddToggle("AutoBuyDice", {
 
 UtilitiesSection:AddToggle("AutoClaimChests", {
     Title = "Auto Claim Chests",
-    Description = "Teleports and claims Giant and Void Chests using Remote Event",
     Default = false,
     Callback = function(state)
         getgenv().AutoClaimChests = state
