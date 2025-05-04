@@ -566,7 +566,7 @@ Dropdown:OnChanged(function(Value)
 end)
 
 local Toggle = MinigameSection:AddToggle("StartMinigameToggle", {
-    Title = "Auto Minigame",
+    Title = "Auto Pet Match",
     Default = false,
     Callback = function(state)
         if state then
