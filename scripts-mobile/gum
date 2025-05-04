@@ -2745,7 +2745,6 @@ local portalLocations = {
 for name, path in pairs(portalLocations) do
     Tabs.Teleport:AddButton({
         Title = name,
-        Description = "Teleport to: " .. name,
         Callback = function()
             local RemoteEvent = game:GetService("ReplicatedStorage")
                 :WaitForChild("Shared")
