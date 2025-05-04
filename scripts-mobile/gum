@@ -632,16 +632,20 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                 local chestData = {
                     ["Giant Chest"] = {
                         teleportTo = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-                        walkTo = Vector3.new(13.179579734802246, 427.93109130859375, 158.93988037109375),
+                        walkTo = Vector3.new(13.179, 427.931, 158.939),
                         path = "Giant Chest"
                     },
                     ["Void Chest"] = {
                         teleportTo = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-                        walkTo = Vector3.new(76.66033172607422, 10148.2060546875, 52.507083892822266),
+                        walkTo = Vector3.new(76.660, 10148.206, 52.507),
                         path = "Void Chest"
+                    },
+                    ["Ticket Chest"] = {
+                        teleportTo = "Workspace.Worlds.Minigame Paradise.Islands.Dice Island.Island.Portal.Spawn",
+                        walkTo = Vector3.new(9883.284, 2912.246, 233.726),
+                        path = "Ticket Chest"
                     }
                 }
-
                 local function isChestReady(chestName)
                     local genericChest = Workspace.Rendered.Generic:FindFirstChild(chestName)
                     return genericChest and genericChest:FindFirstChild("Outer") ~= nil
