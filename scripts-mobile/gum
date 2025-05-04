@@ -1574,7 +1574,10 @@ local EggNameMap = {
     ["rainbow-egg"] = "Rainbow Egg",
     ["infinity-egg"] = "Infinity Egg",
     ["silly-egg"] = "Silly Egg",
-    ["man-egg"] = "Aura Egg"
+    ["man-egg"] = "Aura Egg",
+    ["showman-egg"] = "Showman Egg",
+    ["mining-egg"] = "Mining Egg",
+    ["cyber-egg"] = "Cyber Egg"
 }
 
 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
