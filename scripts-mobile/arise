@@ -20,6 +20,14 @@ local Tabs = {
         Title = "Dungeon", 
         Icon = "skull"
     }),
+    Winter = Window:AddTab({ 
+        Title = "Winter", 
+        Icon = "snowflake"
+    }),
+    Raid = Window:AddTab({ 
+        Title = "Raid", 
+        Icon = "swords"
+    }),
     Teleport = Window:AddTab({ 
         Title = "Teleport", 
         Icon = "rbxassetid://12689978575" 
@@ -39,7 +47,12 @@ local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local Action = Tabs.Main:AddSection("Action Options")
 local DungeonSearch = Tabs.Dungeon:AddSection("Dungeon Search")
+local RuneOptions = Tabs.Dungeon:AddSection("Rune Options")
 local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
+local WinterOptions = Tabs.Winter:AddSection("Winter Options")
+local WinterFarm = Tabs.Winter:AddSection("Winter Farm")
+local RaidOptions = Tabs.Raid:AddSection("Raid Options")
+local RaidFarm = Tabs.Raid:AddSection("Raid Farm")
 local Mounts = Tabs.Teleport:AddSection("Mounts")
 local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
 local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
@@ -605,261 +618,34 @@ local Toggle = AutoFarm:AddToggle("AutoEquipBestShadows", {
     end
 })
 
-local isSearching = false
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local dataRemoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
-
-local localPlayer = Players.LocalPlayer
-
-local searchEnabled = false
-local autoStartEnabled = false
-local selectedRanks = {}
-local rankToNumber = {
-    ["E"] = 1,
-    ["D"] = 2,
-    ["C"] = 3,
-    ["B"] = 4,
-    ["A"] = 5,
-    ["S"] = 6,
-    ["SS"] = 7,
-    ["G"] = 8,
-    ["N+"] = 9,
-}
-
-local numberToRank = {}
-for k, v in pairs(rankToNumber) do
-    numberToRank[v] = k
-end
-
-local worldPositions = {
-    ["World 1"] = Vector3.new(430.431, 28.083, -6.193),
-    ["World 2"] = Vector3.new(-3376.060, 30.260, 2252.275),
-    ["World 3"] = Vector3.new(-2864.344, 57.738, -2044.594),
-    ["World 4"] = Vector3.new(2791.104, 46.427, -2743.594),
-    ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
-    ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
-    ["World 7"] = Vector3.new(4938.6689453125, 40.822059631347656, -98.3121109008789)
-}
-
-local function getDungeonFolder()
-    local main = Workspace:FindFirstChild("__Main")
-    if not main then return nil end
-
-    local dungeonParent = main:FindFirstChild("__Dungeon")
-    if not dungeonParent then return nil end
-
-    return dungeonParent
-end
-
-local function notify(title, content)
-    Fluent:Notify({
-        Title = title,
-        Content = content,
-        Duration = 5
-    })
-end
-
-local function teleportToPosition(position)
-    local char = localPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then 
-        return false
-    end
-
-    local root = char.HumanoidRootPart
-    for i = 1, 7 do
-        root.CFrame = CFrame.new(position + Vector3.new(0, 3, 0))
-        task.wait(0.000000005)
-    end
-    return true
-end
-
-local function createAndStartDungeon()
-    local createArgs = {
-        [1] = {
-            [1] = {
-                ["Event"] = "DungeonAction",
-                ["Action"] = "Create"
-            },
-            [2] = "\n"
-        }
-    }
-    dataRemoteEvent:FireServer(unpack(createArgs))
-    notify("Dungeon", "Creating dungeon...")
-    
-    task.wait(0.5)
-    
-    local startArgs = {
-        [1] = {
-            [1] = {
-                ["Dungeon"] = "",
-                ["Event"] = "DungeonAction",
-                ["Action"] = "Start"
-            },
-            [2] = "\n"
-        }
-    }
-    dataRemoteEvent:FireServer(unpack(startArgs))
-    notify("Dungeon", "Starting dungeon...")
-end
-
-local function isValidDungeon(model)
-    if not model then return false end
-
-    local rankValue = model:GetAttribute("DungeonRank")
-    if not rankValue then return false end
-
-    local rankName = numberToRank[rankValue]
-    if not rankName then return false end
-
-    for _, selected in ipairs(selectedRanks) do
-        if selected == rankName then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function teleportToDungeonPortal(dungeon)
-    local portal = dungeon:FindFirstChild("Dungeon") or dungeon:FindFirstChildWhichIsA("BasePart")
-    
-    if portal then
-        return teleportToPosition(portal.Position)
-    else
-        return teleportToPosition(dungeon:GetPivot().Position)
-    end
-end
-
-local function dungeonSearchLoop()
-    while searchEnabled do
-        local dungeonFolder = getDungeonFolder()
-        if not dungeonFolder then
-            notify("Error", "Dungeon folder not found!")
-            task.wait(5)
-            continue
-        end
-
-        for worldName, pos in pairs(worldPositions) do
-            if not searchEnabled then break end
-
-            notify("Search Dungeon", "Searching in "..worldName)
-            if not teleportToPosition(pos) then
-                task.wait(2)
-                continue
-            end
-
-            task.wait(1.5)
-
-            dungeonFolder = getDungeonFolder()
-            if not dungeonFolder then
-                notify("Error", "The dungeon folder disappeared!")
-                task.wait(2)
-                continue
-            end
-
-            for _, dungeon in ipairs(dungeonFolder:GetChildren()) do
-                if not searchEnabled then break end
-
-                if isValidDungeon(dungeon) then
-                    local rankName = numberToRank[dungeon:GetAttribute("DungeonRank")] or "?"
-                    notify("Dungeon Found", "Found dungeon with rank: "..rankName)
-                    
-                    if teleportToDungeonPortal(dungeon) then
-                        notify("Success", "Teleported to dungeon portal!")
-                        
-                        if autoStartEnabled then
-                            createAndStartDungeon()
-                        end
-                    else
-                        notify("Warning", "Found dungeon but couldn't teleport to portal")
-                    end
-                    
-                    searchEnabled = false
-                    return
-                end
-            end
-        end
-
-        if searchEnabled then
-            notify("Search Dungeon", "No dungeons found. Retrying...")
-            task.wait(5)
-        end
-    end
-end
-
-local MultiDropdown = DungeonSearch:AddDropdown("DropdownDungeonRanks", {
-    Title = "Prioritize Ranks",
-    Description = "Select the ranks you want to prioritize",
-    Values = {"E", "D", "C", "B", "A", "S", "SS", "G", "N+"},
-    Multi = true,
-    Default = {},
-})
-
-MultiDropdown:OnChanged(function(Value)
-    selectedRanks = {}
-    for rank, state in pairs(Value) do
-        if state then
-            table.insert(selectedRanks, rank)
-        end
-    end
-    
-    table.sort(selectedRanks, function(a, b)
-        return rankToNumber[a] > rankToNumber[b]
-    end)
-end)
-
-MultiDropdown:SetValue({
-    ["S"] = true,
-    ["SS"] = true,
-    ["G"] = true
-})
-
-local ToggleSearch = DungeonSearch:AddToggle("ToggleDungeonSearch", {
-    Title = "Search Dungeon",
-    Description = "it will stop searching when it finds the valid dungeon",
-    Default = false,
-    Callback = function(Value)
-        searchEnabled = Value
-
-        if Value then
-            if not isSearching then
-                isSearching = true
-                task.spawn(function()
-                    dungeonSearchLoop()
-                    isSearching = false
-                end)
-            end
-        end
-    end    
-})
-
-local ToggleAutoStart = DungeonSearch:AddToggle("ToggleAutoStart", {
-    Title = "Auto Create + Start Dungeon",
-    Description = "Automatically create and start dungeon when found",
-    Default = false,
-    Callback = function(Value)
-        autoStartEnabled = Value
-        if Value then
-     end
-  end    
-})
-
+local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+
 local localPlayer = Players.LocalPlayer
 local enemiesClient = workspace.__Main.__Enemies:FindFirstChild("Client")
 local enemiesServer = workspace.__Main.__Enemies:FindFirstChild("Server")
 local petsFolder = workspace.__Main.__Pets:FindFirstChild(tostring(localPlayer.UserId))
 local remoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
 
+-- Shared variables
 local autoDungeonEnabled = false
 local currentTarget = nil
 local attackCooldown = 3
 local enemyCooldowns = {}
+local attackOption = "\t" -- Default attack option
+
+-- Shared functions
+local function forcedStepTeleport(destination)
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for i = 1, 10 do
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
+        task.wait(0.000000005)
+    end
+end
 
 local function hasExtraEquip()
     local passes = localPlayer.leaderstats.Passes
@@ -900,15 +686,33 @@ local function getPetPositions()
     return petPositions
 end
 
+local function getEnemyHP(enemyName)
+    for _, worldFolder in ipairs(enemiesServer:GetChildren()) do
+        local enemy = worldFolder:FindFirstChild(enemyName)
+        if enemy then
+            local hp = enemy:GetAttribute("HP")
+            return hp or 0
+        end
+    end
+    return 0
+end
+
+local function isEnemyDead(enemyName)
+    local hp = getEnemyHP(enemyName)
+    return hp <= 0
+end
+
 local function isMyPetOnEnemy(enemyName)
     for _, worldFolder in ipairs(enemiesServer:GetChildren()) do
         local enemy = worldFolder:FindFirstChild(enemyName)
         if enemy then
             local enemyPets = enemy:GetAttribute("Pets")
-
+            
             if enemyPets and enemyPets ~= "" then
-                for _, petName in ipairs(getEquippedPets()) do
-                    if enemyPets:find(petName) then
+                local myEquippedPets = getEquippedPets()
+                for _, petName in ipairs(myEquippedPets) do
+                    if string.find(enemyPets, petName) then
+                        print("Pet " .. petName .. " já está no inimigo " .. enemyName)
                         return true
                     end
                 end
@@ -918,7 +722,6 @@ local function isMyPetOnEnemy(enemyName)
     return false
 end
 
-
 local function getClosestEnemy()
     local closest, minDist = nil, math.huge
     local playerPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
@@ -927,28 +730,20 @@ local function getClosestEnemy()
 
     for _, enemy in ipairs(enemiesClient:GetChildren()) do
         if enemy:IsA("Model") then
-            local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
-            if part then
-                local dist = (part.Position - playerPos).Magnitude
-                if dist < minDist then
-                    minDist = dist
-                    closest = enemy
+            if not isEnemyDead(enemy.Name) then
+                local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    local dist = (part.Position - playerPos).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        closest = enemy
+                    end
                 end
             end
         end
     end
 
     return closest
-end
-
-local function forcedStepTeleport(destination)
-    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    for i = 1, 10 do
-        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
-        task.wait(0.000000005)
-    end
 end
 
 local function teleportToEnemy(enemy)
@@ -963,42 +758,754 @@ end
 local function autoDungeonLoop()
     while autoDungeonEnabled do
         local targetEnemy = currentTarget and currentTarget.Parent and currentTarget or getClosestEnemy()
+        
+        if targetEnemy and isEnemyDead(targetEnemy.Name) then
+            print("Inimigo " .. targetEnemy.Name .. " está morto, procurando novo alvo")
+            targetEnemy = getClosestEnemy()
+        end
+        
         currentTarget = targetEnemy
 
         if targetEnemy then
             local enemyName = targetEnemy.Name
             local currentTime = os.clock()
+            local enemyHP = getEnemyHP(enemyName)
+            print("Inimigo " .. enemyName .. " - HP: " .. enemyHP)
+            
+            if enemyHP > 0 then
+                local petsAlreadyOnEnemy = isMyPetOnEnemy(enemyName)
+                local lastAttackTime = enemyCooldowns[enemyName] or 0
+                
+                if currentTime - lastAttackTime >= attackCooldown and not petsAlreadyOnEnemy then
+                    print("Atacando inimigo: " .. enemyName)
+                    enemyCooldowns[enemyName] = currentTime
+                    teleportToEnemy(targetEnemy)
 
-            local lastAttackTime = enemyCooldowns[enemyName] or 0
-            if currentTime - lastAttackTime >= attackCooldown and not isMyPetOnEnemy(enemyName) then
-                enemyCooldowns[enemyName] = currentTime
-
-                teleportToEnemy(targetEnemy)
-
-                local petPositions = getPetPositions()
-                if next(petPositions) then
-                    local args = {
-                        [1] = {
+                    local petPositions = getPetPositions()
+                    if next(petPositions) then
+                        local args = {
                             [1] = {
-                                ["PetPos"] = petPositions,
-                                ["AttackType"] = "All",
-                                ["Event"] = "Attack",
-                                ["Enemy"] = enemyName
-                            },
-                            [2] = "\5"
+                                [1] = {
+                                    ["PetPos"] = petPositions,
+                                    ["AttackType"] = "All",
+                                    ["Event"] = "Attack",
+                                    ["Enemy"] = enemyName
+                                },
+                                [2] = attackOption 
+                            }
                         }
-                    }
 
-                    remoteEvent:FireServer(unpack(args))
+                        remoteEvent:FireServer(unpack(args))
+                        print("Pets enviados para atacar: " .. enemyName)
+                    end
+                elseif petsAlreadyOnEnemy then
+                    print("Pets já estão atacando: " .. enemyName)
+                    enemyCooldowns[enemyName] = currentTime
                 end
+            else
+                print("Inimigo " .. enemyName .. " morreu, procurando novo alvo")
+                currentTarget = nil
             end
         else
-            currentTarget = nil
+            print("Nenhum inimigo encontrado, aguardando...")
         end
-        task.wait(0.5)
+
+        task.wait(1)
     end
 end
 
+-- UI Elements
+local attackOptionMap = {
+    ["t"] = "\t",
+    ["5"] = "\5"
+}
+
+-- Winter Options
+WinterOptions:AddButton({
+    Title = "Teleportar para World Winter",
+    Description = "TP direto para coordenadas de World Winter",
+    Callback = function()
+        forcedStepTeleport(Vector3.new(4773.543, 35.229, -2005.651))
+    end
+})
+
+RaidOptions:AddButton({
+    Title = "Teleportar para Jeju Island",
+    Description = "TP direto para coordenadas de World Winter",
+    Callback = function()
+        forcedStepTeleport(Vector3.new(3835.246, 60.112, 3092.571))
+    end
+})
+
+local attackOptionDropdown = WinterOptions:AddDropdown("AttackOptionDropdown", {
+    Title = "Mode Code",
+    Description = "change if Auto Attack Shadow Enemy doesn't work",
+    Values = {"t", "5"},
+    Default = 1
+})
+
+attackOptionDropdown:OnChanged(function(value)
+    attackOption = attackOptionMap[value]
+end)
+
+local attackOptionDropdown = RaidOptions:AddDropdown("AttackOptionDropdown", {
+    Title = "Mode Code",
+    Description = "change if Auto Attack Shadow Enemy doesn't work",
+    Values = {"t", "5"},
+    Default = 1
+})
+
+attackOptionDropdown:OnChanged(function(value)
+    attackOption = attackOptionMap[value]
+end)
+
+RaidFarm:AddToggle("AutoDungeonToggle", {
+    Title = "Auto Raid Farm",
+    Default = false,
+    Callback = function(state)
+        autoDungeonEnabled = state
+        currentTarget = nil
+        if state then
+            task.spawn(autoDungeonLoop)
+        end
+    end
+})
+
+WinterFarm:AddToggle("AutoDungeonToggle", {
+    Title = "Auto Winter Farm",
+    Default = false,
+    Callback = function(state)
+        autoDungeonEnabled = state
+        currentTarget = nil
+        if state then
+            task.spawn(autoDungeonLoop)
+        end
+    end
+})
+
+local isSearching = false
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local dataRemoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+local localPlayer = Players.LocalPlayer
+
+local searchEnabled = false
+local autoStartEnabled = false
+local autoUseRuneEnabled = false
+local selectedRanks = {}
+local selectedRune = nil
+
+local rankToNumber = {
+    ["E"] = 1,
+    ["D"] = 2,
+    ["C"] = 3,
+    ["B"] = 4,
+    ["A"] = 5,
+    ["S"] = 6,
+    ["SS"] = 7,
+    ["G"] = 8,
+    ["N+"] = 9,
+}
+
+local numberToRank = {}
+for k, v in pairs(rankToNumber) do
+    numberToRank[v] = k
+end
+
+local worldPositions = {
+    ["World 1"] = Vector3.new(430.431, 28.083, -6.193),
+    ["World 2"] = Vector3.new(-3376.060, 30.260, 2252.275),
+    ["World 3"] = Vector3.new(-2864.344, 57.738, -2044.594),
+    ["World 4"] = Vector3.new(2791.104, 46.427, -2743.594),
+    ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
+    ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
+    ["World 7"] = Vector3.new(4938.669, 40.822, -98.312),
+
+}
+
+local runeList = {
+    "DgTimeRune",
+    "DgRoomRune",
+    "DgMoreRoomRune",
+    "DgCashRune",
+    "DgGemsRune",
+    "DgHealthRune",
+    "DgRankUpRune",
+    "DgURankUpRune",
+    "DgRankDownRune",
+    "DgSoloRune",
+    "DgNarutoRune",
+    "DgOPRune",
+    "DgBleachRune",
+    "DgBCRune",
+    "DgChainsawRune",
+    "DgJojoRune",
+    "DgDbRune",
+    "DgOPMRune",
+    "DgDanRune"
+}
+
+local function getDungeonFolder()
+    local main = Workspace:FindFirstChild("__Main")
+    if not main then return nil end
+
+    local dungeonParent = main:FindFirstChild("__Dungeon")
+    if not dungeonParent then return nil end
+
+    return dungeonParent
+end
+
+local function notify(title, content)
+    Fluent:Notify({
+        Title = title,
+        Content = content,
+        Duration = 5
+    })
+end
+
+local function teleportToPosition(position)
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then 
+        return false
+    end
+
+    local root = char.HumanoidRootPart
+    for i = 1, 7 do
+        root.CFrame = CFrame.new(position + Vector3.new(0, 3, 0))
+        task.wait(0.000000005)
+    end
+    return true
+end
+
+local function applyRune(dungeonId)
+    if not autoUseRuneEnabled or not selectedRune then
+        return false
+    end
+    
+    local runeArgs = {
+        [1] = {
+            [1] = {
+                ["Dungeon"] = dungeonId,
+                ["Action"] = "AddItems",
+                ["Slot"] = 1,
+                ["Event"] = "DungeonAction",
+                ["Item"] = selectedRune
+            },
+            [2] = "\11"
+        }
+    }
+    
+    dataRemoteEvent:FireServer(unpack(runeArgs))
+    notify("Rune Applied", "Applied " .. selectedRune .. " to dungeon")
+    return true
+end
+
+local function createAndStartDungeon(dungeonId)
+    if not dungeonId then dungeonId = "" end
+    
+    local createArgs = {
+        [1] = {
+            [1] = {
+                ["Event"] = "DungeonAction",
+                ["Action"] = "Create"
+            },
+            [2] = "\11"
+        }
+    }
+    dataRemoteEvent:FireServer(unpack(createArgs))
+    notify("Dungeon", "Creating dungeon...")
+    
+    task.wait(0.5)
+    
+    -- Check if we need to apply rune before starting
+    if autoUseRuneEnabled and selectedRune then
+        applyRune(dungeonId)
+        task.wait(0.5)
+    end
+    
+    local startArgs = {
+        [1] = {
+            [1] = {
+                ["Dungeon"] = dungeonId,
+                ["Event"] = "DungeonAction",
+                ["Action"] = "Start"
+            },
+            [2] = "\11"
+        }
+    }
+    dataRemoteEvent:FireServer(unpack(startArgs))
+    notify("Dungeon", "Starting dungeon...")
+end
+
+local function isValidDungeon(model)
+    if not model then return false end
+
+    local rankValue = model:GetAttribute("DungeonRank")
+    if not rankValue then return false end
+
+    local rankName = numberToRank[rankValue]
+    if not rankName then return false end
+
+    for _, selected in ipairs(selectedRanks) do
+        if selected == rankName then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function teleportToDungeonPortal(dungeon)
+    local portal = dungeon:FindFirstChild("Dungeon") or dungeon:FindFirstChildWhichIsA("BasePart")
+    
+    if portal then
+        return teleportToPosition(portal.Position)
+    else
+        return teleportToPosition(dungeon:GetPivot().Position)
+    end
+end
+
+local function getDungeonId(dungeon)
+    return dungeon.Name
+end
+
+local function dungeonSearchLoop()
+    while searchEnabled do
+        local dungeonFolder = getDungeonFolder()
+        if not dungeonFolder then
+            notify("Error", "Dungeon folder not found!")
+            task.wait(5)
+            continue
+        end
+
+        for worldName, pos in pairs(worldPositions) do
+            if not searchEnabled then break end
+
+            notify("Search Dungeon", "Searching in "..worldName)
+            if not teleportToPosition(pos) then
+                task.wait(2)
+                continue
+            end
+
+            task.wait(1.5)
+
+            dungeonFolder = getDungeonFolder()
+            if not dungeonFolder then
+                notify("Error", "The dungeon folder disappeared!")
+                task.wait(2)
+                continue
+            end
+
+            for _, dungeon in ipairs(dungeonFolder:GetChildren()) do
+                if not searchEnabled then break end
+
+                if isValidDungeon(dungeon) then
+                    local rankName = numberToRank[dungeon:GetAttribute("DungeonRank")] or "?"
+                    notify("Dungeon Found", "Found dungeon with rank: "..rankName)
+                    
+                    if teleportToDungeonPortal(dungeon) then
+                        notify("Success", "Teleported to dungeon portal!")
+                        
+                        local dungeonId = getDungeonId(dungeon)
+                        
+                        if autoStartEnabled then
+                            createAndStartDungeon(dungeonId)
+                        end
+                    else
+                        notify("Warning", "Found dungeon but couldn't teleport to portal")
+                    end
+                    
+                    searchEnabled = false
+                    return
+                end
+            end
+        end
+
+        if searchEnabled then
+            notify("Search Dungeon", "No dungeons found. Retrying...")
+            task.wait(5)
+        end
+    end
+end
+
+-- Dropdown for dungeon ranks
+local MultiDropdown = DungeonSearch:AddDropdown("DropdownDungeonRanks", {
+    Title = "Prioritize Ranks",
+    Description = "Select the ranks you want to prioritize",
+    Values = {"E", "D", "C", "B", "A", "S", "SS", "G", "N+"},
+    Multi = true,
+    Default = {},
+})
+
+MultiDropdown:OnChanged(function(Value)
+    selectedRanks = {}
+    for rank, state in pairs(Value) do
+        if state then
+            table.insert(selectedRanks, rank)
+        end
+    end
+    
+    table.sort(selectedRanks, function(a, b)
+        return rankToNumber[a] > rankToNumber[b]
+    end)
+end)
+
+MultiDropdown:SetValue({
+    ["S"] = true,
+    ["SS"] = true,
+    ["G"] = true
+})
+
+-- Dropdown for rune selection
+local RuneDropdown = RuneOptions:AddDropdown("DropdownRunes", {
+    Title = "Select Rune",
+    Description = "Choose which rune to use when auto starting",
+    Values = runeList,
+    Multi = false,
+    Default = 1,
+})
+
+RuneDropdown:OnChanged(function(Value)
+    selectedRune = Value
+    notify("Rune Selected", "Selected rune: " .. Value)
+end)
+
+-- Toggle for auto use rune
+local ToggleAutoRune = RuneOptions:AddToggle("ToggleAutoUseRune", {
+    Title = "Auto Use Rune",
+    Description = "Automatically apply the selected rune before starting dungeon",
+    Default = false,
+    Callback = function(Value)
+        autoUseRuneEnabled = Value
+    end
+})
+
+-- Toggle for search
+local ToggleSearch = DungeonSearch:AddToggle("ToggleDungeonSearch", {
+    Title = "Search Dungeon",
+    Description = "It will stop searching when it finds the valid dungeon",
+    Default = false,
+    Callback = function(Value)
+        searchEnabled = Value
+
+        if Value then
+            if not isSearching then
+                isSearching = true
+                task.spawn(function()
+                    dungeonSearchLoop()
+                    isSearching = false
+                end)
+            end
+        end
+    end
+})
+
+-- Toggle for auto start
+local ToggleAutoStart = DungeonSearch:AddToggle("ToggleAutoStart", {
+    Title = "Auto Create + Start Dungeon",
+    Description = "Automatically create and start dungeon when found",
+    Default = false,
+    Callback = function(Value)
+        autoStartEnabled = Value
+    end
+})
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local localPlayer = Players.LocalPlayer
+local enemiesClient = workspace.__Main.__Enemies:FindFirstChild("Client")
+local enemiesServer = workspace.__Main.__Enemies:FindFirstChild("Server")
+local petsFolder = workspace.__Main.__Pets:FindFirstChild(tostring(localPlayer.UserId))
+local remoteEvent = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+
+local autoDungeonEnabled = false
+local currentTarget = nil
+local attackCooldown = 1.5 -- Reduzido de 3 para 1.5
+local enemyCooldowns = {}
+local hpCache = {} -- Cache para os valores de HP
+local hpCacheTimeout = 1 -- Tempo em segundos para atualizar o cache de HP
+
+-- Função para limpar o cache de HP periodicamente
+spawn(function()
+    while true do
+        hpCache = {}
+        task.wait(hpCacheTimeout)
+    end
+end)
+
+local function hasExtraEquip()
+    local passes = localPlayer.leaderstats.Passes
+    return passes and passes:FindFirstChild("ExtraEquip") and passes.ExtraEquip.Value
+end
+
+local function getEquippedPets()
+    local equippedPets = {}
+    local petsData = localPlayer.leaderstats.Equips.Pets
+    local maxPets = hasExtraEquip() and 7 or 4
+
+    for i = 1, maxPets do
+        local petName = petsData:GetAttribute(tostring(i))
+        if petName then
+            table.insert(equippedPets, petName)
+        end
+    end
+
+    return equippedPets
+end
+
+-- Cache para posições de pets
+local petPositionsCache = {}
+local petCacheTime = 0
+local petCacheTimeout = 0.5 -- Atualiza a cada 0.5 segundos
+
+local function getPetPositions()
+    local currentTime = tick()
+    
+    -- Retorna o cache se ele ainda for válido
+    if currentTime - petCacheTime < petCacheTimeout and next(petPositionsCache) then
+        return petPositionsCache
+    end
+    
+    local equippedPets = getEquippedPets()
+    local petPositions = {}
+
+    if petsFolder then
+        for _, petName in ipairs(equippedPets) do
+            local petModelFolder = petsFolder:FindFirstChild(petName)
+            if petModelFolder then
+                local petModel = petModelFolder:FindFirstChildWhichIsA("Model")
+                if petModel and petModel.PrimaryPart then
+                    petPositions[petName] = petModel.PrimaryPart.Position
+                end
+            end
+        end
+    end
+
+    -- Atualiza o cache
+    petPositionsCache = petPositions
+    petCacheTime = currentTime
+    
+    return petPositions
+end
+
+local function isMyPetOnEnemy(enemyName)
+    -- Procura diretamente na pasta Server pelo inimigo com este nome
+    local enemy = enemiesServer:FindFirstChild(enemyName)
+    if enemy then
+        local enemyPets = enemy:GetAttribute("Pets")
+
+        if enemyPets and enemyPets ~= "" then
+            for _, petName in ipairs(getEquippedPets()) do
+                if enemyPets:find(petName) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Verifica o HP do inimigo com cache para melhor performance
+local function getEnemyHP(enemyName)
+    -- Verificar cache primeiro
+    if hpCache[enemyName] then
+        return hpCache[enemyName]
+    end
+    
+    -- Se não está no cache, busca o valor real
+    local enemy = enemiesServer:FindFirstChild(enemyName)
+    if enemy then
+        -- Tenta diferentes variações do nome do atributo
+        local possibleHPNames = {"HP", "Health", "hp", "health", "vida", "Vida"}
+        for _, name in ipairs(possibleHPNames) do
+            local hp = enemy:GetAttribute(name)
+            if hp ~= nil then
+                hpCache[enemyName] = hp -- Armazena no cache
+                return hp
+            end
+        end
+        
+        -- Se não encontrou com nomes alternativos, tenta o padrão
+        local hp = enemy:GetAttribute("HP") or 0
+        hpCache[enemyName] = hp -- Armazena no cache
+        return hp
+    end
+    
+    hpCache[enemyName] = 0 -- Cache para inimigos inexistentes
+    return 0
+end
+
+-- Cache para inimigos válidos
+local validEnemiesCache = {}
+local validEnemiesCacheTime = 0
+local validEnemiesCacheTimeout = 0.5 -- Atualiza a cada 0.5 segundos
+
+local function getAvailableEnemies()
+    local currentTime = tick()
+    
+    -- Se o cache ainda é válido e não está vazio, retorna-o
+    if currentTime - validEnemiesCacheTime < validEnemiesCacheTimeout and #validEnemiesCache > 0 then
+        return validEnemiesCache
+    end
+    
+    local availableEnemies = {}
+    local playerPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
+    
+    if not playerPos then return {} end
+    
+    -- Coleta diretamente os inimigos do cliente e verifica HP em paralelo
+    for _, enemy in ipairs(enemiesClient:GetChildren()) do
+        if enemy:IsA("Model") then
+            local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+            if part then
+                local hp = getEnemyHP(enemy.Name)
+                
+                if hp > 0 then
+                    local dist = (part.Position - playerPos).Magnitude
+                    table.insert(availableEnemies, {
+                        name = enemy.Name,
+                        model = enemy,
+                        distance = dist,
+                        hp = hp
+                    })
+                end
+            end
+        end
+    end
+    
+    -- Sort by distance
+    table.sort(availableEnemies, function(a, b)
+        return a.distance < b.distance
+    end)
+    
+    -- Atualiza o cache
+    validEnemiesCache = availableEnemies
+    validEnemiesCacheTime = currentTime
+    
+    return availableEnemies
+end
+
+local function getClosestEnemy()
+    local enemies = getAvailableEnemies()
+    return enemies[1] and enemies[1].model
+end
+
+local function getNextTarget(currentEnemyName)
+    local enemies = getAvailableEnemies()
+    
+    -- Skip current enemy if it's in the list
+    if currentEnemyName then
+        for i, enemy in ipairs(enemies) do
+            if enemy.name == currentEnemyName then
+                table.remove(enemies, i)
+                break
+            end
+        end
+    end
+    
+    -- Return the closest enemy or nil if none available
+    return enemies[1] and enemies[1].model
+end
+
+local function forcedStepTeleport(destination)
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for i = 1, 5 do -- Reduzido de 10 para 5 teleportes
+        root.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
+        task.wait(0.000000001) -- Tempo reduzido
+    end
+end
+
+local function teleportToEnemy(enemy)
+    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local part = enemy.PrimaryPart or enemy:FindFirstChildWhichIsA("BasePart")
+    if not hrp or not part then
+        return false
+    end
+
+    local goalPosition = part.Position + Vector3.new(3, 0, 0)
+    forcedStepTeleport(goalPosition)
+    return true
+end
+
+local function attackEnemy(enemy)
+    if not enemy then return false end
+    
+    teleportToEnemy(enemy)
+    
+    local petPositions = getPetPositions()
+    if next(petPositions) then
+        local args = {
+            [1] = {
+                [1] = {
+                    ["PetPos"] = petPositions,
+                    ["AttackType"] = "All",
+                    ["Event"] = "Attack",
+                    ["Enemy"] = enemy.Name
+                },
+                [2] = "\6"
+            }
+        }
+
+        remoteEvent:FireServer(unpack(args))
+        return true
+    end
+    
+    return false
+end
+
+local function autoDungeonLoop()
+    while autoDungeonEnabled do
+        -- Encontra o inimigo mais próximo
+        local targetEnemy = getClosestEnemy()
+        currentTarget = targetEnemy
+        
+        -- Se temos um alvo válido, tentamos atacá-lo
+        if targetEnemy then
+            local enemyName = targetEnemy.Name
+            
+            -- Verificação rápida de HP
+            local hp = getEnemyHP(enemyName)
+            if hp > 0 then
+                -- Teleportar e atacar diretamente sem verificações adicionais
+                if teleportToEnemy(targetEnemy) then
+                    local petPositions = getPetPositions()
+                    if next(petPositions) then
+                        local args = {
+                            [1] = {
+                                [1] = {
+                                    ["PetPos"] = petPositions,
+                                    ["AttackType"] = "All",
+                                    ["Event"] = "Attack",
+                                    ["Enemy"] = enemyName
+                                },
+                                [2] = "\6"
+                            }
+                        }
+
+                        remoteEvent:FireServer(unpack(args))
+                    end
+                end
+            end
+            
+            -- Cooldown reduzido
+            task.wait(attackCooldown)
+        else
+            -- Nenhum inimigo encontrado
+            currentTarget = nil
+            task.wait(0.05) -- Tempo de espera reduzido
+        end
+        
+        task.wait(0.05) -- Intervalo entre verificações reduzido
+    end
+end
+
+-- Adiciona o toggle ao UI
 DungeonFarm:AddToggle("AutoDungeonToggle", {
     Title = "Auto Dungeon",
     Default = false,
@@ -1118,7 +1625,9 @@ local teleportLocations = {
         ["World 5"] = Vector3.new(198.628, 38.707, 4276.841),
         ["World 6"] = Vector3.new(192.606, 32.896, -4293.871),
         ["World 7"] = Vector3.new(4817.643, 29.942, -158.618),
-        ["World 8"] = Vector3.new(-6324.643, 27.198, -71.441)
+        ["World 8"] = Vector3.new(-6324.643, 27.198, -71.441),
+        ["World 9"] = Vector3.new(5689.114, 25.593, 4599.575),
+        ["World 10"] = Vector3.new(-4395.432, 21.962, 5630.636)
     },
     ["World BlackSmith"] = {
         ["World 1"] = Vector3.new(543.510, 28.083, 256.367),
@@ -1128,7 +1637,9 @@ local teleportLocations = {
         ["World 5"] = Vector3.new(188.722, 37.853, 4388.137),
         ["World 6"] = Vector3.new(286.645, 32.896, -4409.248),
         ["World 7"] = Vector3.new(4890.349, 41.833, -78.664),
-        ["World 8"] = Vector3.new(-6337.448, 27.198, -150.964)
+        ["World 8"] = Vector3.new(-6337.448, 27.198, -150.964),
+        ["World 9"] = Vector3.new(5644.071, 25.391, 4639.198),
+        ["World 10"] = Vector3.new(-4412.381, 21.962, 5621.240)
     },
     ["World BoatSeller"] = {
         ["World 1"] = Vector3.new(425.565, 29.105, 383.855),
@@ -1138,7 +1649,9 @@ local teleportLocations = {
         ["World 5"] = Vector3.new(204.880, 38.708, 4257.333),
         ["World 6"] = Vector3.new(100.193, 20.963, -4240.231),
         ["World 7"] = Vector3.new(4821.689, 29.942, -97.917),
-        ["World 8"] = Vector3.new(-6214.947, 26.187, -115.281)
+        ["World 8"] = Vector3.new(-6214.947, 26.187, -115.281),
+        ["World 9"] = Vector3.new(5670.07, 25.395, 4519.753),
+        ["World 10"] = Vector3.new(-4433.970, 20.864, 5578.970)
     },
     ["Special Locations"] = {
         ["Enchanter"] = Vector3.new(607.443, 28.084, 222.486),
