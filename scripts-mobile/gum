@@ -108,16 +108,24 @@ local player = Players.LocalPlayer
 
 -- Configurações dos multiplicadores
 local Multipliers = {
-    ["2x"] = {
-        position = Vector3.new(77.64643859863281, 8.919782638549805, -113.40311431884766),
+    ["2x | World 1"] = {
+        position = Vector3.new(77.646, 8.919, -113.403),
         size = Vector3.new(10, 1, 10)
     },
-    ["5x"] = {
-        position = Vector3.new(-70.8243179321289, 6862.2060546875, 116.41088104248047),
+    ["5x | World 1"] = {
+        position = Vector3.new(-70.824, 6862.206, 116.410),
         size = Vector3.new(10, 1, 10)
     },
-    ["250x"] = {
-        position = Vector3.new(-326.694946, 25.6819572, 191.227875),
+    ["250x | World 1"] = {
+        position = Vector3.new(-326.694, 25.681, 191.227),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["10x | World 2"] = {
+        position = Vector3.new(9922.182, 26.373, 135.957),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["5x | World 2"] = {
+        position = Vector3.new(9852.754, 13409.273, 241.416),
         size = Vector3.new(10, 1, 10)
     }
 }
@@ -445,9 +453,9 @@ SellOptions:AddInput("TimedIntervalInput", {
 local Dropdown = SellOptions:AddDropdown("MultiplierDropdown", {
     Title = "Select the Multiplier",
     Description = "Choose the desired luck multiplier",
-    Values = {"2x", "5x", "250x"},
+    Values = {"2x | World 1", "5x | World 1", "250x | World 1", "5x | World 2", "10x | World 2"},
     Multi = false,
-    Default = "2x",
+    Default = "2x | World 1",
 })
 
 Dropdown:OnChanged(function(Value)
@@ -1313,8 +1321,7 @@ local EggTeleportMap = {
     ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["100M Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn"
+    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn"
 }
 
 local EggPositions = {
@@ -1329,8 +1336,7 @@ local EggPositions = {
     ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
     ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
     ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
-    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
-    ["100M Egg"] = Vector3.new(15.931231498718262, 9.25584602355957, -4.832009315490723)
+    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188)
 }
 
 -- Shared noclip function to avoid duplication
@@ -2713,20 +2719,26 @@ TeleportSection:AddToggle("TweenTeleport", {
     end
 })
 
-local teleportLocations = {
+-- Locais de teleportes diretos via caminho no Workspace (Portals)
+local portalLocations = {
     ["Twilight Island"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
     ["Outer Space"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
     ["Spawn (Overworld)"] = "Workspace.Worlds.The Overworld.PortalSpawn",
     ["The Void"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
     ["Floating Island"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
     ["Zen"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn"
-    
 }
 
-for name, path in pairs(teleportLocations) do
+-- Mundos que usam a chamada "WorldTeleport"
+local worldLocations = {
+    "Minigame Paradise"
+}
+
+-- Botões para teleportes via path (portais)
+for name, path in pairs(portalLocations) do
     Tabs.Teleport:AddButton({
-        Title = name,
-        Description = "Teleport to " .. name,
+        Title = "[Portal] " .. name,
+        Description = "Teleport to portal: " .. name,
         Callback = function()
             local RemoteEvent = game:GetService("ReplicatedStorage")
                 :WaitForChild("Shared")
@@ -2739,12 +2751,37 @@ for name, path in pairs(teleportLocations) do
 
             Fluent:Notify({
                 Title = "Teleport",
-                Content = "Teleport to: " .. name,
+                Content = "Teleported to portal: " .. name,
                 Duration = 3
             })
         end
     })
 end
+
+-- Botões para teleportes entre mundos
+for _, worldName in ipairs(worldLocations) do
+    Tabs.Teleport:AddButton({
+        Title = "[World] " .. worldName,
+        Description = "Teleport to world: " .. worldName,
+        Callback = function()
+            local RemoteEvent = game:GetService("ReplicatedStorage")
+                :WaitForChild("Shared")
+                :WaitForChild("Framework")
+                :WaitForChild("Network")
+                :WaitForChild("Remote")
+                :WaitForChild("Event")
+
+            RemoteEvent:FireServer("WorldTeleport", worldName)
+
+            Fluent:Notify({
+                Title = "Teleport",
+                Content = "Teleported to world: " .. worldName,
+                Duration = 3
+            })
+        end
+    })
+end
+
 
 CodeSection:AddButton({
     Title = "Redeem Codes",
