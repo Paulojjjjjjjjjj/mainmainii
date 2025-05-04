@@ -359,7 +359,7 @@ local raidCooldown = 5 -- Intervalo de 5 segundos entre raides
 local lastRaidTime = 0
 local raidConnection
 
-local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5"}
+local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5", "World 6", "World 7", "World 8"}
 local selectedWorld = worldOptions[1]
 
 local Dropdown = Tabs.AutoRaid:AddDropdown("WorldDropdown", {
@@ -885,11 +885,13 @@ local autoHatchEnabled = false
 
 local EggPositions = {
     ["Slayer Star"] = CFrame.new(2453.99, 103.38, -249.34),
-    ["Punch Star"] = CFrame.new(2726.92, 184.99, -5146.72),
     ["Titan Star"] = CFrame.new(2550.88, 109.06, -2370.32),
+    ["Punch Star"] = CFrame.new(2726.92, 184.99, -5146.72),
     ["Cursed Star"] = CFrame.new(2665.92, 98.09, -7507.78),
     ["Player Star"] = CFrame.new(2706.18, 113.30, -10215.18),
     ["Pirate Star"] = CFrame.new(5055.65, 156.99, -130.66),
+    ["Bizarre Star"] = CFrame.new(4961.03, 105.72, -2421.50),
+    ["Z Star"] = CFrame.new(4762.91, 111.30, -4713.02)
 }
 
 local EggList = {}
