@@ -34,6 +34,7 @@ local Tabs = {
     })
 }
 
+----------------------------------------------------------------------
 local FarmingOptions = Tabs.Main:AddSection("Farming Options")
 local AutoFarm = Tabs.Main:AddSection("AutoFarm")
 local Action = Tabs.Main:AddSection("Action Options")
@@ -42,6 +43,7 @@ local DungeonFarm = Tabs.Dungeon:AddSection("Dungeon Farm")
 local Mounts = Tabs.Teleport:AddSection("Mounts")
 local TeleportWorlds = Tabs.Teleport:AddSection("Teleport All")
 local SpecialLocations = Tabs.Teleport:AddSection("Special Locations")
+----------------------------------------------------------------------
 
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
