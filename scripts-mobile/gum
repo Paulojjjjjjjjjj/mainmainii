@@ -164,6 +164,29 @@ local portalLocations = {
     ["Robot Factory | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Robot Factory.Island.Portal.Spawn"
 }
 
+local Multipliers = {
+    ["2x | World 1"] = {
+        position = Vector3.new(77.646, 8.919, -113.403),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["5x | World 1"] = {
+        position = Vector3.new(-70.824, 6862.206, 116.410),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["250x | World 1"] = {
+        position = Vector3.new(-326.694, 25.681, 191.227),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["10x | World 2"] = {
+        position = Vector3.new(9852.754, 13409.273, 241.416),
+        size = Vector3.new(10, 1, 10)
+    },
+    ["5x | World 2"] = {
+        position = Vector3.new(9922.182, 26.373, 135.957),
+        size = Vector3.new(10, 1, 10)
+    }
+}
+
 local codes = {
     "update2",   
     "Easter",    
@@ -194,29 +217,6 @@ BlowSection:AddToggle("AutoBlow", {
         end
     end
 })
-
-local Multipliers = {
-    ["2x | World 1"] = {
-        position = Vector3.new(77.646, 8.919, -113.403),
-        size = Vector3.new(10, 1, 10)
-    },
-    ["5x | World 1"] = {
-        position = Vector3.new(-70.824, 6862.206, 116.410),
-        size = Vector3.new(10, 1, 10)
-    },
-    ["250x | World 1"] = {
-        position = Vector3.new(-326.694, 25.681, 191.227),
-        size = Vector3.new(10, 1, 10)
-    },
-    ["10x | World 2"] = {
-        position = Vector3.new(9922.182, 26.373, 135.957),
-        size = Vector3.new(10, 1, 10)
-    },
-    ["5x | World 2"] = {
-        position = Vector3.new(9852.754, 13409.273, 241.416),
-        size = Vector3.new(10, 1, 10)
-    }
-}
 
 local platform = nil
 local autoFarmEnabled = false
