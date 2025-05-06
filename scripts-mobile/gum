@@ -1,9 +1,19 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/Dexz00/DZ-Ui/releases/latest/download/main.lua"))()
-task.wait(1)
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/SaveManager.lua"))()
-task.wait(1)
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/InterfaceManager.lua"))()
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+local LocalPlayer = player
 
 local Window = Fluent:CreateWindow({
     Title = "Bubble Gum Simulator INFINITY | DZ HUB",
@@ -15,49 +25,17 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab({ 
-        Title = "Main",
-        Icon = "rbxassetid://124620632231839"
-    }),
-    MiniGame = Window:AddTab({ 
-        Title = "MiniGame",
-        Icon = "gamepad-2"
-    }),
-    EggHunt = Window:AddTab({ 
-        Title = "Egg / Hunt",
-        Icon = "egg"
-    }),
-    Upgrades = Window:AddTab({ 
-        Title = "Upgrades",
-        Icon = "arrow-big-up"
-    }),
-    Potions = Window:AddTab({ 
-        Title = "Potions",
-        Icon = "glass-water"
-    }),
-    Teleport = Window:AddTab({ 
-        Title = "Teleport",
-        Icon = "rbxassetid://12689978575"
-    }),
-    ServerHop = Window:AddTab({ 
-        Title = "Server Hop",
-        Icon = "server"
-    }),
-    Misc = Window:AddTab({ 
-        Title = "Misc",
-        Icon = "scroll"
-    }),
-    Settings = Window:AddTab({ 
-        Title = "Settings",
-        Icon = "settings"
-    })
+    Main = Window:AddTab({ Title = "Main", Icon = "rbxassetid://124620632231839" }),
+    MiniGame = Window:AddTab({ Title = "MiniGame", Icon = "gamepad-2" }),
+    EggHunt = Window:AddTab({ Title = "Egg / Hunt", Icon = "egg" }),
+    Upgrades = Window:AddTab({ Title = "Upgrades", Icon = "arrow-big-up" }),
+    Potions = Window:AddTab({ Title = "Potions", Icon = "glass-water" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "rbxassetid://12689978575" }),
+    ServerHop = Window:AddTab({ Title = "Server Hop", Icon = "server" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "scroll" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-local AutoBlow = false
-local AutoSell = false
-local AutoHatch = false
-local SelectedEgg = "Iceshard Egg"
-local HatchAmount = 1
 
 local SellOptions = Tabs.Main:AddSection("Sell Options")
 local BlowSection = Tabs.Main:AddSection("Bubble + Sell Automation")
@@ -72,14 +50,127 @@ local GiftHunt = Tabs.EggHunt:AddSection("Gift Hunt")
 local AutoPotionSection = Tabs.Potions:AddSection("Auto Use Potion")
 local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
-local CodeSection = Tabs.Misc:AddSection("Codes") 
+local CodeSection = Tabs.Misc:AddSection("Codes")
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-local player = Players.LocalPlayer
+local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+local RemoteFunction = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function")
+
+local dropAltitude = -100
+local moveSpeed = 18
+local claimAltitude = 3
+local claimAttemptDelay = 0.5
+local maxClaimAttempts = 10
+local searchInterval = 1
+local maxSellAttempts = 10
+local sellAttemptDelay = 0.5
 
 local AutoBlow = false
+local AutoSell = false
+local AutoHatch = false
+local AutoCollect = false
+local buyDiceLoop = false
+local equipBestRunning = false
+local AutoGoldenChest = false
+local AutoRoyalChest = false
+local AutoRiftHatch = false
+local IsProcessingNormalHatch = false
+local AutoUpgrade = false
+local AutoUpgradePets = false
+local AutoUpgradeShops = false
+local AutoPotion = false
+local AutoCraftPotion = false
+local autoGiftRiftEnabled = false
+
+local SelectedEgg = "Iceshard Egg"
+local HatchAmount = 10
+local SelectedRiftEggs = {}
+local SelectedLuckMultipliers = {}
+local CurrentTargetEgg = nil
+local CurrentTargetMultiplier = nil
+local sellMethod = "Storage Full"
+local timedInterval = 120
+local selectedMultiplier = "2x"
+local CollectDistance = 40
+local ActiveTweens = {}
+local NoClipConnection = nil
+
+local EggTeleportMap = {
+    ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["Game Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Showman Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Mining Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Cyber Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn"
+}
+
+local EggPositions = {
+    ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
+    ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
+    ["Iceshard Egg"] = Vector3.new(-8.795853614807129, 9.29999828338623, -59.287872314453125),
+    ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
+    ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
+    ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
+    ["Lunar Egg"] = Vector3.new(-57.51275634765625, 6862.583984375, 79.98605346679688),
+    ["Void Egg"] = Vector3.new(5.301668167114258, 10147.8046875, 188.5633087158203),
+    ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
+    ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
+    ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
+    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
+    ["Game Egg"] = Vector3.new(9835.315, 27.373, 171.214),
+    ["Showman Egg"] = Vector3.new(9941.394, 26.922, 210.422),
+    ["Mining Egg"] = Vector3.new(9935.720, 26.922, 218.636),
+    ["Cyber Egg"] = Vector3.new(9927.065, 26.922, 226.716)
+}
+
+local EggNameMap = {
+    ["spotted-egg"] = "Spotted Egg",
+    ["iceshard-egg"] = "Iceshard Egg",
+    ["spikey-egg"] = "Spikey Egg",
+    ["magma-egg"] = "Magma Egg",
+    ["crystal-egg"] = "Crystal Egg",
+    ["lunar-egg"] = "Lunar Egg",
+    ["void-egg"] = "Void Egg",
+    ["hell-egg"] = "Hell Egg",
+    ["nightmare-egg"] = "Nightmare Egg",
+    ["rainbow-egg"] = "Rainbow Egg",
+    ["infinity-egg"] = "Infinity Egg",
+    ["silly-egg"] = "Silly Egg",
+    ["man-egg"] = "Man Egg",
+    ["showman-egg"] = "Showman Egg",
+    ["mining-egg"] = "Mining Egg",
+    ["cyber-egg"] = "Cyber Egg"
+}
+
+local portalLocations = {
+    ["Twilight Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
+    ["Outer Space | World 1"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
+    ["Overworld Spawn | World 1"] = "Workspace.Worlds.The Overworld.PortalSpawn",
+    ["The Void | World 1"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
+    ["Floating Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
+    ["Zen | World 1"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
+    ["Minigame Paradise Spawn | World 2"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
+    ["Dice Island | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Dice Island.Island.Portal.Spawn",
+    ["Minecart Forest | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Minecart Forest.Island.Portal.Spawn",
+    ["Robot Factory | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Robot Factory.Island.Portal.Spawn"
+}
+
+local codes = {
+    "update2",   
+    "Easter",    
+    "Release",   
+    "Lucky"   
+}
+
 BlowSection:AddToggle("AutoBlow", {
     Title = "Auto Blow",
     Description = "Automatically blows the bubble",
@@ -104,14 +195,6 @@ BlowSection:AddToggle("AutoBlow", {
     end
 })
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-
--- Configurações dos multiplicadores
 local Multipliers = {
     ["2x | World 1"] = {
         position = Vector3.new(77.646, 8.919, -113.403),
@@ -135,37 +218,25 @@ local Multipliers = {
     }
 }
 
--- Variáveis de controle
 local platform = nil
-local selectedMultiplier = "2x"
-local moveSpeed = 18
-local dropAltitude = -100
-local sellMethod = "Storage Full"
-local timedInterval = 120
 local autoFarmEnabled = false
 local lastSell = os.clock()
 local isSelling = false
-local maxSellAttempts = 10 -- Número máximo de tentativas de venda
-local sellAttemptDelay = 0.5 -- Tempo entre tentativas de venda
 
--- Referência do Remote Event
 local remoteEvent = ReplicatedStorage:WaitForChild("Shared")
     :WaitForChild("Framework")
     :WaitForChild("Network")
     :WaitForChild("Remote")
     :WaitForChild("Event")
 
--- Armazena o estado original para restauração
 local originalGravity = Workspace.Gravity
 local originalPhysics = true
 local originalHRPProperties = {}
 
--- Helper: espera personagem e HRP
 local function getHRP()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
     
-    -- Salva propriedades originais na primeira vez
     if not originalHRPProperties.size then
         originalHRPProperties.size = hrp.Size
         originalHRPProperties.customPhysicalProperties = hrp.CustomPhysicalProperties
@@ -174,7 +245,6 @@ local function getHRP()
     return hrp
 end
 
--- Função para desativar/reativar a física
 local function setPhysicsEnabled(enabled)
     local char = player.Character
     if char then
@@ -193,7 +263,6 @@ local function setPhysicsEnabled(enabled)
     end
 end
 
--- Cria a plataforma no multiplicador selecionado
 local function createPlatform()
     if platform then
         platform:Destroy()
@@ -212,14 +281,12 @@ local function createPlatform()
     platform.Parent = Workspace
 end
 
--- Teleporta para altitude abaixo
 local function teleportToBelow(pos)
     local hrp = getHRP()
     setPhysicsEnabled(false)
     hrp.CFrame = CFrame.new(pos.X, dropAltitude, pos.Z)
 end
 
--- Tween lateral até posição alvo (mantém Y)
 local function tweenToPositionXZ(targetPos)
     local hrp = getHRP()
     local startPos = hrp.Position
@@ -242,7 +309,6 @@ local function tweenToPositionXZ(targetPos)
     conn:Disconnect()
 end
 
--- Função para obter a capacidade atual de bolhas
 local function getBubbleStorage()
     local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then return 0, 0 end
@@ -268,7 +334,6 @@ local function getBubbleStorage()
     return cur, max
 end
 
--- Teleporta para topo da plataforma e dispara o evento de venda
 local function teleportAndSell(pos)
     local hrp = getHRP()
     local yOffset = (hrp.Size.Y / 2) + (Multipliers[selectedMultiplier].size.Y / 2)
@@ -276,8 +341,7 @@ local function teleportAndSell(pos)
     
     setPhysicsEnabled(false)
     hrp.CFrame = CFrame.new(targetPos)
-    
-    -- Verifica se chegou na altura correta e dispara o evento
+
     if math.abs(hrp.Position.Y - targetPos.Y) < 5 then
         remoteEvent:FireServer("SellBubble")
     end
@@ -287,15 +351,11 @@ local function teleportAndSell(pos)
     end)
 end
 
--- Restaura todas as configurações originais
 local function restoreOriginalSettings()
-    -- Restaura gravidade
     Workspace.Gravity = originalGravity
-    
-    -- Restaura física do personagem
+
     setPhysicsEnabled(true)
     
-    -- Restaura propriedades do HRP
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -314,50 +374,40 @@ local function sellBubblesWithMultiplier()
     local originalPos = getHRP().Position
 
     createPlatform()
-    
-    -- Vai até a plataforma
+
     teleportToBelow(originalPos)
     tweenToPositionXZ(Multipliers[selectedMultiplier].position)
-    
-    -- Tentativas de venda até esvaziar o armazenamento
+
     local attempts = 0
-    local currentBubbles = 1  -- Inicia com valor não zero para entrar no loop
+    local currentBubbles = 1 
     
     while currentBubbles > 0 and attempts < maxSellAttempts do
         attempts = attempts + 1
-        
-        -- Teleporta e vende
+
         teleportAndSell(Multipliers[selectedMultiplier].position)
-        
-        -- Aguarda um pouco para que a venda seja processada
+
         wait(sellAttemptDelay)
-        
-        -- Verifica a quantidade atual de bolhas
+
         currentBubbles, _ = getBubbleStorage()
 
-        -- Se ainda não conseguiu vender todas as bolhas, tenta novamente
         if currentBubbles <= 0 then
             break
         elseif attempts >= maxSellAttempts then
         end
     end
-    
-    -- Volta para posição original
+
     teleportToBelow(Multipliers[selectedMultiplier].position)
     tweenToPositionXZ(originalPos)
     teleportAndSell(originalPos)
-    
-    -- Mantém a plataforma antes de destruir
+
     wait(1)
     if platform then
         platform:Destroy()
         platform = nil
     end
-    
-    -- Restaura configurações originais
+
     restoreOriginalSettings()
-    
-    -- Atualiza o timestamp da última venda e marca como não vendendo mais
+
     lastSell = os.clock()
     isSelling = false
     
@@ -365,40 +415,31 @@ local function sellBubblesWithMultiplier()
     end
 end
 
--- Função que executa um ciclo do autofarm (sem usar thread)
 local function autoFarmTick()
     if not autoFarmEnabled then return end
-    
-    -- Se estiver vendendo, não executa a ação de soprar bolha, mas continua o loop
+
     if not isSelling then
-        -- Executa uma ação de soprar bolha
         remoteEvent:FireServer("BlowBubble")
-        
-        -- Pega informações da capacidade atual
+
         local cur, max = getBubbleStorage()
-        
-        -- Verifica condições para vender
+
         if sellMethod == "Storage Full" and cur > 0 and cur == max then
-            task.spawn(sellBubblesWithMultiplier) -- Usa task.spawn para não bloquear o loop principal
+            task.spawn(sellBubblesWithMultiplier) 
         elseif sellMethod == "Timed" and os.clock() - lastSell >= timedInterval then
-            task.spawn(sellBubblesWithMultiplier) -- Usa task.spawn para não bloquear o loop principal
+            task.spawn(sellBubblesWithMultiplier) 
         end
     end
 end
 
--- Variáveis para controle do loop
 local autoFarmConnection = nil
 
--- Função para iniciar o Auto Farm
 local function startAutoFarm()
     if autoFarmConnection then return end
     
     autoFarmEnabled = true
     lastSell = os.clock()
-    
-    -- Usa RunService.Heartbeat em vez de um thread
+
     autoFarmConnection = RunService.Heartbeat:Connect(function()
-        -- Limita a frequência de execução para aproximadamente a cada 0.2 segundos
         if not game:GetService("RunService").Heartbeat:Wait() then return end
         if not autoFarmEnabled then 
             if autoFarmConnection then
@@ -407,15 +448,11 @@ local function startAutoFarm()
             end
             return
         end
-        
-        -- Continua executando o loop mesmo durante a venda
+
         autoFarmTick()
     end)
-    
-    -- Notifica que o autofarm está ativo
 end
 
--- Função para parar o Auto Farm
 local function stopAutoFarm()
     autoFarmEnabled = false
     
@@ -448,7 +485,6 @@ SellOptions:AddInput("TimedIntervalInput", {
     end
 })
 
--- INTERFACE - TAB MULTIPLICADORES
 local Dropdown = SellOptions:AddDropdown("MultiplierDropdown", {
     Title = "Select the Multiplier",
     Description = "Choose the desired luck multiplier",
@@ -461,7 +497,6 @@ Dropdown:OnChanged(function(Value)
     selectedMultiplier = Value
 end)
 
--- INTERFACE - TAB AUTO FARM
 BlowSection:AddToggle("AutoFarmToggle", {
     Title = "Auto Sell + Auto Blow",
     Default = false,
@@ -474,10 +509,6 @@ BlowSection:AddToggle("AutoFarmToggle", {
     end
 })
 
-local AutoCollect = false
-local CollectDistance = 40 -- valor inicial padrão
-
--- Slider para ajustar a distância de coleta
 CollectSection:AddSlider("CollectDistanceSlider", {
     Title = "Pick-up distance",
     Default = 40,
@@ -489,7 +520,6 @@ CollectSection:AddSlider("CollectDistanceSlider", {
     end
 })
 
--- Toggle de AutoCollect
 CollectSection:AddToggle("AutoCollectToggle", {
     Title = "Auto Collect Coins/Gems/Crates",
     Default = false,
@@ -500,7 +530,6 @@ CollectSection:AddToggle("AutoCollectToggle", {
             task.spawn(function()
                 local pickupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
                                           :WaitForChild("Pickups"):WaitForChild("CollectPickup")
-                local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
@@ -542,8 +571,6 @@ CollectSection:AddToggle("AutoCollectToggle", {
     end
 })
 
-local buyDiceLoop = false
-
 MerchantSection:AddToggle("AutoBuyDice", {
     Title = "Auto Merchant Dice",
     Default = false,
@@ -568,7 +595,7 @@ MerchantSection:AddToggle("AutoBuyDice", {
 
                     RemoteEvent:FireServer(unpack(args))
 
-                    task.wait(0.1) -- intervalo entre as compras (ajuste se quiser mais rápido ou mais lento)
+                    task.wait(0.1)
                 end
             end
         end)
@@ -583,17 +610,16 @@ MerchantSection:AddToggle("AutoBuyAlienShop", {
 
         if state then
             spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
                     :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
 
                 while AutoBuyAlienShop do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("BuyShopItem", "alien-shop", i)
-                        task.wait(0.5) -- pequeno delay entre compras
+                        task.wait(0.5)
                     end
 
-                    task.wait(3) -- espera 3s antes de comprar novamente
+                    task.wait(3)
                 end
             end)
         end
@@ -627,8 +653,6 @@ MerchantSection:AddToggle("AutoBuyShardShop", {
     end
 })
 
-local equipBestRunning = false -- Variável de controle GLOBAL
-
 UtilitiesSection:AddToggle("EquipBestToggle", {
     Title = "Auto Equip Best Pets",
     Default = false,
@@ -647,7 +671,7 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
                 while equipBestRunning do
                     local args = {[1] = "EquipBestPets"}
                     remote:FireServer(unpack(args))
-                    task.wait(2) -- Espera 2 segundos
+                    task.wait(2)
                 end
             end)
         end
@@ -662,11 +686,6 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
 
         if state then
             spawn(function()
-                local Players = game:GetService("Players")
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local RunService = game:GetService("RunService")
-                local Workspace = game:GetService("Workspace")
-
                 local LocalPlayer = Players.LocalPlayer
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HRP = Character:WaitForChild("HumanoidRootPart")
@@ -761,16 +780,13 @@ UtilitiesSection:AddToggle("AutoClaimSeason", {
 
         if state then
             task.spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoClaimSeason do
                     local args = {
                         [1] = "ClaimSeason"
                     }
 
                     RemoteEvent:FireServer(unpack(args))
-                    task.wait(5) -- tempo entre cada claim (ajuste conforme necessário)
+                    task.wait(5)
                 end
             end)
         end
@@ -802,7 +818,7 @@ UtilitiesSection:AddToggle("AutoClaimPlaytime", {
                     end)
                 end
 
-                task.wait(5) -- Espera 5 segundos antes de repetir tudo
+                task.wait(5)
             end
         end)
     end
@@ -816,7 +832,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
 
         if state then
             spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
                 local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
@@ -833,17 +848,17 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
                                 detectedGifts[obj] = true
                                 RemoteEvent:FireServer("ClaimGift", obj.Name)
                                 
-                                task.delay(0.5, function()
+                                task.delay(0.3, function()
                                     if obj and obj.Parent then
                                         obj:Destroy()
                                     end
                                 end)
                             end
                         end
-                        task.wait(0.5)
+                        task.wait(0.3)
                     until os.clock() - startTime > 10 or not AutoGiftGrabber
 
-                    task.wait(0.5)
+                    task.wait(0.3)
                 end
             end)
         end 
@@ -858,7 +873,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
 
         if state then
             spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
                 local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
@@ -927,7 +941,6 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
 
         if state then
             spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
                     :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
 
@@ -936,7 +949,7 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
                         RemoteEvent:FireServer("DoggyJumpWin", i)
                         task.wait(1)
                     end
-                    task.wait(3) -- espera 3s antes de repetir
+                    task.wait(3)
                 end
             end)
         end
@@ -968,7 +981,7 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
                         Function:InvokeServer("WheelSpin")
                     end)
                     
-                    task.wait(1) -- Espera exatamente 1 segundo
+                    task.wait(1)
                 end
             end)
         end
@@ -1001,7 +1014,6 @@ local Toggle = PetMatchSection:AddToggle("StartMinigameToggle", {
     Default = false,
     Callback = function(state)
         if state then
-            -- Inicia o minigame
             local args = {
                 [1] = "StartMinigame",
                 [2] = "Pet Match",
@@ -1014,79 +1026,20 @@ local Toggle = PetMatchSection:AddToggle("StartMinigameToggle", {
 
             event:FireServer(unpack(args))
 
-            -- Espera 2 segundos
             task.wait(2)
 
-            -- Spama o FinishMinigame por 5 segundos
             local startTime = tick()
             while tick() - startTime < 5 do
                 event:FireServer("FinishMinigame")
-                task.wait(0.1) -- você pode ajustar o intervalo de spam aqui
+                task.wait(0.1) 
             end
         end
     end
 })
 
-
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
-local SelectedEgg = "Common Egg"
-local HatchAmount = 10
-local AutoHatch = false
 local Noclip = false
 local NoclipConnection = nil
-local AutoRiftHatch = false
-local IsProcessingNormalHatch = false -- Flag to track if normal hatching is in progress
-local SelectedRiftEggs = {} -- Initialize this variable at the top level
-local SelectedLuckMultipliers = {} -- Initialize this variable at the top level
 
-local EggTeleportMap = {
-    ["Common Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Spotted Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Iceshard Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Spikey Egg"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-    ["Magma Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Crystal Egg"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Lunar Egg"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
-    ["Void Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Hell Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Nightmare Egg"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Rainbow Egg"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-    ["Infinity Egg"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["Game Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
-    ["Showman Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
-    ["Mining Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
-    ["Cyber Egg"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn"
-}
-
-local EggPositions = {
-    ["Common Egg"] = Vector3.new(-8.69461727142334, 9.29999828338623, -82.08343505859375),
-    ["Spotted Egg"] = Vector3.new(-7.885712146759033, 9.29999828338623, -71.13986206054688),
-    ["Iceshard Egg"] = Vector3.new(-8.795853614807129, 9.29999828338623, -59.287872314453125),
-    ["Spikey Egg"] = Vector3.new(-6.725212097167969, 422.93157958984375, 157.7880096435547),
-    ["Magma Egg"] = Vector3.new(-19.16876220703125, 2665.166015625, 8.449355125427246),
-    ["Crystal Egg"] = Vector3.new(-18.302135467529297, 2665.166015625, 18.25184440612793),
-    ["Lunar Egg"] = Vector3.new(-57.51275634765625, 6862.583984375, 79.98605346679688),
-    ["Void Egg"] = Vector3.new(5.301668167114258, 10147.8046875, 188.5633087158203),
-    ["Hell Egg"] = Vector3.new(-8.620597839355469, 10147.8046875, 193.4177703857422),
-    ["Nightmare Egg"] = Vector3.new(-17.104894638061523, 10147.8046875, 185.614990234375),
-    ["Rainbow Egg"] = Vector3.new(-34.15152359008789, 15972.4248046875, 45.44554138183594),
-    ["Infinity Egg"] = Vector3.new(-96.60652923583984, 8.299989700317383, -27.740280151367188),
-    ["Game Egg"] = Vector3.new(9835.315, 27.373, 171.214),
-    ["Showman Egg"] = Vector3.new(9941.394, 26.922, 210.422),
-    ["Mining Egg"] = Vector3.new(9935.720, 26.922, 218.636),
-    ["Cyber Egg"] = Vector3.new(9927.065, 26.922, 226.716)
-}
-
--- Remote event reference
-local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-
--- Shared noclip function to avoid duplication
 local function EnableNoclip()
     if NoclipConnection then NoclipConnection:Disconnect() end
     Noclip = true
@@ -1129,7 +1082,6 @@ EggDropdown:OnChanged(function(val)
     SelectedEgg = val
 end)
 
--- Improved function to teleport to the correct world via portal
 local function TeleportToWorld(eggName)
     local teleportPath = EggTeleportMap[eggName]
     if teleportPath then
@@ -1139,11 +1091,9 @@ local function TeleportToWorld(eggName)
     return false
 end
 
--- Function to check if any valid rift eggs exist
 local function CheckForValidRiftEggs()
     if not AutoRiftHatch then return false end
-    
-    -- Check if SelectedRiftEggs is nil and handle it safely
+
     if SelectedRiftEggs == nil then
         SelectedRiftEggs = {}
         return false
@@ -1167,8 +1117,7 @@ local function CheckForValidRiftEggs()
                 local gui = display and display:FindFirstChildWhichIsA("SurfaceGui")
                 local icon = gui and gui:FindFirstChild("Icon")
                 local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
-                
-                -- Check if SelectedLuckMultipliers is nil and handle it safely
+
                 if SelectedLuckMultipliers == nil then
                     SelectedLuckMultipliers = {}
                 end
@@ -1193,7 +1142,6 @@ local function CheckForValidRiftEggs()
     return false
 end
 
--- Improved normal hatching process with proper portal teleportation and Y position check
 local function StartNormalHatching()
     if IsProcessingNormalHatch then return end
     IsProcessingNormalHatch = true
@@ -1204,41 +1152,29 @@ local function StartNormalHatching()
             IsProcessingNormalHatch = false
             return
         end
-        
-        -- Get character references
+
         local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
         local Humanoid = Character:WaitForChild("Humanoid")
-        
-        -- First check if we're already in the correct world by comparing Y positions
+
         local yDifference = math.abs(HumanoidRootPart.Position.Y - target.Y)
         local maxAttempts = 3
         local attempts = 0
-        
-        -- If Y difference is too large, we need to teleport
+
         while yDifference > 3 and attempts < maxAttempts do
             attempts = attempts + 1
-            print("Attempting teleport. Y difference:", yDifference)
-            
-            -- Teleport to the world
+
             TeleportToWorld(SelectedEgg)
-            
-            -- Wait for the teleport to complete
             task.wait(2)
             
-            -- Recalculate Y difference after teleport
             Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
             yDifference = math.abs(HumanoidRootPart.Position.Y - target.Y)
-            
-            print("After teleport. Y difference:", yDifference)
         end
         
-        -- After teleporting (or if already in correct world), move to egg
         Humanoid:MoveTo(target)
         local reached = false
         
-        -- Monitor when movement is complete
         local connection
         connection = Humanoid.MoveToFinished:Connect(function(success)
             if success then 
@@ -1249,12 +1185,10 @@ local function StartNormalHatching()
             end
         end)
 
-        -- Wait until we've reached the egg or conditions change
         while not reached and AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
             task.wait(0.5)
         end
 
-        -- Start hatching if we've reached and conditions are still valid
         while AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
             pcall(function()
                 RemoteEvent:FireServer("HatchEgg", SelectedEgg, HatchAmount)
@@ -1266,7 +1200,6 @@ local function StartNormalHatching()
     end)
 end
 
--- Modified regular Auto Hatch to work with the hybrid approach
 Egg:AddToggle("AutoHatch", {
     Title = "Auto Hatch",
     Description = "Automatically opens eggs after walking to them",
@@ -1277,51 +1210,24 @@ Egg:AddToggle("AutoHatch", {
         if state then
             EnableNoclip()
             
-            -- Only start normal hatching if there are no valid rift eggs
             if not (AutoRiftHatch and CheckForValidRiftEggs()) then
                 StartNormalHatching()
             end
         elseif not state then
             if not AutoRiftHatch then
-                DisableNoclip() -- Only disable noclip if Rift isn't running
+                DisableNoclip()
             end
         end
     end
 })
 
--- Auto Hatch Rift Section
 local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
 
-local ActiveTweens = {}
-local CurrentTargetEgg = nil
-local CurrentTargetMultiplier = nil
 local IsHandlingRiftEgg = false
 local NoClipEnabled = false
-local NoClipConnection = nil
-local dropAltitude = -100  -- Altura abaixo do chão
-local moveSpeed = 18       -- Velocidade do movimento horizontal
 local originalGravity = workspace.Gravity
 local PlayerImmobilized = false
 local ImmobilizeConnection = nil
-
-local EggNameMap = {
-    ["spotted-egg"] = "Spotted Egg",
-    ["iceshard-egg"] = "Iceshard Egg",
-    ["spikey-egg"] = "Spikey Egg",
-    ["magma-egg"] = "Magma Egg",
-    ["crystal-egg"] = "Crystal Egg",
-    ["lunar-egg"] = "Lunar Egg",
-    ["void-egg"] = "Void Egg",
-    ["hell-egg"] = "Hell Egg",
-    ["nightmare-egg"] = "Nightmare Egg",
-    ["rainbow-egg"] = "Rainbow Egg",
-    ["infinity-egg"] = "Infinity Egg",
-    ["silly-egg"] = "Silly Egg",
-    ["man-egg"] = "Man Egg",
-    ["showman-egg"] = "Showman Egg",
-    ["mining-egg"] = "Mining Egg",
-    ["cyber-egg"] = "Cyber Egg"
-}
 
 local RiftEggNames = {}
 for k in pairs(EggNameMap) do
@@ -1362,7 +1268,6 @@ LuckMultiplierDropdown:OnChanged(function(selectedTable)
     end
 end)
 
--- Helper function to make the player immobile
 local function immobilizePlayer()
     if PlayerImmobilized then return end
     
@@ -1371,29 +1276,23 @@ local function immobilizePlayer()
     
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    
-    -- Store original properties
+
     local originalWalkSpeed = humanoid.WalkSpeed
     local originalJumpPower = humanoid.JumpPower
     local originalAutoRotate = humanoid.AutoRotate
-    
-    -- Make character immobile
+
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
     humanoid.AutoRotate = false
-    
-    -- Freeze the character in place with RunService
+
     if ImmobilizeConnection then
         ImmobilizeConnection:Disconnect()
     end
     
     ImmobilizeConnection = RunService.Heartbeat:Connect(function()
         if character and character:FindFirstChild("HumanoidRootPart") then
-            -- Cancel any movement
             character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
             character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
-            
-            -- Cancel animations that might move the character
             if humanoid then
                 local animator = humanoid:FindFirstChildOfClass("Animator")
                 if animator then
@@ -1410,11 +1309,9 @@ local function immobilizePlayer()
     PlayerImmobilized = true
 end
 
--- Helper function to restore player mobility
 local function restorePlayerMobility()
     if not PlayerImmobilized then return end
     
-    -- Disconnect the immobilize heartbeat
     if ImmobilizeConnection then
         ImmobilizeConnection:Disconnect()
         ImmobilizeConnection = nil
@@ -1424,9 +1321,8 @@ local function restorePlayerMobility()
     if character then
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            -- Restore mobility
-            humanoid.WalkSpeed = 16 -- Default walk speed
-            humanoid.JumpPower = 50 -- Default jump power
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
             humanoid.AutoRotate = true
         end
     end
@@ -1434,7 +1330,6 @@ local function restorePlayerMobility()
     PlayerImmobilized = false
 end
 
--- Função auxiliar para controlar física
 local function setPhysicsEnabled(enabled)
   if not LocalPlayer.Character then return end
   
@@ -1450,9 +1345,6 @@ local function setPhysicsEnabled(enabled)
   if humanoid then
       humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, enabled)
   end
-  
-  -- Only modify mobility based on the enabled parameter when we're actually teleporting
-  -- This functionality has been moved to the teleport function
 end
 
 local function enableNoClip()
@@ -1469,8 +1361,6 @@ local function enableNoClip()
     end)
     
     NoClipEnabled = true
-    -- We won't immobilize here anymore to let the player move freely
-    -- until an egg is found
 end
 
 local function disableNoClip()
@@ -1488,41 +1378,32 @@ local function disableNoClip()
     end
     
     NoClipEnabled = false
-    -- Always make sure player is mobile when disabling noclip
+
     restorePlayerMobility()
 end
 
--- Improved teleport function that first teleports to world then egg with Y position check
 local function teleportToEgg(egg)
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
-    -- Get the egg's real name for teleport lookup
+
     local eggRealName = EggNameMap[egg.Name]
     if not eggRealName then return false end
-    
-    -- Now we immobilize the player since we found an egg to teleport to
+
     immobilizePlayer()
     
     local eggPos = egg:GetPivot().Position
-    
-    -- Check if we're already in the correct world by comparing Y positions
+
     local yDifference = math.abs(hrp.Position.Y - eggPos.Y)
     local maxAttempts = 3
     local attempts = 0
-    
-    -- If Y difference is too large, we need to teleport
+
     while yDifference > 3 and attempts < maxAttempts do
         attempts = attempts + 1
-        print("Attempting rift teleport. Y difference:", yDifference)
-        
-        -- Teleport to the world
+
         TeleportToWorld(eggRealName)
-        
-        -- Wait for the teleport to complete
+
         task.wait(2)
-        
-        -- Recalculate Y difference after teleport
+
         hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then 
             restorePlayerMobility()
@@ -1530,17 +1411,13 @@ local function teleportToEgg(egg)
         end
         
         yDifference = math.abs(hrp.Position.Y - eggPos.Y)
-        print("After rift teleport. Y difference:", yDifference)
     end
-    
-    -- 1. Armazena posição original
+
     local originalPos = hrp.Position
-    
-    -- 2. Desce para abaixo do chão (-100 no Y)
+
     setPhysicsEnabled(false)
     hrp.CFrame = CFrame.new(originalPos.X, dropAltitude, originalPos.Z)
     
-    -- 3. Move horizontalmente até abaixo do egg (mantém Y = -100)
     local targetXZ = Vector3.new(eggPos.X, dropAltitude, eggPos.Z)
     local distance = (targetXZ - hrp.Position).Magnitude
     local duration = distance / moveSpeed
@@ -1551,11 +1428,7 @@ local function teleportToEgg(egg)
     tween:Play()
     tween.Completed:Wait()
     
-    -- 4. Sobe para posição correta (+3 no Y)
     hrp.CFrame = CFrame.new(eggPos.X, eggPos.Y + 3, eggPos.Z)
-    
-    -- 5. Manter o jogador imobilizado enquanto interage com o ovo
-    -- setPhysicsEnabled(true) permaneça imobilizado durante a interação
     
     return true
 end
@@ -1581,7 +1454,6 @@ local function cancelAllOperations()
 end
 
 local function chooseNewTarget()
-    -- Ensure SelectedRiftEggs is initialized
     if SelectedRiftEggs == nil then
         SelectedRiftEggs = {}
     end
@@ -1594,7 +1466,6 @@ local function chooseNewTarget()
         CurrentTargetEgg = eggs[math.random(1, #eggs)]
     end
 
-    -- Ensure SelectedLuckMultipliers is initialized
     if SelectedLuckMultipliers == nil then
         SelectedLuckMultipliers = {}
     end
@@ -1602,11 +1473,10 @@ local function chooseNewTarget()
     if #SelectedLuckMultipliers > 0 then
         CurrentTargetMultiplier = SelectedLuckMultipliers[math.random(1, #SelectedLuckMultipliers)]
     else
-        CurrentTargetMultiplier = nil -- accept any multiplier
+        CurrentTargetMultiplier = nil 
     end
 end
 
--- Modified Rift Auto Hatch with dynamic switching to normal hatch
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
     Description = "Automatically teleport and hatch rift eggs when available",
@@ -1615,7 +1485,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
         AutoRiftHatch = state
         
         if state then
-            enableNoClip() -- Apenas ativa noclip sem imobilizar o jogador
+            enableNoClip() 
             
             chooseNewTarget()
             task.spawn(function()
@@ -1623,12 +1493,10 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                     IsHandlingRiftEgg = false
                     local foundValidEgg = false
                     
-                    -- Check if there are any valid Rift eggs to process
                     for _, egg in pairs(Rifts:GetChildren()) do
                         if not AutoRiftHatch then break end
                         
                         local isSelectedEgg = false
-                        -- Ensure SelectedRiftEggs is initialized
                         if SelectedRiftEggs ~= nil then
                             for _, selectedEgg in pairs(SelectedRiftEggs) do
                                 if egg.Name == selectedEgg then
@@ -1644,7 +1512,6 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                             local icon = gui and gui:FindFirstChild("Icon")
                             local luck = icon and icon:FindFirstChildWhichIsA("TextLabel")
                             
-                            -- Ensure SelectedLuckMultipliers is initialized
                             if SelectedLuckMultipliers == nil then
                                 SelectedLuckMultipliers = {}
                             end
@@ -1663,215 +1530,236 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                 foundValidEgg = true
                                 IsHandlingRiftEgg = true
                                 
-                                task.wait(0.5) -- Brief pause before teleporting
+                                task.wait(0.5)
                                 if teleportToEgg(egg) then
-                                    -- Jogador permanece imobilizado enquanto interage com o ovo
-                                    
-                                    -- Keep hatching this egg until it disappears or settings change
                                     while AutoRiftHatch and egg.Parent do
                                         hatchEgg(egg.Name)
                                         task.wait(0.5)
                                     end
                                     
-                                    -- Restore player mobility after egg disappears or hatching stops
                                     restorePlayerMobility()
                                 end
                                 
-                                break -- We've processed one egg, exit the loop
+                                break 
                             end
                         end
                     end
                     
-                    -- If no valid rift eggs were found and normal hatch is enabled, start that process
                     if not foundValidEgg and AutoHatch and not IsProcessingNormalHatch then
-                        -- Make sure player is mobile before moving to normal hatching
                         restorePlayerMobility()
                         StartNormalHatching()
                     end
                     
-                    -- If we didn't find any valid rift egg, choose a new target for next check
                     if not foundValidEgg then
                         chooseNewTarget()
-                        -- Ensure player is mobile when there are no eggs
                         restorePlayerMobility()
                     end
-                    
-                    task.wait(2) -- Wait before checking again
                 end
                 
-                -- When Rift Auto Hatch is turned off
                 if AutoHatch then
-                    -- Make sure normal hatching is active
                     if not IsProcessingNormalHatch then
-                        restorePlayerMobility() -- Ensure player is mobile
+                        restorePlayerMobility() 
                         StartNormalHatching()
                     end
                 else
-                    disableNoClip() -- Only disable if both auto hatches are off
-                    restorePlayerMobility() -- Ensure player is mobile when turning off
+                    disableNoClip() 
+                    restorePlayerMobility() 
                 end
             end)
         else
             IsHandlingRiftEgg = false
             
-            -- Cancel any active rift operations
             for hrp, tween in pairs(ActiveTweens) do
                 if tween then tween:Cancel() end
             end
             ActiveTweens = {}
             
-            -- If regular Auto Hatch is still on, let it run
             if AutoHatch then
                 if not IsProcessingNormalHatch then
-                    restorePlayerMobility() -- Ensure player is mobile
+                    restorePlayerMobility()
                     StartNormalHatching()
                 end
             else
-                disableNoClip() -- Only disable if both auto hatches are off
+                disableNoClip()
                 restorePlayerMobility()
             end
         end
     end
 })
 
-local AutoGoldenChest = false
-local AutoRoyalChest = false
-local ActiveTween
-local NoClipConnection
+local claimAltitude = 3
+local UNLOCK_DELAY = 0.1
+local DEFAULT_GRAVITY = Workspace.Gravity
 
--- Funções de NoClip (compartilhadas)
-local function enableNoClip()
-    if NoClipConnection then return end
-    NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
-        if game.Players.LocalPlayer.Character then
-            for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
+local NoClipConnection
+local ImmobilizeConnection
+local PlayerImmobilized = false
+
+local function setGravity(enabled)
+    Workspace.Gravity = enabled and DEFAULT_GRAVITY or 0
+end
+
+local function immobilizePlayer()
+    if PlayerImmobilized then return end
+    
+    local character = player.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    humanoid.AutoRotate = false
+    
+    if ImmobilizeConnection then
+        ImmobilizeConnection:Disconnect()
+    end
+    
+    ImmobilizeConnection = RunService.Heartbeat:Connect(function()
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+            character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
         end
     end)
+    
+    PlayerImmobilized = true
 end
 
-local function disableNoClip()
-    if NoClipConnection then
-        NoClipConnection:Disconnect()
-        NoClipConnection = nil
+local function restorePlayerMobility()
+    if not PlayerImmobilized then return end
+    
+    if ImmobilizeConnection then
+        ImmobilizeConnection:Disconnect()
+        ImmobilizeConnection = nil
+    end
+    
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+            humanoid.AutoRotate = true
+        end
+    end
+    
+    PlayerImmobilized = false
+end
+
+local function manageNoClip(enable)
+    if enable then
+        if NoClipConnection then return end
+        NoClipConnection = RunService.Stepped:Connect(function()
+            if player.Character then
+                for _, part in ipairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if NoClipConnection then
+            NoClipConnection:Disconnect()
+            NoClipConnection = nil
+        end
     end
 end
 
--- Sistema para Golden Chest
-local function teleportAndFarmGolden()
-    while AutoGoldenChest do
-        local chest = workspace.Rendered.Rifts:FindFirstChild("golden-chest")
+local function getChestPosition(chest)
+    local outputPart = chest:FindFirstChild("Output")
+    if outputPart then
+        return outputPart.Position
+    end
+    return chest:GetPivot().Position
+end
+
+local function safeTeleportToChest(chestName)
+    while (chestName == "golden-chest" and AutoGoldenChest) or (chestName == "royal-chest" and AutoRoyalChest) do
+        local chest = workspace.Rendered.Rifts:FindFirstChild(chestName)
         if chest then
-            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                enableNoClip()
+                immobilizePlayer()
+                manageNoClip(true)
+                setGravity(false)
                 
-                -- Tween com tempo fixo de 7 segundos
-                local tween = TweenService:Create(hrp, TweenInfo.new(7, Enum.EasingStyle.Linear), {
-                    CFrame = chest:GetPivot() * CFrame.new(0, 0, 0)
+                local chestPos = getChestPosition(chest)
+                
+                hrp.CFrame = CFrame.new(hrp.Position.X, dropAltitude, hrp.Position.Z)
+                
+                local targetXZ = Vector3.new(chestPos.X, dropAltitude, chestPos.Z)
+                local tween = TweenService:Create(hrp, TweenInfo.new((targetXZ - hrp.Position).Magnitude / moveSpeed, Enum.EasingStyle.Linear), {
+                    CFrame = CFrame.new(targetXZ)
                 })
-                
                 tween:Play()
                 tween.Completed:Wait()
                 
-                while AutoGoldenChest and chest.Parent do
-                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "golden-chest")
-                    task.wait(1)
+                hrp.CFrame = CFrame.new(chestPos.X, chestPos.Y + claimAltitude, chestPos.Z)
+                
+                while ((chestName == "golden-chest" and AutoGoldenChest) or 
+                      (chestName == "royal-chest" and AutoRoyalChest)) and chest.Parent do
+                    ReplicatedStorage.Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", chestName)
+                    task.wait(UNLOCK_DELAY)
                 end
+                
+                restorePlayerMobility()
+                manageNoClip(false)
+                setGravity(true)
             end
         end
         task.wait(1)
     end
-    disableNoClip()
+    
+    restorePlayerMobility()
+    manageNoClip(false)
+    setGravity(true)
 end
 
--- Sistema para Royal Chest
-local function teleportAndFarmRoyal()
-    while AutoRoyalChest do
-        local chest = workspace.Rendered.Rifts:FindFirstChild("royal-chest")
-        if chest then
-            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                enableNoClip()
-                
-                -- Tween com tempo fixo de 7 segundos
-                local tween = TweenService:Create(hrp, TweenInfo.new(7, Enum.EasingStyle.Linear), {
-                    CFrame = chest:GetPivot() * CFrame.new(0, 0, 0)
-                })
-                
-                tween:Play()
-                tween.Completed:Wait()
-                
-                while AutoRoyalChest and chest.Parent do
-                    game:GetService("ReplicatedStorage").Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", "royal-chest")
-                    task.wait(1)
-                end
-            end
-        end
-        task.wait(1)
-    end
-    disableNoClip()
-end
-
--- Toggles
 ChestHunt:AddToggle("AutoGoldenChestToggle", {
-    Title = "Auto Golden Chest",
-    Description = "Teleport and farm golden chest automatically",
+    Title = "Auto Golden Chest (Output Ref)",
+    Description = "Usa a part Output como referência de posição",
     Default = false,
     Callback = function(state)
         AutoGoldenChest = state
         if state then
-            task.spawn(teleportAndFarmGolden)
+            task.spawn(safeTeleportToChest, "golden-chest")
+        else
+            restorePlayerMobility()
+            setGravity(true)
         end
     end
 })
 
 ChestHunt:AddToggle("AutoRoyalChestToggle", {
-    Title = "Auto Royal Chest",
-    Description = "Teleport and farm royal chest automatically",
+    Title = "Auto Royal Chest (Output Ref)",
+    Description = "Usa a part Output como referência de posição",
     Default = false,
     Callback = function(state)
         AutoRoyalChest = state
         if state then
-            task.spawn(teleportAndFarmRoyal)
+            task.spawn(safeTeleportToChest, "royal-chest")
+        else
+            restorePlayerMobility()
+            setGravity(true)
         end
     end
 })
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-
--- Remote Event reference
 local remoteEvent = ReplicatedStorage:WaitForChild("Shared")
     :WaitForChild("Framework")
     :WaitForChild("Network")
     :WaitForChild("Remote")
     :WaitForChild("Event")
 
--- Configuration variables
-local dropAltitude = -100 -- Vertical position below ground
-local claimAltitude = 3 -- Final vertical position for claiming
-local moveSpeed = 18 -- Horizontal movement speed
-local autoGiftRiftEnabled = false
 local noClipConnection = nil
-local claimAttemptDelay = 0.5 -- Time between claim attempts
-local maxClaimAttempts = 10 -- Maximum claim attempts
-local searchInterval = 1 -- How often to search for a new gift rift
 
--- Helper function to get humanoid root part
 local function getHRP()
     local character = player.Character or player.CharacterAdded:Wait()
     return character:WaitForChild("HumanoidRootPart")
 end
 
--- Function to enable/disable character collision
 local function setNoClip(enabled)
     if enabled then
         if not noClipConnection then
@@ -1893,16 +1781,13 @@ local function setNoClip(enabled)
     end
 end
 
--- Find gift rift function with multiple strategies
 local function findGiftRift()
-    -- Strategy 1: Direct path
     local gift = Workspace:FindFirstChild("Rendered", true) and 
                 Workspace.Rendered:FindFirstChild("Rifts") and 
                 Workspace.Rendered.Rifts:FindFirstChild("gift-rift")
     
     if gift then return gift end
     
-    -- Strategy 2: Search in all Rifts folders
     for _, child in pairs(Workspace:GetDescendants()) do
         if child.Name == "Rifts" then
             gift = child:FindFirstChild("gift-rift")
@@ -1910,7 +1795,6 @@ local function findGiftRift()
         end
     end
     
-    -- Strategy 3: Search for any object with "gift" and "rift" in name
     for _, obj in pairs(Workspace:GetDescendants()) do
         if (obj.Name:lower():find("gift") and obj.Name:lower():find("rift")) or 
            obj.Name:lower() == "gift-rift" then
@@ -1921,13 +1805,11 @@ local function findGiftRift()
     return nil
 end
 
--- Direct teleport function (simpler approach)
 local function teleportTo(position)
     local hrp = getHRP()
     hrp.CFrame = CFrame.new(position)
 end
 
--- Function to find and claim gift rift
 local function giftRiftLoop()
     while autoGiftRiftEnabled do
         local gift = findGiftRift()
@@ -1937,63 +1819,50 @@ local function giftRiftLoop()
             local hrp = getHRP()
             local originalPosition = hrp.Position
             
-            -- Enable noclip for smooth movement
             setNoClip(true)
             
-            -- Step 1: Go below ground
             teleportTo(Vector3.new(originalPosition.X, dropAltitude, originalPosition.Z))
             task.wait(0.1)
             
-            -- Step 2: Move to gift position horizontally (keeping -100 Y)
             teleportTo(Vector3.new(giftPosition.X, dropAltitude, giftPosition.Z))
             task.wait(0.1)
-            
-            -- Step 3: Move up to claim position
+
             teleportTo(Vector3.new(giftPosition.X, claimAltitude, giftPosition.Z))
             
-            -- Claim attempts
             local attempts = 0
             while autoGiftRiftEnabled and gift.Parent and attempts < maxClaimAttempts do
                 attempts = attempts + 1
                 
-                -- Fire server to claim gift
                 remoteEvent:FireServer("ClaimRiftGift", "gift-rift")
                 
-                -- Try to remove the gift object
                 if gift:FindFirstChild("Gift") then
                     gift.Gift:Destroy()
                 end
                 
-                -- Remove the entire gift-rift object
                 if gift and gift.Parent then
                     gift:Destroy()
                 end
                 
                 task.wait(claimAttemptDelay)
                 
-                -- Check if gift still exists
                 if not gift.Parent then
                     break
                 end
             end
             
-            -- Return to original position (same 3-step process)
             teleportTo(Vector3.new(giftPosition.X, dropAltitude, giftPosition.Z))
             task.wait(0.1)
             teleportTo(Vector3.new(originalPosition.X, dropAltitude, originalPosition.Z))
             task.wait(0.1)
             teleportTo(Vector3.new(originalPosition.X, originalPosition.Y, originalPosition.Z))
             
-            -- Disable noclip
             setNoClip(false)
         end
         
-        -- Wait before searching again
         task.wait(searchInterval)
     end
 end
 
--- Toggle function for UI
 local function toggleAutoGiftRift(enabled)
     autoGiftRiftEnabled = enabled
     
@@ -2004,7 +1873,6 @@ local function toggleAutoGiftRift(enabled)
     end
 end
 
--- Add just the toggle to UI
 GiftHunt:AddToggle("AutoGiftRiftToggle", {
     Title = "Auto Gift Rift",
     Description = "Automatically claims gift rifts",
@@ -2019,23 +1887,22 @@ Tabs.Upgrades:AddToggle("AutoUpgrade", {
     Description = "Runs Upgrade Mastery automatically when activated.",
     Default = false,
     Callback = function(state)
-        getgenv().AutoUpgrade = state  -- Armazenando o estado para controle de loop
+        getgenv().AutoUpgrade = state
 
         if state then
-            spawn(function()  -- Usando spawn para rodar em uma thread separada
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            spawn(function()
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
                     :WaitForChild("Framework"):WaitForChild("Network")
                     :WaitForChild("Remote"):WaitForChild("Event")
 
-                while AutoUpgrade do  -- Enquanto a toggle estiver ativada, o loop continua
+                while AutoUpgrade do
                     local args = {
                         [1] = "UpgradeMastery",
                         [2] = "Buffs"
                     }
 
                     RemoteEvent:FireServer(unpack(args))
-                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                    task.wait(1)
                 end
             end)
         else
@@ -2049,23 +1916,22 @@ Tabs.Upgrades:AddToggle("AutoUpgradePets", {
     Description = "Runs Upgrade Mastery for Pets automatically when activated.",
     Default = false,
     Callback = function(state)
-        getgenv().AutoUpgradePets = state  -- Controla o estado da toggle
+        getgenv().AutoUpgradePets = state
 
         if state then
-            spawn(function()  -- Usando spawn para rodar em uma thread separada
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            spawn(function()
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
                     :WaitForChild("Framework"):WaitForChild("Network")
                     :WaitForChild("Remote"):WaitForChild("Event")
 
-                while AutoUpgradePets do  -- Enquanto a toggle estiver ativada, o loop continua
+                while AutoUpgradePets do
                     local args = {
                         [1] = "UpgradeMastery",
-                        [2] = "Pets"  -- Aqui está o "Pets" que você mencionou
+                        [2] = "Pets"  
                     }
 
                     RemoteEvent:FireServer(unpack(args))
-                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                    task.wait(1)  
                 end
             end)
         else
@@ -2079,23 +1945,22 @@ Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
     Description = "Runs Upgrade Mastery for Shops automatically when activated.",
     Default = false,
     Callback = function(state)
-        getgenv().AutoUpgradeShops = state  -- Controla o estado da toggle
+        getgenv().AutoUpgradeShops = state 
 
         if state then
-            spawn(function()  -- Usando spawn para rodar em uma thread separada
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            spawn(function()  
                 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
                     :WaitForChild("Framework"):WaitForChild("Network")
                     :WaitForChild("Remote"):WaitForChild("Event")
 
-                while AutoUpgradeShops do  -- Enquanto a toggle estiver ativada, o loop continua
+                while AutoUpgradeShops do  
                     local args = {
                         [1] = "UpgradeMastery",
-                        [2] = "Shops"  -- Aqui está o "Shops" que você mencionou
+                        [2] = "Shops"  
                     }
 
                     RemoteEvent:FireServer(unpack(args))
-                    task.wait(1)  -- Intervalo entre as chamadas (ajustável conforme necessário)
+                    task.wait(1) 
                 end
             end)
         else
@@ -2124,7 +1989,7 @@ local MultiDropdown = AutoPotionSection:AddDropdown("Poções", {
     Description = "Choose the potions to use",
     Values = dropdownOptions,
     Multi = true,
-    Default = {},  -- Predefinir poções selecionadas
+    Default = {}, 
 })
 
 local SelectedPotions = {}
@@ -2261,24 +2126,8 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
     end
 })
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
 local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
 
-local AutoRiftHatch = false
-local SelectedRiftEggs = {}
-local SelectedLuckMultipliers = {}
-local ActiveTweens = {}
-local CurrentTargetEgg = nil
-local CurrentTargetMultiplier = nil
-local NoClipConnection = nil
-
--- Detecta qual request HTTP está disponível
 local request = (syn and syn.request) or (http and http.request) or http_request or (krnl and krnl.request)
 if not request then
     Fluent:Notify({
@@ -2290,7 +2139,6 @@ if not request then
     return
 end
 
--- Server hop
 local function serverHop()
     local response = request({
         Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100",
@@ -2310,28 +2158,6 @@ local function serverHop()
     end
 end
 
-local EggNameMap = {
-    ["spotted-egg"] = "Spotted Egg",
-    ["iceshard-egg"] = "Iceshard Egg",
-    ["spikey-egg"] = "Spikey Egg",
-    ["magma-egg"] = "Magma Egg",
-    ["crystal-egg"] = "Crystal Egg",
-    ["lunar-egg"] = "Lunar Egg",
-    ["void-egg"] = "Void Egg",
-    ["hell-egg"] = "Hell Egg",
-    ["nightmare-egg"] = "Nightmare Egg",
-    ["rainbow-egg"] = "Rainbow Egg",
-    ["infinity-egg"] = "Infinity Egg",
-    ["silly-egg"] = "Silly Egg",
-    ["man-egg"] = "Man Egg",
-    ["showman-egg"] = "Showman Egg",
-    ["mining-egg"] = "Mining Egg",
-    ["cyber-egg"] = "Cyber Egg"
-}
-
-local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-
--- UI Dropdowns (ajuste conforme seu framework de UI)
 local RiftEggNames = {}
 for k in pairs(EggNameMap) do
     table.insert(RiftEggNames, k)
@@ -2501,23 +2327,6 @@ Tabs.ServerHop:AddToggle("AutoRiftHatchToggle", {
     end
 })
 
--- Locais de teleportes diretos via caminho no Workspace (Portals)
-local portalLocations = {
-    ["Twilight Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Twilight.Island.Portal.Spawn",
-    ["Outer Space | World 1"] = "Workspace.Worlds.The Overworld.Islands.Outer Space.Island.Portal.Spawn",
-    ["Overworld Spawn | World 1"] = "Workspace.Worlds.The Overworld.PortalSpawn",
-    ["The Void | World 1"] = "Workspace.Worlds.The Overworld.Islands.The Void.Island.Portal.Spawn",
-    ["Floating Island | World 1"] = "Workspace.Worlds.The Overworld.Islands.Floating Island.Island.Portal.Spawn",
-    ["Zen | World 1"] = "Workspace.Worlds.The Overworld.Islands.Zen.Island.Portal.Spawn",
-
-    -- Minigame Paradise e suas ilhas
-    ["Minigame Paradise Spawn | World 2"] = "Workspace.Worlds.Minigame Paradise.PortalSpawn",
-    ["Dice Island | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Dice Island.Island.Portal.Spawn",
-    ["Minecart Forest | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Minecart Forest.Island.Portal.Spawn",
-    ["Robot Factory | World 2"] = "Workspace.Worlds.Minigame Paradise.Islands.Robot Factory.Island.Portal.Spawn"
-}
-
--- Botões para teleportes via path (portais)
 for name, path in pairs(portalLocations) do
     Tabs.Teleport:AddButton({
         Title = name,
@@ -2543,13 +2352,7 @@ end
 CodeSection:AddButton({
     Title = "Redeem Codes",
     Description = "Redeem all available codes",
-    Callback = function()
-        local codes = {
-            "update2",   -- 5 Mystery Gifts (NEW)
-            "Easter",    -- 4 Mystery Gifts
-            "Release",   -- 1 Mystery Gift
-            "Lucky"      -- 1 Luck Potion V
-        }        
+    Callback = function()      
         for _, code in ipairs(codes) do
             local success, result = pcall(function()
                 return game:GetService("ReplicatedStorage")
@@ -2612,21 +2415,16 @@ InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/BubbleGumInfinity")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
-Window:SelectTab(1) -- Seleciona a primeira aba ao abrir
+Window:SelectTab(1)
 Fluent:Notify({
     Title = "Bubble Gum Simulator INFINITY | DZ HUB",
     Content = "Script loaded successfully!",
     Duration = 5
 })
 
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-
--- Remove instância anterior
 local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
 if ExistingGui then ExistingGui:Destroy() end
 
--- Procura a GUI principal
 local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
@@ -2645,7 +2443,6 @@ if not ScreenGuiToMinimize then
     return
 end
 
--- Cria GUI do botão
 local MinimizeGui = Instance.new("ScreenGui", CoreGui)
 MinimizeGui.Name = "MinimizeButtonGui"
 
@@ -2659,7 +2456,6 @@ MinimizeButton.ImageRectSize = Vector2.new(256, 256)
 
 local UICorner = Instance.new("UICorner", MinimizeButton)
 
--- Animação do botão com múltiplas spritesheets
 local spritesheets = {
     "rbxassetid://90726870075493",
     "rbxassetid://85859195506939",
@@ -2683,11 +2479,10 @@ task.spawn(function()
         MinimizeButton.Image = spritesheets[sheetIndex]
         MinimizeButton.ImageRectOffset = Vector2.new(frameIndex * frameWidth, 0)
 
-        task.wait(0.01) -- ajuste de velocidade
+        task.wait(0.01) 
     end
 end)
 
--- Função de minimizar
 MinimizeButton.MouseButton1Click:Connect(function()
     if Window and Window.Minimize then
         Window:Minimize()
@@ -2696,7 +2491,6 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Movimento do botão
 local dragging = false
 local dragStart, startPos
 
