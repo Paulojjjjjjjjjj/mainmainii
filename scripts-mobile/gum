@@ -1718,8 +1718,7 @@ local function safeTeleportToChest(chestName)
 end
 
 ChestHunt:AddToggle("AutoGoldenChestToggle", {
-    Title = "Auto Golden Chest (Output Ref)",
-    Description = "Usa a part Output como referência de posição",
+    Title = "Auto Golden Chest",
     Default = false,
     Callback = function(state)
         AutoGoldenChest = state
@@ -1733,8 +1732,7 @@ ChestHunt:AddToggle("AutoGoldenChestToggle", {
 })
 
 ChestHunt:AddToggle("AutoRoyalChestToggle", {
-    Title = "Auto Royal Chest (Output Ref)",
-    Description = "Usa a part Output como referência de posição",
+    Title = "Auto Royal Chest",
     Default = false,
     Callback = function(state)
         AutoRoyalChest = state
