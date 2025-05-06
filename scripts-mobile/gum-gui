@@ -1,0 +1,438 @@
+-- DZ HUB - Bubble Gum Simulator INFINITY | NOVA GUI
+-- Serviços
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- Cores do tema
+local MainColor = Color3.fromRGB(140, 90, 255) -- Roxo claro
+local FadeColor = Color3.fromRGB(90, 60, 180)  -- Roxo fade
+local AccentColor = Color3.fromRGB(200, 170, 255)
+local TextColor = Color3.fromRGB(255, 255, 255)
+
+-- Criar ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DZHubGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game.CoreGui or player.PlayerGui
+
+-- Frame principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.fromOffset(350, 320)
+MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = MainColor
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
+
+-- Degradê
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, MainColor),
+    ColorSequenceKeypoint.new(1, FadeColor)
+}
+Gradient.Rotation = 45
+Gradient.Parent = MainFrame
+
+-- Barra de título
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.BackgroundColor3 = FadeColor
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 14)
+TitleCorner.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+TitleLabel.Position = UDim2.new(0, 12, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "DZ HUB - Bubble Gum Simulator"
+TitleLabel.TextColor3 = TextColor
+TitleLabel.TextSize = 18
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- Botão de fechar
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 28, 0, 28)
+CloseButton.Position = UDim2.new(1, -34, 0, 4)
+CloseButton.BackgroundColor3 = Color3.fromRGB(180, 80, 120)
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = TextColor
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 16
+CloseButton.Parent = TitleBar
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(1, 0)
+CloseCorner.Parent = CloseButton
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Conteúdo principal
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -24, 1, -48)
+Content.Position = UDim2.new(0, 12, 0, 40)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+-- Função para criar labels
+local function CreateLabel(parent, text, size, y)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, size)
+    lbl.Position = UDim2.new(0, 0, 0, y)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Gotham
+    lbl.Text = text
+    lbl.TextColor3 = TextColor
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = parent
+    return lbl
+end
+
+-- Função para criar dropdown com ScrollingFrame (adaptado)
+local function CreateDropdown(parent, y, title, values, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 48)
+    frame.Position = UDim2.new(0, 0, 0, y)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+    
+    local label = CreateLabel(frame, title, 16, 0)
+    label.TextSize = 13
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 28)
+    button.Position = UDim2.new(0, 0, 0, 18)
+    button.BackgroundColor3 = FadeColor
+    button.Text = "Selecionar..."
+    button.TextColor3 = TextColor
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.AutoButtonColor = true
+    button.Parent = frame
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = button
+
+    -- Dropdown menu criado no ScreenGui
+    local menu = Instance.new("ScrollingFrame")
+    menu.Size = UDim2.new(0, button.AbsoluteSize.X, 0, 0)
+    menu.Position = UDim2.new(0, 0, 0, 0)
+    menu.BackgroundColor3 = MainColor
+    menu.Visible = false
+    menu.ZIndex = 100
+    menu.Parent = ScreenGui
+    menu.ScrollBarThickness = 6
+    menu.CanvasSize = UDim2.new(0, 0, 0, 0)
+    menu.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    menu.ClipsDescendants = true
+    local menuCorner = Instance.new("UICorner")
+    menuCorner.CornerRadius = UDim.new(0, 8)
+    menuCorner.Parent = menu
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 2)
+    layout.Parent = menu
+
+    local function updateMenu()
+        for _, c in pairs(menu:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+        for i, v in ipairs(values) do
+            local item = Instance.new("TextButton")
+            item.Size = UDim2.new(1, -8, 0, 24)
+            item.Position = UDim2.new(0, 4, 0, 0)
+            item.BackgroundColor3 = FadeColor
+            item.Text = v
+            item.TextColor3 = TextColor
+            item.Font = Enum.Font.Gotham
+            item.TextSize = 13
+            item.ZIndex = 101
+            item.Parent = menu
+            local ic = Instance.new("UICorner")
+            ic.CornerRadius = UDim.new(0, 6)
+            ic.Parent = item
+            item.MouseButton1Click:Connect(function()
+                button.Text = v
+                menu.Visible = false
+                if callback then callback(v) end
+            end)
+        end
+        -- Ajusta altura do menu (máx 150px)
+        local total = #values * 26
+        menu.Size = UDim2.new(0, button.AbsoluteSize.X, 0, math.min(total, 150))
+        menu.CanvasSize = UDim2.new(0, 0, 0, total)
+    end
+    updateMenu()
+    button.MouseButton1Click:Connect(function()
+        -- Atualiza posição global do menu
+        local absPos = button.AbsolutePosition
+        menu.Position = UDim2.new(0, absPos.X, 0, absPos.Y + button.AbsoluteSize.Y)
+        menu.Size = UDim2.new(0, button.AbsoluteSize.X, 0, menu.Size.Y.Offset)
+        menu.Visible = not menu.Visible
+    end)
+    -- Fecha menu ao clicar fora
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and menu.Visible then
+            local mouse = UserInputService:GetMouseLocation()
+            local absPos = menu.AbsolutePosition
+            local absSize = menu.AbsoluteSize
+            local btnPos = button.AbsolutePosition
+            local btnSize = button.AbsoluteSize
+            local function isInside(pos, size)
+                return mouse.X >= pos.X and mouse.X <= pos.X + size.X and mouse.Y >= pos.Y and mouse.Y <= pos.Y + size.Y
+            end
+            if not (isInside(absPos, absSize) or isInside(btnPos, btnSize)) then
+                menu.Visible = false
+            end
+        end
+    end)
+    return {
+        SetValues = function(newValues)
+            values = newValues
+            updateMenu()
+        end,
+        SetText = function(txt)
+            button.Text = txt
+        end,
+        GetText = function()
+            return button.Text
+        end
+    }
+end
+
+-- Função para criar toggle
+local function CreateToggle(parent, y, title, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 32)
+    frame.Position = UDim2.new(0, 0, 0, y)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+    local label = CreateLabel(frame, title, 16, 0)
+    label.TextSize = 13
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 40, 0, 22)
+    toggleBtn.Position = UDim2.new(1, -44, 0, 5)
+    toggleBtn.AnchorPoint = Vector2.new(0,0)
+    toggleBtn.BackgroundColor3 = FadeColor
+    toggleBtn.Text = ""
+    toggleBtn.Parent = frame
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(1,0)
+    tCorner.Parent = toggleBtn
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = UDim2.new(0, 2, 0, 2)
+    circle.BackgroundColor3 = AccentColor
+    circle.Parent = toggleBtn
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(1,0)
+    cCorner.Parent = circle
+    local toggled = false
+    local function setToggle(val)
+        toggled = val
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = toggled and AccentColor or FadeColor}):Play()
+        TweenService:Create(circle, TweenInfo.new(0.15), {Position = toggled and UDim2.new(0, 20, 0, 2) or UDim2.new(0, 2, 0, 2)}):Play()
+        if callback then callback(toggled) end
+    end
+    toggleBtn.MouseButton1Click:Connect(function()
+        setToggle(not toggled)
+    end)
+    setToggle(false)
+    return {
+        Set = setToggle,
+        Get = function() return toggled end
+    }
+end
+
+-- Função para criar botão
+local function CreateButton(parent, y, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.Position = UDim2.new(0, 0, 0, y)
+    btn.BackgroundColor3 = AccentColor
+    btn.Text = text
+    btn.TextColor3 = FadeColor
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Parent = parent
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
+    return btn
+end
+
+-- Função para criar label de inventário
+local function CreateInventoryLabel(parent, y)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 40)
+    lbl.Position = UDim2.new(0, 0, 0, y)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Gotham
+    lbl.Text = "Carregando inventário..."
+    lbl.TextColor3 = TextColor
+    lbl.TextSize = 13
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextYAlignment = Enum.TextYAlignment.Top
+    lbl.Parent = parent
+    return lbl
+end
+
+-- Variáveis de dados
+local petsMap = {}
+local selectedPetUUID = nil
+local selectedDice = "Dice"
+local autoRunning = false
+
+-- Elementos da interface
+local y = 0
+local petsDropdown = CreateDropdown(Content, y, "Selecionar Pet", {}, function(value)
+    selectedPetUUID = petsMap[value]
+end)
+y = y + 52
+local diceDropdown = CreateDropdown(Content, y, "Tipo de Dado", {"Dice", "Giant Dice", "Golden Dice"}, function(value)
+    selectedDice = value
+end)
+y = y + 52
+local refreshBtn = CreateButton(Content, y, "🔄 Atualizar Pets", function()
+    refreshPets()
+end)
+y = y + 38
+local inventoryLabel = CreateInventoryLabel(Content, y)
+y = y + 44
+local autoToggle = CreateToggle(Content, y, "Auto Dice Farm", function(state)
+    autoRunning = state
+    if autoRunning then
+        spawn(function()
+            while autoRunning do
+                if selectedPetUUID and selectedDice then
+                    sendToServer("ChoosePiece", selectedPetUUID)
+                    rollDice(selectedDice)
+                    local start = tick()
+                    while tick() - start < 1 and autoRunning do
+                        sendToServer("ClaimTile")
+                        wait(0.1)
+                    end
+                end
+                wait(0.5)
+            end
+        end)
+    end
+end)
+
+-- Funções de lógica
+function refreshPets()
+    petsMap = {}
+    local petDropdownList = {}
+    local success, err = pcall(function()
+        local petFolders = {
+            player.PlayerGui:WaitForChild("ScreenGui", 2)
+                :WaitForChild("Inventory", 2)
+                .Frame.Inner.Pets.Main.ScrollingFrame.Pets,
+            player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Pets.Main.ScrollingFrame.Team.Main.List
+        }
+        for _, folder in ipairs(petFolders) do
+            for _, obj in ipairs(folder:GetChildren()) do
+                local uuid = obj.Name
+                local displayNameGui = obj:FindFirstChild("Inner") and obj.Inner:FindFirstChild("Button") and obj.Inner.Button:FindFirstChild("Inner") and obj.Inner.Button.Inner:FindFirstChild("DisplayName")
+                if displayNameGui and displayNameGui:IsA("TextLabel") then
+                    local displayName = displayNameGui.Text
+                    if not petsMap[displayName] then
+                        petsMap[displayName] = uuid
+                        table.insert(petDropdownList, displayName)
+                    end
+                end
+            end
+        end
+    end)
+    if not success then
+        petDropdownList = {"Nenhum pet encontrado"}
+    end
+    petsDropdown.SetValues(petDropdownList)
+    petsDropdown.SetText("Selecionar...")
+end
+
+function sendToServer(action, uuid)
+    local args = {}
+    if action == "ChoosePiece" then
+        args = {"ChoosePiece", uuid}
+    elseif action == "ClaimTile" then
+        args = {"ClaimTile"}
+    end
+    ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+function rollDice(diceType)
+    local args = {"RollDice", diceType}
+    ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function"):InvokeServer(unpack(args))
+end
+
+function updateInventoryContent()
+    local diceCount, giantDiceCount, goldenDiceCount = "-", "-", "-"
+    local success, err = pcall(function()
+        diceCount = player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Items.Main.ScrollingFrame.Powerups.Items.Dice.Inner.Button.Inner.Amount.ContentText
+        giantDiceCount = player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Items.Main.ScrollingFrame.Powerups.Items["Giant Dice"].Inner.Button.Inner.Amount.ContentText
+        goldenDiceCount = player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Items.Main.ScrollingFrame.Powerups.Items["Golden Dice"].Inner.Button.Inner.Amount.ContentText
+    end)
+    inventoryLabel.Text = string.format("Dados: %s\nGiant Dice: %s\nGolden Dice: %s", diceCount, giantDiceCount, goldenDiceCount)
+end
+
+-- Atualiza pets e inventário ao abrir
+refreshPets()
+updateInventoryContent()
+
+-- Atualização automática do inventário
+spawn(function()
+    while true do
+        updateInventoryContent()
+        wait(1)
+    end
+end)
+
+-- Drag da GUI
+local dragging = false
+local dragInput, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Ao final do script, antes do return:
+if _G.DZHubGui then _G.DZHubGui:Destroy() end
+
+return ScreenGui
