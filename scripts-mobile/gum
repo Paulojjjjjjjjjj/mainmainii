@@ -1,6 +1,9 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/Dexz00/DZ-Ui/releases/latest/download/main.lua"))()
+task.wait(1)
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/SaveManager.lua"))()
+task.wait(1)
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/InterfaceManager.lua"))()
+
 
 local Window = Fluent:CreateWindow({
     Title = "Bubble Gum Simulator INFINITY | DZ HUB",
@@ -1080,6 +1083,9 @@ local EggPositions = {
     ["Cyber Egg"] = Vector3.new(9927.065, 26.922, 226.716)
 }
 
+-- Remote event reference
+local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
+
 -- Shared noclip function to avoid duplication
 local function EnableNoclip()
     if NoclipConnection then NoclipConnection:Disconnect() end
@@ -1122,6 +1128,16 @@ local EggDropdown = Egg:AddDropdown("EggDropdown", {
 EggDropdown:OnChanged(function(val)
     SelectedEgg = val
 end)
+
+-- Improved function to teleport to the correct world via portal
+local function TeleportToWorld(eggName)
+    local teleportPath = EggTeleportMap[eggName]
+    if teleportPath then
+        RemoteEvent:FireServer("Teleport", teleportPath)
+        return true
+    end
+    return false
+end
 
 -- Function to check if any valid rift eggs exist
 local function CheckForValidRiftEggs()
@@ -1177,44 +1193,73 @@ local function CheckForValidRiftEggs()
     return false
 end
 
--- Start normal hatching process
+-- Improved normal hatching process with proper portal teleportation and Y position check
 local function StartNormalHatching()
     if IsProcessingNormalHatch then return end
     IsProcessingNormalHatch = true
     
     task.spawn(function()
-        local remote = ReplicatedStorage.Shared.Framework.Network.Remote.Event
-        local teleportPath = EggTeleportMap[SelectedEgg]
-        if teleportPath then
-            remote:FireServer("Teleport", teleportPath)
+        local target = EggPositions[SelectedEgg]
+        if not target then
+            IsProcessingNormalHatch = false
+            return
         end
-
+        
+        -- Get character references
         local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
         local Humanoid = Character:WaitForChild("Humanoid")
+        
+        -- First check if we're already in the correct world by comparing Y positions
+        local yDifference = math.abs(HumanoidRootPart.Position.Y - target.Y)
+        local maxAttempts = 3
+        local attempts = 0
+        
+        -- If Y difference is too large, we need to teleport
+        while yDifference > 3 and attempts < maxAttempts do
+            attempts = attempts + 1
+            print("Attempting teleport. Y difference:", yDifference)
+            
+            -- Teleport to the world
+            TeleportToWorld(SelectedEgg)
+            
+            -- Wait for the teleport to complete
+            task.wait(2)
+            
+            -- Recalculate Y difference after teleport
+            Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+            yDifference = math.abs(HumanoidRootPart.Position.Y - target.Y)
+            
+            print("After teleport. Y difference:", yDifference)
+        end
+        
+        -- After teleporting (or if already in correct world), move to egg
+        Humanoid:MoveTo(target)
+        local reached = false
+        
+        -- Monitor when movement is complete
+        local connection
+        connection = Humanoid.MoveToFinished:Connect(function(success)
+            if success then 
+                reached = true 
+                if connection then
+                    connection:Disconnect()
+                end
+            end
+        end)
 
-        task.wait(1)
+        -- Wait until we've reached the egg or conditions change
+        while not reached and AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
+            task.wait(0.5)
+        end
 
-        local target = EggPositions[SelectedEgg]
-        if target then
-            Humanoid:MoveTo(target)
-            local reached = false
-            Humanoid.MoveToFinished:Connect(function(success)
-                if success then reached = true end
+        -- Start hatching if we've reached and conditions are still valid
+        while AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
+            pcall(function()
+                RemoteEvent:FireServer("HatchEgg", SelectedEgg, HatchAmount)
             end)
-
-            -- Wait until we've reached the egg or conditions change
-            while not reached and AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
-                task.wait(0.5)
-            end
-
-            -- Start hatching if we've reached and conditions are still valid
-            while AutoHatch and not (AutoRiftHatch and CheckForValidRiftEggs()) do
-                pcall(function()
-                    remote:FireServer("HatchEgg", SelectedEgg, HatchAmount)
-                end)
-                task.wait(0.5)
-            end
+            task.wait(0.5)
         end
         
         IsProcessingNormalHatch = false
@@ -1244,10 +1289,9 @@ Egg:AddToggle("AutoHatch", {
     end
 })
 
--- Rift Auto Hatch Section
+-- Auto Hatch Rift Section
 local Rifts = workspace:WaitForChild("Rendered"):WaitForChild("Rifts")
 
--- SelectedRiftEggs and SelectedLuckMultipliers are now defined at the top of the script
 local ActiveTweens = {}
 local CurrentTargetEgg = nil
 local CurrentTargetMultiplier = nil
@@ -1278,8 +1322,6 @@ local EggNameMap = {
     ["mining-egg"] = "Mining Egg",
     ["cyber-egg"] = "Cyber Egg"
 }
-
-local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
 
 local RiftEggNames = {}
 for k in pairs(EggNameMap) do
@@ -1409,12 +1451,8 @@ local function setPhysicsEnabled(enabled)
       humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, enabled)
   end
   
-  -- Also immobilize or restore mobility based on the enabled parameter
-  if not enabled then
-      immobilizePlayer()
-  else
-      restorePlayerMobility()
-  end
+  -- Only modify mobility based on the enabled parameter when we're actually teleporting
+  -- This functionality has been moved to the teleport function
 end
 
 local function enableNoClip()
@@ -1430,8 +1468,9 @@ local function enableNoClip()
         end
     end)
     
-    -- Also immobilize the player when enabling noclip
-    immobilizePlayer()
+    NoClipEnabled = true
+    -- We won't immobilize here anymore to let the player move freely
+    -- until an egg is found
 end
 
 local function disableNoClip()
@@ -1448,40 +1487,77 @@ local function disableNoClip()
         end
     end
     
-    -- Restore player mobility when disabling noclip
+    NoClipEnabled = false
+    -- Always make sure player is mobile when disabling noclip
     restorePlayerMobility()
 end
 
+-- Improved teleport function that first teleports to world then egg with Y position check
 local function teleportToEgg(egg)
-  local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-  if not hrp then return false end
-  
-  -- Make sure player is immobilized before teleporting
-  immobilizePlayer()
-  
-  -- 1. Armazena posição original
-  local originalPos = hrp.Position
-  
-  -- 2. Desce para abaixo do chão (-100 no Y)
-  setPhysicsEnabled(false)
-  hrp.CFrame = CFrame.new(originalPos.X, dropAltitude, originalPos.Z)
-  
-  -- 3. Move horizontalmente até abaixo do egg (mantém Y = -100)
-  local eggPos = egg:GetPivot().Position
-  local targetXZ = Vector3.new(eggPos.X, dropAltitude, eggPos.Z)
-  local distance = (targetXZ - hrp.Position).Magnitude
-  local duration = distance / moveSpeed
-  
-  local info = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-  local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(targetXZ)})
-  
-  tween:Play()
-  tween.Completed:Wait()
-  
-  -- 4. Sobe para posição correta (+3 no Y)
-  hrp.CFrame = CFrame.new(eggPos.X, eggPos.Y + 3, eggPos.Z)
-  
-  return true
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    -- Get the egg's real name for teleport lookup
+    local eggRealName = EggNameMap[egg.Name]
+    if not eggRealName then return false end
+    
+    -- Now we immobilize the player since we found an egg to teleport to
+    immobilizePlayer()
+    
+    local eggPos = egg:GetPivot().Position
+    
+    -- Check if we're already in the correct world by comparing Y positions
+    local yDifference = math.abs(hrp.Position.Y - eggPos.Y)
+    local maxAttempts = 3
+    local attempts = 0
+    
+    -- If Y difference is too large, we need to teleport
+    while yDifference > 3 and attempts < maxAttempts do
+        attempts = attempts + 1
+        print("Attempting rift teleport. Y difference:", yDifference)
+        
+        -- Teleport to the world
+        TeleportToWorld(eggRealName)
+        
+        -- Wait for the teleport to complete
+        task.wait(2)
+        
+        -- Recalculate Y difference after teleport
+        hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then 
+            restorePlayerMobility()
+            return false 
+        end
+        
+        yDifference = math.abs(hrp.Position.Y - eggPos.Y)
+        print("After rift teleport. Y difference:", yDifference)
+    end
+    
+    -- 1. Armazena posição original
+    local originalPos = hrp.Position
+    
+    -- 2. Desce para abaixo do chão (-100 no Y)
+    setPhysicsEnabled(false)
+    hrp.CFrame = CFrame.new(originalPos.X, dropAltitude, originalPos.Z)
+    
+    -- 3. Move horizontalmente até abaixo do egg (mantém Y = -100)
+    local targetXZ = Vector3.new(eggPos.X, dropAltitude, eggPos.Z)
+    local distance = (targetXZ - hrp.Position).Magnitude
+    local duration = distance / moveSpeed
+    
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(targetXZ)})
+    
+    tween:Play()
+    tween.Completed:Wait()
+    
+    -- 4. Sobe para posição correta (+3 no Y)
+    hrp.CFrame = CFrame.new(eggPos.X, eggPos.Y + 3, eggPos.Z)
+    
+    -- 5. Manter o jogador imobilizado enquanto interage com o ovo
+    -- setPhysicsEnabled(true) permaneça imobilizado durante a interação
+    
+    return true
 end
 
 local function hatchEgg(eggName)
@@ -1530,20 +1606,6 @@ local function chooseNewTarget()
     end
 end
 
--- Function to enable noclip with proper name (used in the code)
-local function EnableNoclip()
-    enableNoClip()
-    immobilizePlayer()  -- Make sure player is immobilized when noclip is enabled
-    NoClipEnabled = true
-end
-
--- Function to disable noclip with proper name (used in the code)
-local function DisableNoclip()
-    disableNoClip()
-    restorePlayerMobility()  -- Restore player mobility when noclip is disabled
-    NoClipEnabled = false
-end
-
 -- Modified Rift Auto Hatch with dynamic switching to normal hatch
 EggRift:AddToggle("AutoRiftHatchToggle", {
     Title = "Auto Hatch (Rift)",
@@ -1553,8 +1615,7 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
         AutoRiftHatch = state
         
         if state then
-            EnableNoclip() -- Make sure noclip is on for any type of hatching
-            immobilizePlayer() -- Make sure player is immobilized
+            enableNoClip() -- Apenas ativa noclip sem imobilizar o jogador
             
             chooseNewTarget()
             task.spawn(function()
@@ -1604,12 +1665,16 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                                 
                                 task.wait(0.5) -- Brief pause before teleporting
                                 if teleportToEgg(egg) then
+                                    -- Jogador permanece imobilizado enquanto interage com o ovo
+                                    
                                     -- Keep hatching this egg until it disappears or settings change
                                     while AutoRiftHatch and egg.Parent do
-                                        immobilizePlayer() -- Ensure player stays immobile
                                         hatchEgg(egg.Name)
                                         task.wait(0.5)
                                     end
+                                    
+                                    -- Restore player mobility after egg disappears or hatching stops
+                                    restorePlayerMobility()
                                 end
                                 
                                 break -- We've processed one egg, exit the loop
@@ -1619,12 +1684,16 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                     
                     -- If no valid rift eggs were found and normal hatch is enabled, start that process
                     if not foundValidEgg and AutoHatch and not IsProcessingNormalHatch then
+                        -- Make sure player is mobile before moving to normal hatching
+                        restorePlayerMobility()
                         StartNormalHatching()
                     end
                     
                     -- If we didn't find any valid rift egg, choose a new target for next check
                     if not foundValidEgg then
                         chooseNewTarget()
+                        -- Ensure player is mobile when there are no eggs
+                        restorePlayerMobility()
                     end
                     
                     task.wait(2) -- Wait before checking again
@@ -1634,11 +1703,12 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
                 if AutoHatch then
                     -- Make sure normal hatching is active
                     if not IsProcessingNormalHatch then
+                        restorePlayerMobility() -- Ensure player is mobile
                         StartNormalHatching()
                     end
                 else
-                    DisableNoclip() -- Only disable if both auto hatches are off
-                    restorePlayerMobility() -- Restore player mobility
+                    disableNoClip() -- Only disable if both auto hatches are off
+                    restorePlayerMobility() -- Ensure player is mobile when turning off
                 end
             end)
         else
@@ -1653,11 +1723,12 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
             -- If regular Auto Hatch is still on, let it run
             if AutoHatch then
                 if not IsProcessingNormalHatch then
+                    restorePlayerMobility() -- Ensure player is mobile
                     StartNormalHatching()
                 end
             else
-                DisableNoclip() -- Only disable if both auto hatches are off
-                restorePlayerMobility() -- Restore player mobility
+                disableNoClip() -- Only disable if both auto hatches are off
+                restorePlayerMobility()
             end
         end
     end
