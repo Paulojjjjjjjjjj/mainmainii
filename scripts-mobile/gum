@@ -1237,7 +1237,7 @@ end)
 
 local AutoSkipRobotClaw = false
 
-ChestHunt:AddToggle("AutoSkipRobotClawToggle", {
+RobotClawSection:AddToggle("AutoSkipRobotClawToggle", {
     Title = "Auto Skip Robot Claw",
     Default = false,
     Callback = function(state)
