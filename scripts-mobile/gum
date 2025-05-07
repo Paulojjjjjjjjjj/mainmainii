@@ -36,11 +36,12 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-
 local SellOptions = Tabs.Main:AddSection("Sell Options")
 local BlowSection = Tabs.Main:AddSection("Bubble + Sell Automation")
 local CollectSection = Tabs.Main:AddSection("Auto Collect")
 local PetMatchSection = Tabs.MiniGame:AddSection("Pet Match")
+local RobotClawSection = Tabs.MiniGame:AddSection("Robot Claw")
+local BoardGameSection = Tabs.MiniGame:AddSection("Board Game")
 local MerchantSection = Tabs.Main:AddSection("Merchant")
 local UtilitiesSection = Tabs.Main:AddSection("Utilities")
 local Egg = Tabs.EggHunt:AddSection("Egg")
@@ -1037,6 +1038,307 @@ local Toggle = PetMatchSection:AddToggle("StartMinigameToggle", {
     end
 })
 
+local selectedDifficulty = "Easy" 
+local autoRunning = false
+
+
+local function startMinigame()
+    local args = {
+        [1] = "StartMinigame",
+        [2] = "Robot Claw",
+        [3] = selectedDifficulty
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+
+    task.wait(1)
+end
+
+local function printCapsules()
+    local clawMachineFolder = workspace:FindFirstChild("ClawMachine")
+    if clawMachineFolder then
+        for _, child in pairs(clawMachineFolder:GetChildren()) do
+            if child.Name == "Capsule" then
+                
+                local itemGUID = child:GetAttribute("ItemGUID")
+                if itemGUID then
+                else
+
+                    local itemGUIDObj = child:FindFirstChild("ItemGUID")
+                    if itemGUIDObj then
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function grabCapsule()
+    local clawMachineFolder = workspace:FindFirstChild("ClawMachine")
+    
+    if not clawMachineFolder then
+        return false
+    end
+
+    local capsule = nil
+    for _, obj in pairs(clawMachineFolder:GetChildren()) do
+        if obj.Name == "Capsule" then
+            capsule = obj
+            break
+        end
+    end
+
+    if capsule then
+
+        local itemGUID = capsule:GetAttribute("ItemGUID")
+
+        if not itemGUID then
+            local itemGUIDObj = capsule:FindFirstChild("ItemGUID")
+            if itemGUIDObj and itemGUIDObj.Value then
+                itemGUID = itemGUIDObj.Value
+            end
+        end
+        
+        if itemGUID then
+            local args = {
+                [1] = "GrabMinigameItem",
+                [2] = itemGUID
+            }
+
+            local success, error = pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+            end)
+            
+            if success then
+            end
+
+            task.wait(2)
+
+            if capsule and capsule.Parent then
+                capsule:Destroy()
+            end
+            
+            return true
+        else
+            if capsule and capsule.Parent then
+                capsule:Destroy()
+            end
+            return true
+        end
+    end
+    
+    return false 
+end
+
+local function capsuleExists()
+    local clawMachineFolder = workspace:FindFirstChild("ClawMachine")
+    
+    if not clawMachineFolder then
+        return false
+    end
+    
+    for _, obj in pairs(clawMachineFolder:GetChildren()) do
+        if obj.Name == "Capsule" then
+            return true
+        end
+    end
+    return false
+end
+
+local function finishMinigame()
+    local args = {
+        [1] = "FinishMinigame"
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+local function runFullCycle()
+    if autoRunning then
+        startMinigame() 
+
+        task.wait(3)
+        
+        local maxAttempts = 20 
+        local attempts = 0
+
+        while capsuleExists() and autoRunning and attempts < maxAttempts do
+            local gotCapsule = grabCapsule()
+            attempts = attempts + 1
+            
+            if gotCapsule then
+                task.wait(2)
+            else
+                task.wait(2)
+            end
+        end
+        
+        task.wait(1)
+        
+        if not capsuleExists() or attempts >= maxAttempts then
+            finishMinigame() 
+
+            task.wait(0.1)
+
+            if autoRunning then
+                runFullCycle()
+            end
+        else
+            if autoRunning then
+                runFullCycle()
+            end
+        end
+    end
+end
+
+RobotClawSection:AddDropdown("DifficultySelector", {
+    Title = "Select Difficulty",
+    Description = "Choose the difficulty for the Robot Claw game",
+    Values = {"Easy", "Medium", "Hard", "Insane"},
+    Multi = false,
+    Default = 1
+}):OnChanged(function(value)
+    selectedDifficulty = value
+end)
+
+RobotClawSection:AddToggle("StartMinigameToggle", {
+    Title = "Auto Run Robot Claw",
+    Default = false,
+    Callback = function(state)
+        autoRunning = state
+        if autoRunning then
+            runFullCycle()  
+        end
+    end
+})
+
+local selectedPetUUID = nil
+local selectedDice = "Dice"
+local autoRunning = false
+
+local petsDropdown
+local diceDropdown
+local petsMap = {}
+
+local function cleanUUID(rawName)
+    return rawName:gsub("-stack", ""):gsub("-team%-%d+", ""):gsub("-%d+$", "")
+end
+
+local function refreshPets()
+    petsMap = {}
+
+    local petDropdownList = {}
+
+    local petFolders = {
+        player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Pets.Main.ScrollingFrame.Pets,
+        player.PlayerGui.ScreenGui.Inventory.Frame.Inner.Pets.Main.ScrollingFrame.Team.Main.List
+    }
+
+    for _, folder in pairs(petFolders) do
+        for _, obj in pairs(folder:GetChildren()) do
+            local uuid = cleanUUID(obj.Name)
+            local displayNameGui = obj:FindFirstChild("Inner") and obj.Inner:FindFirstChild("Button") and obj.Inner.Button:FindFirstChild("Inner") and obj.Inner.Button.Inner:FindFirstChild("DisplayName")
+            if displayNameGui and displayNameGui:IsA("TextLabel") then
+                local displayName = displayNameGui.Text
+                if not petsMap[displayName] then
+                    petsMap[displayName] = uuid
+                    table.insert(petDropdownList, displayName)
+                end
+            end
+        end
+    end
+
+    if petsDropdown then
+        petsDropdown:SetValues(petDropdownList)
+    end
+end
+
+local function sendToServer(action, uuid)
+    local args = {}
+    
+    if action == "ChoosePiece" then
+        args = {
+            [1] = "ChoosePiece",    
+            [2] = uuid               
+        }
+    elseif action == "ClaimTile" then
+        args = {
+            [1] = "ClaimTile" 
+        }
+    end
+
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+local function rollDice(diceType)
+    local args = {
+        [1] = "RollDice",
+        [2] = diceType
+    }
+    
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function"):InvokeServer(unpack(args))
+end
+
+petsDropdown = BoardGameSection:AddDropdown("PetSelector", {
+    Title = "Select Pet",
+    Description = "Choose a pet to use",
+    Values = {},
+    Multi = false,
+    Default = nil
+})
+
+petsDropdown:OnChanged(function(value)
+    selectedPetUUID = petsMap[value]
+    if selectedPetUUID then
+        sendToServer("ChoosePiece", selectedPetUUID)
+    end
+end)
+
+diceDropdown = BoardGameSection:AddDropdown("DiceSelector", {
+    Title = "Dice Type",
+    Description = "Choose the dice type",
+    Values = {"Dice", "Giant Dice", "Golden Dice"},
+    Multi = false,
+    Default = 1
+})
+
+diceDropdown:OnChanged(function(value)
+    selectedDice = value
+end)
+
+BoardGameSection:AddButton({
+    Title = "🔄 Refresh Pets",
+    Description = "Update pet list from inventory and team",
+    Callback = function()
+        refreshPets()
+    end
+})
+
+BoardGameSection:AddToggle("AutoDiceToggle", {
+    Title = "Auto Dice Farm",
+    Default = false,
+    Callback = function(state)
+        autoRunning = state
+        task.spawn(function()
+            while autoRunning do
+                if selectedPetUUID and selectedDice then
+
+                    sendToServer("ChoosePiece", selectedPetUUID)
+
+                    rollDice(selectedDice)
+
+                    local start = tick()
+                    while tick() - start < 1 and autoRunning do
+                        sendToServer("ClaimTile")  
+                        task.wait(0.1)
+                    end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+refreshPets()
+
 local Noclip = false
 local NoclipConnection = nil
 
@@ -1587,7 +1889,6 @@ EggRift:AddToggle("AutoRiftHatchToggle", {
     end
 })
 
-local claimAltitude = 3
 local UNLOCK_DELAY = 0.1
 local DEFAULT_GRAVITY = Workspace.Gravity
 
@@ -1595,45 +1896,49 @@ local NoClipConnection
 local ImmobilizeConnection
 local PlayerImmobilized = false
 
+local AutoGoldenChest = false
+local AutoRoyalChest = false
+local AutoDiceRift = false
+
 local function setGravity(enabled)
     Workspace.Gravity = enabled and DEFAULT_GRAVITY or 0
 end
 
 local function immobilizePlayer()
     if PlayerImmobilized then return end
-    
+
     local character = player.Character
     if not character then return end
-    
+
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    
+
     humanoid.WalkSpeed = 0
     humanoid.JumpPower = 0
     humanoid.AutoRotate = false
-    
+
     if ImmobilizeConnection then
         ImmobilizeConnection:Disconnect()
     end
-    
+
     ImmobilizeConnection = RunService.Heartbeat:Connect(function()
         if character and character:FindFirstChild("HumanoidRootPart") then
             character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
             character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
         end
     end)
-    
+
     PlayerImmobilized = true
 end
 
 local function restorePlayerMobility()
     if not PlayerImmobilized then return end
-    
+
     if ImmobilizeConnection then
         ImmobilizeConnection:Disconnect()
         ImmobilizeConnection = nil
     end
-    
+
     local character = player.Character
     if character then
         local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -1643,7 +1948,7 @@ local function restorePlayerMobility()
             humanoid.AutoRotate = true
         end
     end
-    
+
     PlayerImmobilized = false
 end
 
@@ -1676,7 +1981,8 @@ local function getChestPosition(chest)
 end
 
 local function safeTeleportToChest(chestName)
-    while (chestName == "golden-chest" and AutoGoldenChest) or (chestName == "royal-chest" and AutoRoyalChest) do
+    while (chestName == "golden-chest" and AutoGoldenChest) or
+          (chestName == "royal-chest" and AutoRoyalChest) do
         local chest = workspace.Rendered.Rifts:FindFirstChild(chestName)
         if chest then
             local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1684,26 +1990,26 @@ local function safeTeleportToChest(chestName)
                 immobilizePlayer()
                 manageNoClip(true)
                 setGravity(false)
-                
+
                 local chestPos = getChestPosition(chest)
-                
+
                 hrp.CFrame = CFrame.new(hrp.Position.X, dropAltitude, hrp.Position.Z)
-                
+
                 local targetXZ = Vector3.new(chestPos.X, dropAltitude, chestPos.Z)
                 local tween = TweenService:Create(hrp, TweenInfo.new((targetXZ - hrp.Position).Magnitude / moveSpeed, Enum.EasingStyle.Linear), {
                     CFrame = CFrame.new(targetXZ)
                 })
                 tween:Play()
                 tween.Completed:Wait()
-                
+
                 hrp.CFrame = CFrame.new(chestPos.X, chestPos.Y + claimAltitude, chestPos.Z)
-                
-                while ((chestName == "golden-chest" and AutoGoldenChest) or 
+
+                while ((chestName == "golden-chest" and AutoGoldenChest) or
                       (chestName == "royal-chest" and AutoRoyalChest)) and chest.Parent do
                     ReplicatedStorage.Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", chestName)
                     task.wait(UNLOCK_DELAY)
                 end
-                
+
                 restorePlayerMobility()
                 manageNoClip(false)
                 setGravity(true)
@@ -1711,7 +2017,48 @@ local function safeTeleportToChest(chestName)
         end
         task.wait(1)
     end
-    
+
+    restorePlayerMobility()
+    manageNoClip(false)
+    setGravity(true)
+end
+
+local function safeTeleportToRift(riftName)
+    while (riftName == "dice-rift" and AutoDiceRift) do
+        local rift = workspace.Rendered.Rifts:FindFirstChild(riftName)
+        if rift then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                immobilizePlayer()
+                manageNoClip(true)
+                setGravity(false)
+
+                local riftPos = getChestPosition(rift)
+
+                hrp.CFrame = CFrame.new(hrp.Position.X, dropAltitude, hrp.Position.Z)
+
+                local targetXZ = Vector3.new(riftPos.X, dropAltitude, riftPos.Z)
+                local tween = TweenService:Create(hrp, TweenInfo.new((targetXZ - hrp.Position).Magnitude / moveSpeed, Enum.EasingStyle.Linear), {
+                    CFrame = CFrame.new(targetXZ)
+                })
+                tween:Play()
+                tween.Completed:Wait()
+
+                hrp.CFrame = CFrame.new(riftPos.X, riftPos.Y + claimAltitude, riftPos.Z)
+
+                while AutoDiceRift and rift.Parent do
+                    ReplicatedStorage.Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", riftName)
+                    task.wait(UNLOCK_DELAY)
+                end
+
+                restorePlayerMobility()
+                manageNoClip(false)
+                setGravity(true)
+            end
+        end
+        task.wait(1)
+    end
+
     restorePlayerMobility()
     manageNoClip(false)
     setGravity(true)
@@ -1738,6 +2085,20 @@ ChestHunt:AddToggle("AutoRoyalChestToggle", {
         AutoRoyalChest = state
         if state then
             task.spawn(safeTeleportToChest, "royal-chest")
+        else
+            restorePlayerMobility()
+            setGravity(true)
+        end
+    end
+})
+
+ChestHunt:AddToggle("AutoDiceRiftToggle", {
+    Title = "Auto Dice Rift",
+    Default = false,
+    Callback = function(state)
+        AutoDiceRift = state
+        if state then
+            task.spawn(safeTeleportToRift, "dice-rift")
         else
             restorePlayerMobility()
             setGravity(true)
