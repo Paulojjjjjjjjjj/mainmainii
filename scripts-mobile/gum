@@ -2544,13 +2544,13 @@ AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
                             pcall(function()
                                 RemoteEvent:FireServer("CraftPotion", name, tier, false)
                             end)
-                            task.wait(0.5)
+                            task.wait(0.1)
                         else
                             warn("Potion invalid:", displayName)
                         end
                     end
 
-                    task.wait(1.5)
+                    task.wait(0.1)
                 end
             end)
         end
