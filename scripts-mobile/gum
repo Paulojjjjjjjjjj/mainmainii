@@ -1010,6 +1010,42 @@ Dropdown:OnChanged(function(Value)
     selectedDifficulty = Value
 end)
 
+local AutoSkipCooldown = false
+
+PetMatchSection:AddToggle("AutoSkipMinigameToggle", {
+    Title = "Auto Skip Minigame",
+    Default = false,
+    Callback = function(state)
+        AutoSkipCooldown = state
+        if state then
+            task.spawn(function()
+                while AutoSkipCooldown do
+                    local args = {
+                        [1] = "SkipMinigameCooldown",
+                        [2] = "Pet Match"
+                    }
+
+                    local success, err = pcall(function()
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Network")
+                            :WaitForChild("Remote")
+                            :WaitForChild("Event")
+                            :FireServer(unpack(args))
+                    end)
+
+                    if not success then
+                        warn("Erro ao tentar pular cooldown: ", err)
+                    end
+
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
 local Toggle = PetMatchSection:AddToggle("StartMinigameToggle", {
     Title = "Auto Pet Match",
     Default = false,
@@ -1199,8 +1235,44 @@ RobotClawSection:AddDropdown("DifficultySelector", {
     selectedDifficulty = value
 end)
 
+local AutoSkipRobotClaw = false
+
+ChestHunt:AddToggle("AutoSkipRobotClawToggle", {
+    Title = "Auto Skip Robot Claw",
+    Default = false,
+    Callback = function(state)
+        AutoSkipRobotClaw = state
+        if state then
+            task.spawn(function()
+                while AutoSkipRobotClaw do
+                    local args = {
+                        [1] = "SkipMinigameCooldown",
+                        [2] = "Robot Claw"
+                    }
+
+                    local success, err = pcall(function()
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Network")
+                            :WaitForChild("Remote")
+                            :WaitForChild("Event")
+                            :FireServer(unpack(args))
+                    end)
+
+                    if not success then
+                        warn("Erro ao pular cooldown do Robot Claw:", err)
+                    end
+
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
 RobotClawSection:AddToggle("StartMinigameToggle", {
-    Title = "Auto Run Robot Claw",
+    Title = "Auto Robot Claw",
     Default = false,
     Callback = function(state)
         autoRunning = state
