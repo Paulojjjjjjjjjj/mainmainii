@@ -53,8 +53,8 @@ local AutoCraftPotionSection = Tabs.Potions:AddSection("Auto Craft Potion")
 local TeleportSection = Tabs.Teleport:AddSection("Unlock All Islands")
 local CodeSection = Tabs.Misc:AddSection("Codes")
 
-local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-local RemoteFunction = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function")
+local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("RemoteEvent")
+local RemoteFunction = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("RemoteFunction")
 
 local dropAltitude = -100
 local moveSpeed = 18
@@ -206,11 +206,10 @@ BlowSection:AddToggle("AutoBlow", {
         if state then
             task.spawn(function()
                 local lastBlowTime = 0
-                local remote = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
                 while AutoBlow do
                     if tick() - lastBlowTime >= 0.1 then
                         pcall(function()
-                            remote:FireServer("BlowBubble")
+                            RemoteEvent:FireServer("BlowBubble")
                         end)
                         lastBlowTime = tick()
                     end
@@ -225,12 +224,6 @@ local platform = nil
 local autoFarmEnabled = false
 local lastSell = os.clock()
 local isSelling = false
-
-local remoteEvent = ReplicatedStorage:WaitForChild("Shared")
-    :WaitForChild("Framework")
-    :WaitForChild("Network")
-    :WaitForChild("Remote")
-    :WaitForChild("Event")
 
 local originalGravity = Workspace.Gravity
 local originalPhysics = true
@@ -346,7 +339,7 @@ local function teleportAndSell(pos)
     hrp.CFrame = CFrame.new(targetPos)
 
     if math.abs(hrp.Position.Y - targetPos.Y) < 5 then
-        remoteEvent:FireServer("SellBubble")
+        RemoteEvent:FireServer("SellBubble")
     end
     
     task.delay(0.5, function()
@@ -422,7 +415,7 @@ local function autoFarmTick()
     if not autoFarmEnabled then return end
 
     if not isSelling then
-        remoteEvent:FireServer("BlowBubble")
+        RemoteEvent:FireServer("BlowBubble")
 
         local cur, max = getBubbleStorage()
 
@@ -588,14 +581,6 @@ MerchantSection:AddToggle("AutoBuyDice", {
                         [2] = "dice-shop",
                         [3] = i
                     }
-
-                    local RemoteEvent = game:GetService("ReplicatedStorage")
-                        :WaitForChild("Shared")
-                        :WaitForChild("Framework")
-                        :WaitForChild("Network")
-                        :WaitForChild("Remote")
-                        :WaitForChild("Event")
-
                     RemoteEvent:FireServer(unpack(args))
 
                     task.wait(0.2)
@@ -613,9 +598,6 @@ MerchantSection:AddToggle("AutoBuyAlienShop", {
 
         if state then
             spawn(function()
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
-                    :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoBuyAlienShop do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("BuyShopItem", "alien-shop", i)
@@ -637,13 +619,6 @@ MerchantSection:AddToggle("AutoBuyShardShop", {
 
         if state then
             task.spawn(function()
-                local RemoteEvent = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Shared")
-                    :WaitForChild("Framework")
-                    :WaitForChild("Network")
-                    :WaitForChild("Remote")
-                    :WaitForChild("Event")
-
                 while getgenv().AutoBuyShardShop do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("BuyShopItem", "shard-shop", i)
@@ -664,16 +639,9 @@ UtilitiesSection:AddToggle("EquipBestToggle", {
         
         if state then
             task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Shared")
-                    :WaitForChild("Framework")
-                    :WaitForChild("Network")
-                    :WaitForChild("Remote")
-                    :WaitForChild("Event")
-                
                 while equipBestRunning do
                     local args = {[1] = "EquipBestPets"}
-                    remote:FireServer(unpack(args))
+                    RemoteEvent:FireServer(unpack(args))
                     task.wait(2)
                 end
             end)
@@ -693,10 +661,6 @@ UtilitiesSection:AddToggle("AutoClaimChests", {
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local HRP = Character:WaitForChild("HumanoidRootPart")
                 local Humanoid = Character:WaitForChild("Humanoid")
-
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
 
                 local chestData = {
                     ["Giant Chest"] = {
@@ -836,7 +800,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
         if state then
             spawn(function()
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
-                local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
 
                 while AutoGiftGrabber do
@@ -877,7 +840,6 @@ UtilitiesSection:AddToggle("AutoGiftGrabber", {
         if state then
             spawn(function()
                 local Network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network")
-                local RemoteEvent = Network:WaitForChild("Remote"):WaitForChild("Event")
                 local RenderedGifts = workspace:WaitForChild("Rendered"):WaitForChild("Gifts")
 
                 while AutoGiftGrabber do
@@ -917,13 +879,6 @@ UtilitiesSection:AddToggle("AutoStartGenieQuest", {
 
         if state then
             task.spawn(function()
-                local RemoteEvent = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Shared")
-                    :WaitForChild("Framework")
-                    :WaitForChild("Network")
-                    :WaitForChild("Remote")
-                    :WaitForChild("Event")
-
                 while getgenv().AutoGenieQuest do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("StartGenieQuest", i)
@@ -944,9 +899,6 @@ UtilitiesSection:AddToggle("AutoDoggyJumpWin", {
 
         if state then
             spawn(function()
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework")
-                    :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoDoggyJumpWin do
                     for i = 1, 3 do
                         RemoteEvent:FireServer("DoggyJumpWin", i)
@@ -967,21 +919,13 @@ UtilitiesSection:AddToggle("AutoWheelSpin", {
 
         if state then
             task.spawn(function()
-                local Event = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-                
-                local Function = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Function")
-
                 while getgenv().AutoWheelSpin do
                     pcall(function()
-                        Event:FireServer("ClaimFreeWheelSpin")
+                        RemoteEvent:FireServer("ClaimFreeWheelSpin")
                     end)
                     
                     pcall(function()
-                        Function:InvokeServer("WheelSpin")
+                        RemoteFunction:InvokeServer("WheelSpin")
                     end)
                     
                     task.wait(1)
@@ -1028,13 +972,7 @@ PetMatchSection:AddToggle("AutoSkipMinigameToggle", {
                     }
 
                     local success, err = pcall(function()
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Shared")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Network")
-                            :WaitForChild("Remote")
-                            :WaitForChild("Event")
-                            :FireServer(unpack(args))
+                        RemoteEvent:FireServer(unpack(args)) -- usa a variável global
                     end)
 
                     if not success then
@@ -1059,17 +997,13 @@ local Toggle = PetMatchSection:AddToggle("StartMinigameToggle", {
                 [3] = selectedDifficulty
             }
 
-            local event = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
-                :WaitForChild("Framework"):WaitForChild("Network")
-                :WaitForChild("Remote"):WaitForChild("Event")
-
-            event:FireServer(unpack(args))
+            RemoteEvent:FireServer(unpack(args))
 
             task.wait(2)
 
             local startTime = tick()
             while tick() - startTime < 5 do
-                event:FireServer("FinishMinigame")
+                RemoteEvent:FireServer("FinishMinigame")
                 task.wait(0.1) 
             end
         end
@@ -1086,7 +1020,8 @@ local function startMinigame()
         [2] = "Robot Claw",
         [3] = selectedDifficulty
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+
+    RemoteEvent:FireServer(unpack(args)) -- usa a variável global
 
     task.wait(1)
 end
@@ -1143,7 +1078,7 @@ local function grabCapsule()
             }
 
             local success, error = pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+                RemoteEvent:FireServer(unpack(args)) -- usa a variável global
             end)
             
             if success then
@@ -1186,7 +1121,8 @@ local function finishMinigame()
     local args = {
         [1] = "FinishMinigame"
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+
+    RemoteEvent:FireServer(unpack(args)) -- usando variável global
 end
 
 local function runFullCycle()
@@ -1253,13 +1189,7 @@ RobotClawSection:AddToggle("AutoSkipRobotClawToggle", {
                     }
 
                     local success, err = pcall(function()
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Shared")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Network")
-                            :WaitForChild("Remote")
-                            :WaitForChild("Event")
-                            :FireServer(unpack(args))
+                        RemoteEvent:FireServer(unpack(args)) -- usando a variável global
                     end)
 
                     if not success then
@@ -1338,7 +1268,7 @@ local function sendToServer(action, uuid)
         }
     end
 
-    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+    RemoteEvent:FireServer(unpack(args))
 end
 
 local function rollDice(diceType)
@@ -1347,7 +1277,7 @@ local function rollDice(diceType)
         [2] = diceType
     }
 
-    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework"):WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Function"):InvokeServer(unpack(args))
+    RemoteFunction:InvokeServer(unpack(args))
 end
 
 -- Pet dropdown (apenas 1)
@@ -2093,7 +2023,7 @@ local function safeTeleportToChest(chestName)
 
                 while ((chestName == "golden-chest" and AutoGoldenChest) or
                       (chestName == "royal-chest" and AutoRoyalChest)) and chest.Parent do
-                    ReplicatedStorage.Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", chestName)
+                    RemoteEvent:FireServer("UnlockRiftChest", chestName)
                     task.wait(UNLOCK_DELAY)
                 end
 
@@ -2134,7 +2064,7 @@ local function safeTeleportToRift(riftName)
                 hrp.CFrame = CFrame.new(riftPos.X, riftPos.Y + claimAltitude, riftPos.Z)
 
                 while AutoDiceRift and rift.Parent do
-                    ReplicatedStorage.Shared.Framework.Network.Remote.Event:FireServer("UnlockRiftChest", riftName)
+                    RemoteEvent:FireServer("UnlockRiftChest", riftName)
                     task.wait(UNLOCK_DELAY)
                 end
 
@@ -2192,12 +2122,6 @@ ChestHunt:AddToggle("AutoDiceRiftToggle", {
         end
     end
 })
-
-local remoteEvent = ReplicatedStorage:WaitForChild("Shared")
-    :WaitForChild("Framework")
-    :WaitForChild("Network")
-    :WaitForChild("Remote")
-    :WaitForChild("Event")
 
 local noClipConnection = nil
 
@@ -2279,7 +2203,7 @@ local function giftRiftLoop()
             while autoGiftRiftEnabled and gift.Parent and attempts < maxClaimAttempts do
                 attempts = attempts + 1
                 
-                remoteEvent:FireServer("ClaimRiftGift", "gift-rift")
+                RemoteEvent:FireServer("ClaimRiftGift", "gift-rift")
                 
                 if gift:FindFirstChild("Gift") then
                     gift.Gift:Destroy()
@@ -2337,10 +2261,6 @@ Tabs.Upgrades:AddToggle("AutoUpgrade", {
 
         if state then
             spawn(function()
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoUpgrade do
                     local args = {
                         [1] = "UpgradeMastery",
@@ -2366,10 +2286,6 @@ Tabs.Upgrades:AddToggle("AutoUpgradePets", {
 
         if state then
             spawn(function()
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoUpgradePets do
                     local args = {
                         [1] = "UpgradeMastery",
@@ -2395,10 +2311,6 @@ Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
 
         if state then
             spawn(function()  
-                local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                    :WaitForChild("Framework"):WaitForChild("Network")
-                    :WaitForChild("Remote"):WaitForChild("Event")
-
                 while AutoUpgradeShops do  
                     local args = {
                         [1] = "UpgradeMastery",
@@ -2447,13 +2359,6 @@ MultiDropdown:OnChanged(function(Value)
     end
 
 end)
-
-local RemoteEvent = game:GetService("ReplicatedStorage")
-    :WaitForChild("Shared")
-    :WaitForChild("Framework")
-    :WaitForChild("Network")
-    :WaitForChild("Remote")
-    :WaitForChild("Event")
 
 AutoPotionSection:AddToggle("Auto Usar Poções", {
     Title = "Auto Use Potion",
@@ -2525,13 +2430,6 @@ MultiDropdown:OnChanged(function(Value)
         table.insert(SelectedPotions, potion)
     end
 end)
-
-local RemoteEvent = game:GetService("ReplicatedStorage")
-    :WaitForChild("Shared")
-    :WaitForChild("Framework")
-    :WaitForChild("Network")
-    :WaitForChild("Remote")
-    :WaitForChild("Event")
 
 AutoCraftPotionSection:AddToggle("Auto Craft Poções", {
     Title = "Auto Craft Potion",
@@ -2777,13 +2675,6 @@ for name, path in pairs(portalLocations) do
     Tabs.Teleport:AddButton({
         Title = name,
         Callback = function()
-            local RemoteEvent = game:GetService("ReplicatedStorage")
-                :WaitForChild("Shared")
-                :WaitForChild("Framework")
-                :WaitForChild("Network")
-                :WaitForChild("Remote")
-                :WaitForChild("Event")
-
             RemoteEvent:FireServer("Teleport", path)
 
             Fluent:Notify({
@@ -2801,12 +2692,9 @@ CodeSection:AddButton({
     Callback = function()      
         for _, code in ipairs(codes) do
             local success, result = pcall(function()
-                return game:GetService("ReplicatedStorage")
-                    .Shared.Framework.Network.Remote.Function
-                    :InvokeServer("RedeemCode", code)
+                return RemoteFunction:InvokeServer("RedeemCode", code)
             end)
-            if success then
-            else
+            if not success then
                 warn("Error redeeming code:", code, result)
             end
             task.wait(2)
