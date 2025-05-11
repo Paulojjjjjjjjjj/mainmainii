@@ -2254,11 +2254,9 @@ GiftHunt:AddToggle("AutoGiftRiftToggle", {
 
 Tabs.Upgrades:AddToggle("AutoUpgrade", {
     Title = "Auto Upgrade Mastery for Buffs",
-    Description = "Runs Upgrade Mastery automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgrade = state
-
         if state then
             spawn(function()
                 while AutoUpgrade do
@@ -2279,11 +2277,9 @@ Tabs.Upgrades:AddToggle("AutoUpgrade", {
 
 Tabs.Upgrades:AddToggle("AutoUpgradePets", {
     Title = "Auto Upgrade Mastery for Pets",
-    Description = "Runs Upgrade Mastery for Pets automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgradePets = state
-
         if state then
             spawn(function()
                 while AutoUpgradePets do
@@ -2304,17 +2300,38 @@ Tabs.Upgrades:AddToggle("AutoUpgradePets", {
 
 Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
     Title = "Auto Upgrade Mastery for Shops",
-    Description = "Runs Upgrade Mastery for Shops automatically when activated.",
     Default = false,
     Callback = function(state)
         getgenv().AutoUpgradeShops = state 
-
         if state then
             spawn(function()  
                 while AutoUpgradeShops do  
                     local args = {
                         [1] = "UpgradeMastery",
                         [2] = "Shops"  
+                    }
+
+                    RemoteEvent:FireServer(unpack(args))
+                    task.wait(1) 
+                end
+            end)
+        else
+            getgenv().AutoUpgradeShops = false
+        end
+    end
+})
+
+Tabs.Upgrades:AddToggle("AutoUpgradeShops", {
+    Title = "Auto Upgrade Mastery for Minigames",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoUpgradeShops = state 
+        if state then
+            spawn(function()  
+                while AutoUpgradeShops do  
+                    local args = {
+                        [1] = "UpgradeMastery",
+                        [2] = "Minigames"  
                     }
 
                     RemoteEvent:FireServer(unpack(args))
