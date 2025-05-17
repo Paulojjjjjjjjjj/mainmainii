@@ -1,6 +1,78 @@
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+-- Player Related
+local localPlayer = Players.LocalPlayer
+local userId = localPlayer.UserId
+local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
+local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
+
+-- UI Libraries
 local Fluent = loadstring(game:HttpGet("https://github.com/Dexz00/DZ-Ui/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dexz00/DZ-Ui/master/Addons/InterfaceManager.lua"))()
+
+-- Farming Variables
+local autoFarm = false
+local selectedEnemies = {}
+local enemyIds = {}
+local prioridadeSelecionada = "Nearest"
+local attacking = false
+local autoEquipBest = false
+
+-- Raid Variables
+local raidActive = false
+local raidCooldown = 5
+local lastRaidTime = 0
+local raidConnection
+local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5", "World 6", "World 7", "World 8"}
+local selectedWorld = worldOptions[1]
+
+-- Dungeon Variables
+local dungeonActive = false
+local dungeonCooldown = 30
+local lastDungeonTime = 0
+local dungeonConnection
+local dungeonMaps = {"RuinedPrison"}
+local difficultyOptions = {"Easy", "Medium", "Hard", "Insane", "Extreme", "Impossible"}
+local selectedMap = dungeonMaps[1]
+local selectedDifficulty = difficultyOptions[1]
+local autoDungeonAttack = false
+local targetAtual = nil
+
+-- Egg Variables
+local selectedEgg = nil
+local hatchMode = "One"
+local autoHatchEnabled = false
+local EggPositions = {
+    ["Slayer Star"] = CFrame.new(2453.99, 103.38, -249.34),
+    ["Titan Star"] = CFrame.new(2550.88, 109.06, -2370.32),
+    ["Punch Star"] = CFrame.new(2726.92, 184.99, -5146.72),
+    ["Cursed Star"] = CFrame.new(2665.92, 98.09, -7507.78),
+    ["Player Star"] = CFrame.new(2706.18, 113.30, -10215.18),
+    ["Pirate Star"] = CFrame.new(5055.65, 156.99, -130.66),
+    ["Bizarre Star"] = CFrame.new(4961.03, 105.72, -2421.50),
+    ["Z Star"] = CFrame.new(4762.91, 111.30, -4713.02)
+}
+
+-- Codes
+local codes = {
+    "CometsUPD4",
+    "EasterPart2",
+    "YEAH130KLIKES",
+    "JOJOUPD3",
+    "WOW120KLIKES",
+    "SHUTDOWN",
+    "Release"
+}
+
+-- Anti AFK Config
+local AntiAfkConfig = {
+    connection = nil
+}
 
 local Window = Fluent:CreateWindow({
     Title = "Anime Kingdom Simulator | DZ HUB",
@@ -44,8 +116,6 @@ local AFK = Tabs.Misc:AddSection("AFK")
 
 local player = game.Players.LocalPlayer
 
-local enemyIds = {}
-
 for _, folder in pairs(workspace._ENEMIES.Server:GetChildren()) do
     for _, enemy in pairs(folder:GetChildren()) do
         if (enemy:IsA("Model") or enemy:IsA("BasePart")) and enemy:GetAttribute("Id") then
@@ -58,8 +128,6 @@ for _, folder in pairs(workspace._ENEMIES.Server:GetChildren()) do
 end
 
 table.sort(enemyIds) -- organiza os nomes no dropdown
-
-local selectedEnemies = {}
 
 local EnemyDropdown = FarmingOptions:AddDropdown("EnemyDropdown", {
     Title = "Select Enemies",
@@ -101,8 +169,6 @@ FarmingOptions:AddButton({
         EnemyDropdown:SetValue({}) -- opcional: limpa seleção anterior
     end
 })
-
-local prioridadeSelecionada = "Nearest"
 
 local PrioridadeDropdown = FarmingOptions:AddDropdown("PrioridadeDropdown", {
     Title = "Farming Priority",
@@ -202,14 +268,6 @@ local AutoFarmToggle = AutoFarm:AddToggle("AutoFarmToggle", {
     end    
 })
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-local userId = player.UserId
-
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
-
 local function getMyPetNames()
     local petNames = {}
     if petsFolder then
@@ -300,8 +358,6 @@ local function attackEnemy(enemyPart)
     remote:FireServer(unpack(args))
 end
 
-local attacking = false
-
 AutoFarm:AddToggle("Auto Attack", {
     Title = "Auto Attack Nearest",
     Description = "Automatically attacks nearby enemies that are not being attacked by your pets.",
@@ -322,8 +378,6 @@ AutoFarm:AddToggle("Auto Attack", {
         end)
     end
 })
-
-local autoEquipBest = false
 
 AutoFarm:AddToggle("Auto Equip Best", {
     Title = "Auto Equip Best Pets",
@@ -350,17 +404,6 @@ AutoFarm:AddToggle("Auto Equip Best", {
         end)
     end
 })
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-
-local raidActive = false
-local raidCooldown = 5 -- Intervalo de 5 segundos entre raides
-local lastRaidTime = 0
-local raidConnection
-
-local worldOptions = {"World 1", "World 2", "World 3", "World 4", "World 5", "World 6", "World 7", "World 8"}
-local selectedWorld = worldOptions[1]
 
 local Dropdown = Tabs.AutoRaid:AddDropdown("WorldDropdown", {
     Title = "Select World",
@@ -452,35 +495,6 @@ Tabs.AutoRaid:AddToggle("AutoRaidToggle", {
     end
 })
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-local userId = player.UserId
-
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
-
-local function getMyPetNames()
-    local petNames = {}
-    if petsFolder then
-        for _, pet in pairs(petsFolder:GetChildren()) do
-            table.insert(petNames, pet.Name)
-        end
-    end
-    return petNames
-end
-
-local function forcedStepTeleport(destination)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        player.CharacterAdded:Wait()
-    end
-
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    root.CFrame = CFrame.new(destination.Position + Vector3.new(0, 0, 0))
-end
-
 local function getRaidEnemies()
     local raidFolder = workspace._ENEMIES.Server:FindFirstChild("Raid")
     if not raidFolder then return {} end
@@ -563,7 +577,6 @@ end
 
 
 local autoRaidAttack = false
-local targetAtual = nil
 
 Tabs.AutoRaid:AddToggle("Auto Attack (Raid)", {
     Title = "Auto Attack Raid",
@@ -592,54 +605,6 @@ Tabs.AutoRaid:AddToggle("Auto Attack (Raid)", {
     end
 })
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-
-local dungeonActive = false
-local dungeonCooldown = 30 -- seconds between dungeons
-local lastDungeonTime = 0
-local dungeonConnection
-
-local dungeonMaps = {
-    "RuinedPrison"
-}
-
-local difficultyOptions = {
-    "Easy",
-    "Medium",
-    "Hard",
-    "Insane",
-    "Extreme",
-    "Impossible"
-}
-
-local selectedMap = dungeonMaps[1]
-local selectedDifficulty = difficultyOptions[1]
-
-local MapDropdown = Tabs.Dungeon:AddDropdown("MapDropdown", {
-    Title = "Select Dungeon Map",
-    Description = "Choose the dungeon map",
-    Values = dungeonMaps,
-    Multi = false,
-    Default = 1,
-})
-
-MapDropdown:OnChanged(function(Value)
-    selectedMap = Value
-end)
-
-local DifficultyDropdown = Tabs.Dungeon:AddDropdown("DifficultyDropdown", {
-    Title = "Select Difficulty",
-    Description = "Choose the dungeon difficulty",
-    Values = difficultyOptions,
-    Multi = false,
-    Default = 1,
-})
-
-DifficultyDropdown:OnChanged(function(Value)
-    selectedDifficulty = Value
-end)
-
 local function createDungeon()
     local args = {
         [1] = {
@@ -647,21 +612,6 @@ local function createDungeon()
                 [1] = "DungeonSystem",
                 [2] = "Create",
                 ["n"] = 2
-            },
-            [2] = "\2"
-        }
-    }
-    remote:FireServer(unpack(args))
-end
-
-local function selectMap()
-    local args = {
-        [1] = {
-            [1] = {
-                [1] = "DungeonSystem",
-                [2] = "SelectMap",
-                [3] = selectedMap,
-                ["n"] = 3
             },
             [2] = "\2"
         }
@@ -732,35 +682,6 @@ Tabs.Dungeon:AddToggle("AutoDungeonToggle", {
         end
     end
 })
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-local userId = player.UserId
-
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-local petsFolder = workspace._PETS:FindFirstChild(tostring(userId))
-
-local function getMyPetNames()
-    local petNames = {}
-    if petsFolder then
-        for _, pet in pairs(petsFolder:GetChildren()) do
-            table.insert(petNames, pet.Name)
-        end
-    end
-    return petNames
-end
-
-local function forcedStepTeleport(destination)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        player.CharacterAdded:Wait()
-    end
-
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    root.CFrame = CFrame.new(destination.Position + Vector3.new(0, 0, 0))
-end
 
 local function getDungeonEnemies()
     local dungeonFolder = workspace._ENEMIES.Server:FindFirstChild("Dungeon")
@@ -842,9 +763,6 @@ local function attackDungeonEnemy(enemyPart)
     remote:FireServer(unpack(args))
 end
 
-local autoDungeonAttack = false
-local targetAtual = nil
-
 Tabs.Dungeon:AddToggle("Auto Attack Dungeon", {
     Title = "Auto Attack (Dungeon)",
     Description = "Automatically attacks enemies in your dungeon, with a single teleport per enemy.",
@@ -872,96 +790,8 @@ Tabs.Dungeon:AddToggle("Auto Attack Dungeon", {
     end
 })
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
-
-local localPlayer = Players.LocalPlayer
-local hrp = localPlayer.Character:WaitForChild("HumanoidRootPart")
-
-local selectedEgg = nil
-local hatchMode = "One"
-local autoHatchEnabled = false
-
-local EggPositions = {
-    ["Slayer Star"] = CFrame.new(2453.99, 103.38, -249.34),
-    ["Titan Star"] = CFrame.new(2550.88, 109.06, -2370.32),
-    ["Punch Star"] = CFrame.new(2726.92, 184.99, -5146.72),
-    ["Cursed Star"] = CFrame.new(2665.92, 98.09, -7507.78),
-    ["Player Star"] = CFrame.new(2706.18, 113.30, -10215.18),
-    ["Pirate Star"] = CFrame.new(5055.65, 156.99, -130.66),
-    ["Bizarre Star"] = CFrame.new(4961.03, 105.72, -2421.50),
-    ["Z Star"] = CFrame.new(4762.91, 111.30, -4713.02)
-}
-
-local EggList = {}
-for name, _ in pairs(EggPositions) do
-    table.insert(EggList, name)
-end
-
-local EggDropdown = Tabs.Egg:AddDropdown("EggNameDropdown", {
-    Title = "Selecting Egg",
-    Description = "Choose the egg you want to crack open.",
-    Values = EggList,
-    Default = "Slayer Star",
-})
-
-EggDropdown:OnChanged(function(value)
-    selectedEgg = value
-end)
-
-local HatchModeDropdown = Tabs.Egg:AddDropdown("HatchModeDropdown", {
-    Title = "Hatch mode",
-    Values = {"One", "All"},
-    Default = "One",
-})
-
-HatchModeDropdown:OnChanged(function(value)
-    hatchMode = value
-end)
-
-Tabs.Egg:AddToggle("AutoHatchRemoteToggle", {
-    Title = "Auto Hatch (Remote)",
-    Description = "Activates Auto Hatch with teleport.",
-    Default = false,
-    Callback = function(state)
-        autoHatchEnabled = state
-
-        if autoHatchEnabled then
-            task.spawn(function()
-                while autoHatchEnabled do
-                    if selectedEgg and hatchMode and EggPositions[selectedEgg] then
-                        pcall(function()
-                            hrp.CFrame = EggPositions[selectedEgg]
-                        end)
-
-                        task.wait(0.5) -- espera pequeno antes de dar hatch
-
-                        local args = {
-                            [1] = {
-                                [1] = {
-                                    [1] = "PetSystem",
-                                    [2] = "Open",
-                                    [3] = selectedEgg,
-                                    [4] = hatchMode,
-                                    ["n"] = 4
-                                },
-                                [2] = "\2"
-                            }
-                        }
-
-                        remote:FireServer(unpack(args))
-                    end
-
-                    task.wait(2)
-                end
-            end)
-        end
-    end
-})
-
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+local Player = game:GetService("Players")
+local localPlayer = Player.LocalPlayer
 
 localPlayer:SetAttribute("VIP", true)
 
@@ -970,9 +800,6 @@ Tabs.Misc:AddButton({
     Callback = function()
     end
 })
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remote = ReplicatedStorage:WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent")
 
 local function sendCode(code)
     local args = {
@@ -990,16 +817,6 @@ local function sendCode(code)
     remote:FireServer(unpack(args))
 end
 
-local codes = {
-    "CometsUPD4",           -- 25 Crystals and 5 Easter boxes (NEW)
-    "EasterPart2",          -- 4 All Potions Tier 2 and 25 Crystals (NEW)
-    "YEAH130KLIKES",        -- 4 All Potions Tier 2 and 25 Crystals (NEW)
-    "JOJOUPD3",             -- 5 Golden Arrows, 1 Custom Ticket, and 25 Crystals
-    "WOW120KLIKES",         -- 4 All Potions Tier 2 and 25 Crystals
-    "SHUTDOWN",             -- Reset Raid and Dungeon Cooldown
-    "Release"               -- 1x All Potions Tier 2
-}
-
 for _, code in ipairs(codes) do
     sendCode(code)
 end
@@ -1012,10 +829,6 @@ Tabs.Misc:AddButton({
         end
     end
 })
-
-local AntiAfkConfig = {
-    connection = nil
-}
 
 function AntiAfkConfig:Toggle(state)
     local player = game:GetService("Players").LocalPlayer
@@ -1068,14 +881,6 @@ Fluent:Notify({
     Duration = 5
 })
 
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-
--- Remove instância anterior
-local ExistingGui = CoreGui:FindFirstChild("MinimizeButtonGui")
-if ExistingGui then ExistingGui:Destroy() end
-
--- Procura a GUI principal
 local ScreenGuiToMinimize
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then

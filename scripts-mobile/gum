@@ -770,21 +770,9 @@ UtilitiesSection:AddToggle("AutoClaimPlaytime", {
             while AutoClaimPlaytime do
                 for i = 1, 9 do
                     pcall(function()
-                        local args = {
-                            [1] = "ClaimPlaytime",
-                            [2] = i
-                        }
-
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Shared")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Network")
-                            :WaitForChild("Remote")
-                            :WaitForChild("Function")
-                            :InvokeServer(unpack(args))
+                        RemoteFunction:InvokeServer("ClaimPlaytime", i)
                     end)
                 end
-
                 task.wait(5)
             end
         end)
